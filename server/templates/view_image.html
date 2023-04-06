@@ -1,0 +1,13 @@
+<!doctype html>
+<html>
+<body>
+    <img src={{ url_for('view_file', subpath="image", file=image_file)}} alt="IMAGE" class="responsive">
+</body>
+</html>
+
+<style>
+    .responsive {
+        width: 100%;
+        height: auto;
+    }
+</style>

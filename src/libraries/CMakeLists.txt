@@ -1,3 +1,2 @@
-add_subdirectory(
-    readerwriterqueue
-    )
+add_subdirectory(readerwriterqueue)
+add_subdirectory(MiniPID)

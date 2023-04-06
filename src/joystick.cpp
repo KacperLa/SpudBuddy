@@ -1,66 +1,82 @@
 #include "joystick.h"
 
-Joystick::Joystick(const std::string &device) : device(device) {}
+Joystick::Joystick(const std::string name, Log& logger) : ronThread(name, logger) {
+}
 
-Joystick::~Joystick() {}
+void Joystick::addDevice(const std::string new_device)
+{
+    device = new_device;
+}
 
 bool Joystick::open() {
     // Open the joystick device
-    joystick = ::open(device.c_str(), O_RDONLY);
-
+    joystick_ = ::open(device.c_str(), O_RDONLY);
+    
+    pfd.fd = joystick_;
+    pfd.events = POLLIN;
     // Check if the joystick was opened successfully
-    return joystick != -1;
+    return joystick_ != -1;
 }
 
-bool Joystick::readEvent(js_event &event) {
+bool Joystick::readEvent(js_event& event) {
     // Read a joystick event
-    return read(joystick, &event, sizeof(event)) > 0;
+    if (poll(&pfd, 1, 1000) == -1) {
+        return 0;
+    }    
+
+    if (pfd.revents & POLLIN) {
+        // Data is available, read it
+        return read(joystick_, &event, sizeof(event)) > 0;
+    }
+    return 0;
 }
 
 void Joystick::close() {
     // Close the joystick device
-    ::close(joystick);
+    logger.pushEvent("[joystick] closing fd");
+    ::close(joystick_);
 }
 
-void Joystick::getState(JoystickState & data){
-    std::lock_guard<std::mutex> lock(joystick_state_lock);
+void Joystick::getState(JoystickState& data) {
+    std::lock_guard<std::mutex> lock(joystick_state_lock_);
     data = js_state;
 }
 
-void Joystick::updateState(JoystickState data){
-    std::lock_guard<std::mutex> lock(joystick_state_lock);
+void Joystick::updateState(const JoystickState& data) {
+    std::lock_guard<std::mutex> lock(joystick_state_lock_);
     js_state = data;
 }
 
-void Joystick::ReadJoystickLoop() {
+void Joystick::loop() {
     // Open the joystick device
     if (!open()) {
-        std::cout << "error opening joystick." << std::endl;
+        logger.pushEvent("[joystick] Error opening joystick");
         return;
     }
 
     // Read the joystick events
     js_event event;
-    int x = 0;
-    int y = 0;
-    while (readEvent(event)) {
-        // Check the type of the event
-        if (event.type == JS_EVENT_AXIS) {
-            std::cout << "got event"<< std::endl;
-            // Check the axis of the event
-            if (event.number == 0) {
-                // X axis
-                x = event.value;
-            } else if (event.number == 1) {
-                // Y axis
-                y = event.value;
-            }
+    float x = 0;
+    float y = 0;
+    while (running.load(std::memory_order_relaxed)){
+        if (readEvent(event)) {
+            // Check the type of the event
+            if (event.type == JS_EVENT_AXIS) {
+                // Check the axis of the event
+                if (event.number == 0) {
+                    // X axis
+                    x = event.value / 32767.0f;
+                } else if (event.number == 1) {
+                    // Y axis
+                    y = event.value / 32767.0f;
+                }
 
-            // Add the new values to the queue
-            JoystickState data{std::chrono::high_resolution_clock::now(), x, y};
-            updateState(data);
+                // Add the new values to the queue
+                JoystickState data{std::chrono::high_resolution_clock::now(), x, y};
+                updateState(data);
+            }
         }
-        usleep(10);
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 
     // Close the joystick device

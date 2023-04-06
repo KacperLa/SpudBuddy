@@ -4,6 +4,15 @@
 [submodule "src/libraries/cppzmq"]
 	path = src/libraries/cppzmq
 	url = https://github.com/zeromq/cppzmq.git
+	branch = v4.7.1
 [submodule "src/libraries/libzmq"]
 	path = src/libraries/libzmq
 	url = https://github.com/zeromq/libzmq.git
+[submodule "src/libraries/tinyfsm"]
+	path = src/libraries/tinyfsm
+	url = https://github.com/digint/tinyfsm.git
+	branch = v0.3.3
+[submodule "src/libraries/MiniPID"]
+	path = src/libraries/MiniPID
+	url = https://github.com/KacperLa/MiniPID
+	branch = adding_cmake_and_getters

@@ -1,70 +1,120 @@
 #include "IMUReader.h"
+#include <sys/resource.h>
 
-IMUReader::IMUReader(const std::string &device) : device(device) {}
+IMUReader::IMUReader(const std::string& new_bus, const std::string name, Log& logger) :
+  ronThread(name, logger)
+{
+  this->bus = new_bus;
+  this->running = true;
+}
 
-IMUReader::~IMUReader() {}
+IMUReader::~IMUReader()
+{
+}
 
 bool IMUReader::open() {
-    return bno055.imu_init(config.BNO055_I2C_BUS.c_str(), BNO055_I2C_ADDRESS, imu);
+  return bno055.imu_init("/dev/i2c-1", BNO055_I2C_ADDRESS, imu);
 }
 
-bool IMUReader::readEvent(js_event &event) {
-    // Read a joystick event
-    BNO055::euler_angles angles;
-    int ret = bno055.get_euler_angles(&angles);
-    imu_state.roll = angles.roll;
-    imu_state.pitch = angles.pitch;
-    imu_state.yaw = angles.yaw;
-
-    return read(joystick, &event, sizeof(event)) > 0;
+bool IMUReader::readAngles(angles_t& angles) {
+  // Read a euler angles from BNO055
+  int ret = bno055.get_euler_angles(&angles);
+  if (ret < 0){
+    std::cerr << "Error getting IMU angles." << std::endl;
+  }
+  return ret < 0;
 }
 
-void IMUReader::close() {
-    // Close the joystick device
-    ::close(joystick);
+bool IMUReader::readRates(rates_t& rates) {
+  // Read a rates from BNO055
+  int ret = bno055.get_gyro_data(&rates);
+  if (ret < 0){
+    std::cerr << "Error getting IMU gyreo rates." << std::endl;
+  }
+  return ret < 0;
 }
 
-void IMUReader::getState(JoystickState & data){
-    std::lock_guard<std::mutex> lock(joystick_state_lock);
-    data = js_state;
+bool IMUReader::getState(IMUState& data) {
+  std::lock_guard<std::mutex> lock(imu_state_lock);
+  data = imu_state;
+  return data.error;
 }
 
-void IMUReader::updateState(JoystickState data){
-    std::lock_guard<std::mutex> lock(joystick_state_lock);
-    js_state = data;
+void IMUReader::updateState(IMUState data) {
+  std::lock_guard<std::mutex> lock(imu_state_lock);
+  imu_state = data;
 }
 
-void IMUReader::ReadJoystickLoop() {
-    // Open the joystick device
-    if (!open()) {
-        std::cout << "error opening joystick." << std::endl;
-        return;
+void IMUReader::stop() {
+  running = false;
+}
+
+void transformReading(angles_t & reading)
+{
+  double tmp = reading.pitch;
+  reading.pitch = reading.roll * -1;
+  reading.roll = tmp;
+}
+
+void IMUReader::loop() {
+  setpriority(PRIO_PROCESS, getpid(), 1);
+
+  IMUState data;
+  // Open the BNO055 device
+  if (open() != 0) {
+    std::cerr << "Error opening IMU." << std::endl;
+    data.error = IMU_ERROR::SENSOR_INIT_FAILURE;
+    return;
+  }
+
+  // Read the IMU data
+  angles_t angles;
+  rates_t rates;
+  IMUState last_state;
+
+  while (running) {
+    int imu_status = bno055.get_sstat();
+    if (imu_status > 0){
+      //printf("IMU STATUS: 0x%02X\n", imu_status);
+      //bno055.print_sstat(imu_status);
+      if (imu_status == 0x01){
+        bno055.print_serror(bno055.get_serror());
+      } else if (imu_status == 0x06){
+        std::cout << "[IMU] No fusion alogithm ." << std::endl;        
+      }
     }
+    
+    if (!readAngles(angles) && !readRates(rates))
+    {
+      transformReading(angles);
 
-    // Read the joystick events
-    js_event event;
-    int x = 0;
-    int y = 0;
-    while (readEvent(event)) {
-        // Check the type of the event
-        if (event.type == JS_EVENT_AXIS) {
-            std::cout << "got event"<< std::endl;
-            // Check the axis of the event
-            if (event.number == 0) {
-                // X axis
-                x = event.value;
-            } else if (event.number == 1) {
-                // Y axis
-                y = event.value;
-            }
-
-            // Add the new values to the queue
-            JoystickState data{std::chrono::high_resolution_clock::now(), x, y};
-            updateState(data);
+      getState(last_state);
+      //log("old pitch: " + std::to_string(last_state.angles.pitch) + " new pitch: " + std::to_string(angles.pitch));
+     
+      if ((std::chrono::high_resolution_clock::now() - last_state.timestamp) > forget_time)
+      {
+        data = {angles, rates, std::chrono::high_resolution_clock::now(), 1, 0};
+        updateState(data);
+        std::cout << "[IMU] Updating the IMU to replace old data." << std::endl;    
+      } else {
+        if (fabs(angles.pitch - last_state.angles.pitch) < 10)
+        {
+          data = {angles, rates, std::chrono::high_resolution_clock::now(), 1, 0};
+          updateState(data);
+        } else {
+          std::cout << "[IMU] Difference between consecative pitch reading was greater than 10 degrees, ignorring reading." << std::endl;    
         }
-        usleep(10);
+      }
+    } 
+    else
+    {
+      std::cerr << "Error getting IMU data." << std::endl;
+      data.error = true;
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  }
 
-    // Close the joystick device
-    close();
+  // Close the BNO055 device
+  // This is already done by the destructor of the BNO055 object
 }
+

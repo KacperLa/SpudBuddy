@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>{{ title }}</title>
+    <script src="{{ url_for('static', filename='chartjs/package/dist/chart.min.js') }}"></script>
+    <style>
+      canvas{
+        margin: 0 auto;
+      }
+      p {
+        font-family: Arial;
+        font-size: 20px;
+      }
+      h1{
+        font-family: Arial;
+      }
+    </style>
+</head>
+
+<body>
+  <div style="text-align:center">
+    <canvas height="600" id="chart" width="1000"></canvas>
+    <script>
+      const randomNum = () => Math.floor(Math.random() * (235 - 52 + 1) + 52);
+      const randomRGB = () => `rgb(${randomNum()}, ${randomNum()}, ${randomNum()})`;
+
+
+      var ctx = document.getElementById("chart").getContext("2d");
+      var LineChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [
+                    {% for item in labels %}
+                      "{{ item }}",
+                    {% endfor %}
+                  ],
+          datasets: [
+                      {% for sensor in sensor_list %}
+                        {
+                          label: "{{sensor['sensor']}} {{sensor['units']}}",
+                          borderColor: randomRGB(),
+                          fill: false,
+                          data : [
+                            {% for item in sensor['values'] %}
+                                {{ item }},
+                            {% endfor %}
+                          ]
+                        },
+                      {% endfor %}
+                    ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: {
+                ticks: {
+                    font: {
+                        size: 20,
+                    }
+                }
+            },
+            y: {
+                ticks: {
+                    font: {
+                        size: 20,
+                    }
+                }
+            }                       
+          },
+          plugins: {
+                  legend: {
+                    position: 'top',
+                    labels: {
+                        // This more specific font property overrides the global property
+                        font: {
+                            size: 20
+                        }
+                    }
+                  },
+                  title: {
+                    display: true,
+                  }
+                }
+          }
+        });
+
+      function addData(chart, label, data) {
+        chart.data.labels.push(label);
+        chart.data.labels.shift();
+
+        chart.data.datasets.forEach(function (dataset, i) {
+            dataset.data.shift();
+            dataset.data.push(data[i]);
+        });
+        chart.update();
+      }
+
+      var intervalId = setInterval(function() {
+        
+        let xhr = new XMLHttpRequest();
+        let url = "/sensors/{{ title }}";
+    
+        xhr.open("GET", url, true);
+
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                const obj = JSON.parse(this.responseText);
+                const data_array = obj.data.split(" ");
+                const label = data_array[0].split(",")[1].split(".")[0]
+                const data = data_array[1].split(",").map(Number)
+
+                addData(LineChart, label, data)
+            }
+        };
+        xhr.send();
+      }, 1000);
+    </script>
+</div>
+</body>
+</html>

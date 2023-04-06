@@ -1,0 +1,13 @@
+[Unit]
+Description=aker-flask-service
+After=network.target
+StartLimitIntervalSec=0
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=aker
+ExecStart=/mnt/SD_CARD/pi_orchestration/flask/start.sh -s JETSON
+
+[Install]
+WantedBy=multi-user.target

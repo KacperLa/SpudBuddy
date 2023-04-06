@@ -1,0 +1,397 @@
+{   
+    "SYSTEM": "JETSON",
+    "system_paths": {
+        "export_path": "/mnt/SD_CARD/aker-export",
+        "flight_plans": "/mnt/SD_CARD/aker-flight-plans",
+        "image_path": "/mnt/SD_CARD/aker-images",
+        "log_path": "/mnt/SD_CARD/application_logs",
+        "batch_id_path": "/mnt/SD_CARD/application_logs/local_batch.txt",
+        "probe_id": "/mnt/SD_CARD/pi_orchestration/config/PROBE_SERIAL",
+        "database": "/mnt/SD_CARD/pi_orchestration/flask/db/production.sqlite3",
+        "update_probe": "/mnt/SD_CARD/pi_orchestration/lib/shell/update_probe.sh",
+        "Shutdown": "/mnt/SD_CARD/pi_orchestration/services/sensor_service/graceful-shutdown.sh"
+    },
+    "tone_paths": {
+        "alarm": "/mnt/SD_CARD/pi_orchestration/tones/alarm.sh",
+        "shutter": "/mnt/SD_CARD/pi_orchestration/tones/shutter.sh",
+        "done": "/mnt/SD_CARD/pi_orchestration/tones/done.sh",
+        "over_temp": "/mnt/SD_CARD/pi_orchestration/tones/temp_alarm.sh",
+        "shutdown": "/mnt/SD_CARD/pi_orchestration/tones/shutdown.sh",
+        "startup": "/mnt/SD_CARD/pi_orchestration/tones/startup.sh"
+    },
+    "sockets": {
+        "camera": "6557",
+        "core": "6556",
+        "core_logs": "6000",
+        "gps": "6558",
+        "joystick": "6581",
+        "web_js": "6681",
+        "wifi": "6555",
+        "stream": [
+            "16550",
+            "16551",
+            "16552"
+          ]
+    },
+    "mission": {
+        "info": {
+            "grower": null,
+            "field_name": null,
+            "crop_type": null,
+            "growth_stage": null,
+            "work_order_id": null,
+            "user": null,
+            "company": null,
+            "job": null,
+            "scout_mode": null,
+            "drone_mode": null,
+            "apn_target": null
+        },
+        "samples": []
+    },
+    "wifi_configuration": {
+        "message_list": {
+            "status": {
+                "request": "status"
+            }, 
+            "connect": {
+                "request": "connect",
+                "ssid": null,
+                "password": null
+            },
+            "rescan": {
+                "request": "rescan"
+            },
+            "network_list": {
+                "request": "network_list",
+                "first_nth_items": null
+            },
+            "connection_list": {
+                "request": "connection_list"
+            },
+            "forget_network": {
+                "request": "forget_network",
+                "ssid": null
+            },
+            "get_saved_connection_list":{
+                "request": "get_saved_connection_list"
+            },
+            "delete":{
+                "request": "delete",
+                "name": null
+            },
+            "down":{
+                "request": "down",
+                "name": null
+            },
+            "up":{
+                "request": "up",
+                "name": null
+            },
+            "create_static_eth": {
+                "request": "create_static_eth",
+                "name": null,
+                "ip": null
+            }
+        }
+    },
+    "log": {
+        "path": {
+            "service": {
+                "sensor_service": "/mnt/SD_CARD/application_logs/sensor_service.log", 
+                "gpio_service": "/mnt/SD_CARD/application_logs/gpio_service.log", 
+                "gps_service": "/mnt/SD_CARD/application_logs/gps_service.csv",
+                "wifi_service": "/mnt/SD_CARD/application_logs/wifi.log",
+                "last_sample": "/mnt/SD_CARD/application_logs/trigger.log",
+                "shutdown": "/mnt/SD_CARD/application_logs/shutdown.log",
+                "update": "/mnt/SD_CARD/application_logs/update.log",
+                "upload": "/mnt/SD_CARD/application_logs/upload.log"
+            },
+            "sensors": {
+                "CO2": "/mnt/SD_CARD/sensor_logs/CO2.csv",
+                "O2": "/mnt/SD_CARD/sensor_logs/O2.csv",
+                "GPS": "/mnt/SD_CARD/sensor_logs/GPS.csv",
+                "TEMP": "/mnt/SD_CARD/sensor_logs/TEMP.csv",
+                "BME280": "/mnt/SD_CARD/sensor_logs/BME280.csv",
+                "BNO055": "/mnt/SD_CARD/sensor_logs/BNO055.csv",
+                "SOM": "/mnt/SD_CARD/sensor_logs/SOM.csv",
+                "INA219": "/mnt/SD_CARD/sensor_logs/INA219.csv",
+                "DRONE": "/mnt/SD_CARD/application_logs/mission_handler_sample_data.txt"
+            }
+        }
+    },
+    "actions": {
+      "script_list": {
+        "shutdown": {
+          "script": "/mnt/SD_CARD/pi_orchestration/services/sensor_service/graceful-shutdown.sh"
+        }
+      },
+      "message_list": {
+          "request_transition": {
+              "socket": "core",
+              "request": "request_transition",
+              "action": null
+          },
+          "request_pid_coeffs": {
+            "socket": "core",
+            "request": "request_pid_coeffs"
+          },
+          "set_pid_coeffs": {
+            "socket": "core",
+            "request": "set_pid_coeffs",
+            "pP": null,
+            "pI": null,
+            "pD": null,
+            "vP": null,
+            "vI": null,
+            "vD": null,
+            "yP": null,
+            "yI": null,
+            "yD": null
+          },
+          "stop_stream": {
+              "socket": "camera",
+              "request": "stop_stream",
+              "dev_response": "PROBE ID NOT SET"
+          },
+          "set_camera_params":{
+              "socket": "camera",
+              "request": "set_camera_params",
+              "params": [
+                  {                          
+                      "exposure": {
+                          "value": 10,
+                          "range": [
+                            50,
+                            10000
+                          ],
+                          "description": []
+                        },
+                        "autoexposureprio": {
+                          "value": 1,
+                          "range": [
+                            0,
+                            1
+                          ],
+                          "description": "exposure auto priority"
+                        },
+                        "autoexposure": {
+                          "value": 3,
+                          "range": [
+                            0,
+                            3
+                          ],
+                          "description": "exposure priority mode"
+                        },
+                        "awb": {
+                          "value": 1,
+                          "range": [
+                            0,
+                            1
+                          ],
+                          "description": "Auto white balance"
+                        },
+                        "wb_temp": {
+                          "value": 4600,
+                          "range": [],
+                          "description": "White balace color temp"
+                        },
+                        "ISO": {
+                          "value": 0,
+                          "range": [],
+                          "desciption": "ISO"
+                        },
+                        "shutter": {
+                          "value": 0,
+                          "range": [],
+                          "description": "shutter"
+                        },
+                        "backlight": {
+                          "value": 1,
+                          "range": [
+                            0,
+                            1
+                          ],
+                          "description": "backlight compensation"
+                        },
+                        "focus": {
+                          "value": 1
+                        },
+                        "autofocus": {
+                          "value": 1        
+                        },
+                        "metering": {
+                          "value": "average",
+                          "range": [
+                            "average",
+                            "spot",
+                            "backlit",
+                            "matrix"
+                          ],
+                          "description": "metering mode auto focus"
+                        },
+                        "saturation": {
+                          "value": 64,
+                          "range": [],
+                          "description": ""
+                        },
+                        "brightness": {
+                          "value": 0,
+                          "range": [],
+                          "description": ""
+                        },
+                        "contrast": {
+                          "value": 50,
+                          "range": [],
+                          "description": ""
+                        },
+                        "sharpness": {
+                          "value": 50,
+                          "range": [],
+                          "description": ""
+                        },
+                        "frameSize": {
+                          "sample": [
+                            2592,
+                            1944
+                          ],
+                          "opticalFlow": [
+                            640,
+                            480
+                          ]
+                        },
+                        "frameRate": {
+                          "sample": 15,
+                          "opticalFlow": 30
+                        },
+                        "frameFormat": {
+                          "sample": 1196444237,
+                          "opticalFlow": 1196444237
+                        },
+                        "OFthreshold": 14,
+                        "thumbSize": [
+                          200,
+                          150
+                        ],
+                        "jpeg_q": {
+                          "value": 85,
+                          "descripiton": "JPEG quality factor"
+                        }
+                  } 
+              ],
+              "dev_response": "PROBE ID NOT SET"              
+          },
+          "get_power_status":{
+              "socket": "sensor",
+              "request": "get_power_status",
+              "dev_response": "PROBE ID NOT SET"
+          },
+          "get_som_status": {
+              "socket": "sensor",
+              "request": "get_som_status",
+              "dev_response": "PROBE ID NOT SET"
+          },
+          "get_storage_details": {
+              "socket": "sensor",
+              "request": "get_storage_details",
+              "dev_response": "PROBE ID NOT SET"
+          },
+          "imu_log_start": {
+              "socket": "sensor",
+              "request": "enable_imu_log"
+          },
+          "imu_log_stop": {
+              "socket": "sensor",
+              "request": "disable_imu_log"
+          },
+          "sensor_fan": {
+              "socket": "sensor",
+              "request": "sensor_fan",
+              "state": null,
+              "dev_response": "PROBE ID NOT SET"
+          },
+          "sensor_fan_toggle": {
+              "socket": "sensor",
+              "request": "sensor_fan_toggle",
+              "dev_response": "PROBE ID NOT SET"
+          },
+          "test_colling_fan": {
+            "socket": "sensor",
+            "request": "test_colling_fan",
+            "dev_response": "PROBE ID NOT SET"
+          },
+          "cooling_fan": {
+              "socket": "sensor",
+              "request": "cooling_fan",
+              "state": null,
+              "dev_response": "PROBE ID NOT SET"
+          },
+          "get_gps_status": {
+              "socket": "gps",
+              "request": "get_gps_status",
+              "dev_response": "PROBE ID NOT SET"
+          },
+          "get_co2_status": {
+              "socket": "sensor",
+              "request": "get_co2_status",
+              "dev_response": "PROBE ID NOT SET"
+          },
+          "get_o2_status": {
+              "socket": "sensor",
+              "request": "get_o2_status",
+              "dev_response": "PROBE ID NOT SET"
+          },
+          "get_temp_status": {
+              "socket": "sensor",
+              "request": "get_temp_status",
+              "dev_response": "PROBE ID NOT SET"
+          },
+          "get_humid_status": {
+              "socket": "sensor",
+              "request": "get_humid_status",
+              "dev_response": "PROBE ID NOT SET"
+          },
+          "get_pressure_status": {
+              "socket": "sensor",
+              "request": " get_pressure_status",
+              "dev_response": "PROBE ID NOT SET"
+          },
+          "get_env_status": {
+              "socket": "sensor",
+              "request": "get_env_status",
+              "dev_response": "PROBE ID NOT SET"
+          },
+          "drone_status": {
+              "socket": "drone",
+              "request": "status"
+          },
+          "drone_connect":{
+              "socket": "sensor",
+              "request": "AkerSC2_start"
+          },
+          "drone_disconnect":{
+              "socket": "sensor",
+              "request": "AkerSC2_stop"
+          },
+          "drone_ground_detected":{
+              "socket": "drone",
+              "request": "ground_detected"
+          },
+          "drone_start_mission":{
+              "socket": "drone",
+              "request": "start_mission"
+          },
+          "drone_capture_photo": {
+              "socket": "drone",
+              "request": "drone_capture_photo"
+          },
+          "load_mission": {
+              "socket": "drone",
+              "request": "load_mission",
+              "data": {
+                "mission_start_index": 0
+              }
+          }
+        }
+    }
+}

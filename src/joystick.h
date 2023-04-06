@@ -1,44 +1,48 @@
 #ifndef JOYSTICK_H
 #define JOYSTICK_H
 
-#include <fcntl.h>
-#include <unistd.h>
 #include <linux/joystick.h>
-#include <chrono>
 #include <string>
-#include "iostream"
+#include <iostream>
+#include <thread>
 #include <mutex>
+#include <atomic>
+#include <chrono>
+#include "fcntl.h"
+#include "unistd.h"
+#include <poll.h>
+
+#include<ronThread.h>
 
 struct JoystickState {
-    std::chrono::high_resolution_clock::time_point timestamp;
-    int x {0};
-    int y {0};
+    std::chrono::time_point<std::chrono::high_resolution_clock> time;
+    float x, y;
 };
 
-class Joystick {
+class Joystick : public ronThread
+{
 public:
-    Joystick(const std::string &device);
+    Joystick(const std::string name, Log& logger);
 
-    virtual ~Joystick();
+    void addDevice(const std::string new_device);
+    void getState(JoystickState& data);
 
-    virtual bool open();
+protected:
+    virtual void loop() override;
+    bool open();
+    void close();
 
-    virtual bool readEvent(js_event &event);
+    bool readEvent(js_event& event);
 
-    void getState(JoystickState & data);
-    void updateState(JoystickState data);
-
-    void ReadJoystickLoop();
-
-    virtual void close();
-
-private:
-    std::mutex joystick_state_lock;
+    void updateState(const JoystickState& data);
 
     std::string device;
-    int joystick;
+    int joystick_;
+    struct pollfd pfd;
+
 
     JoystickState js_state;
+    std::mutex joystick_state_lock_;
 };
 
-#endif
+#endif // JOYSTICK_H
