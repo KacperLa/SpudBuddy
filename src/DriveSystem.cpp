@@ -25,7 +25,7 @@ void DriveSystem::close() {
 }
 
 void DriveSystem::setTorque(float& t, const int axis_id){
-    odriveCAN.SetTorque(axis_id, t);
+    odriveCAN.SetVelocity(axis_id, t);
 }
 
 void DriveSystem::getVelocity(float& vel, const int axis_id){

@@ -118,11 +118,12 @@ void zmq_sockets_poll()
                     parsed_message.contains("vD") &&
                     parsed_message.contains("yP") &&
                     parsed_message.contains("yI") &&
-                    parsed_message.contains("yD")){
+                    parsed_message.contains("yD") &&
+                    parsed_message.contains("pitchZero")){
                     fsm_handle::setControllerCoeffs(parsed_message);
                 }
                 reply_json = {{"success", true},{"message", fsm_handle::getControllerCoeffs()}};
-            }
+            } 
             
             // else if (parsed_message.at("request") == "set_pid"){
             //     if (parsed_message.contains("P") && parsed_message.contains("I") && parsed_message.contains("D")){
@@ -289,8 +290,8 @@ int main(int argc, char *argv[])
                 }
                 
                 cmd_data new_cmd;
-                new_cmd.v = js_state.y + 100.0f;
-                new_cmd.o = 0;//(new_js.stick[0] / 32767.0f);
+                new_cmd.v = js_state.y / 100.0f;
+                new_cmd.o = (js_state.x / 100.0f);
                 fsm_handle::dispatch(new_cmd);
 
                 imu_data new_imu;

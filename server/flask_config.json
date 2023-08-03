@@ -147,7 +147,8 @@
             "vD": null,
             "yP": null,
             "yI": null,
-            "yD": null
+            "yD": null,
+            "pitchZero": null
           },
           "stop_stream": {
               "socket": "camera",

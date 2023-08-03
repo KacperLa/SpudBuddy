@@ -45,38 +45,51 @@
                 <div class="modal-body">
                     <form> 
                         <div class="form-group row">
-                            <div class="form-group mx-1 col-md-4 my-auto">Pitch:</div>
+                            <div class="form-group mx-1 col-md-2 my-auto">Pitch:</div>
                             <div class="form-group mx-1 my-auto">P</div>
-                            <div class="form-group mx-1 col-md-3 my-auto">
+                            <div class="form-group mx-1 col-md-2 my-auto">
                                 <input type="text" class="form-control" id="pP" value="0">
                             </div>
                             <div class="form-group mx-1 my-auto">D</div>
-                            <div class="form-group mx-1 col-md-3 my-auto">
+                            <div class="form-group mx-1 col-md-2 my-auto">
                                 <input type="text" class="form-control" id="pD" value="0">
                             </div>
                         </div>
                         <div class="form-group row">
-                            <div class="form-group mx-1 col-md-4 my-auto">Velocity:</div>
+                            <div class="form-group mx-1 col-md-2 my-auto">Velocity:</div>
                             <div class="form-group mx-1 my-auto">P</div>
-                            <div class="form-group mx-1 col-md-3 my-auto">
+                            <div class="form-group mx-1 col-md-2 my-auto">
                                 <input type="text" class="form-control" id="vP" value="0">
                             </div>
                             <div class="form-group mx-1 my-auto">I</div>
-                            <div class="form-group mx-1 col-md-3 my-auto">
+                            <div class="form-group mx-1 col-md-2 my-auto">
                                 <input type="text" class="form-control" id="vI" value="0">
+                            </div>
+                            <div class="form-group mx-1 my-auto">D</div>
+                            <div class="form-group mx-1 col-md-2 my-auto">
+                                <input type="text" class="form-control" id="vD" value="0">
                             </div>
                         </div>
                         <div class="form-group row">
-                            <div class="form-group mx-1 col-md-4 my-auto">Yaw:</div>
+                            <div class="form-group mx-1 col-md-2 my-auto">Yaw:</div>
                             <div class="form-group mx-1 my-auto">P</div>
-                            <div class="form-group mx-1 col-md-3 my-auto">
+                            <div class="form-group mx-1 col-md-2 my-auto">
                                 <input type="text" class="form-control" id="yP" value="0">
                             </div>
                             <div class="form-group mx-1 my-auto">D</div>
-                            <div class="form-group mx-1 col-md-3 my-auto">
+                            <div class="form-group mx-1 col-md-2 my-auto">
                                 <input type="text" class="form-control" id="yD" value="0">
                             </div>
                         </div>
+
+                        <div class="form-group row">
+                            <div class="form-group mx-1 col-md-4 my-auto">Balance Point:</div>
+                            <div class="form-group mx-1 my-auto">Pitch</div>
+                            <div class="form-group mx-1 col-md-2 my-auto">
+                                <input type="text" class="form-control" id="pitchZero" value="0">
+                            </div>
+                        </div>
+
                         <div class="form-group row">
                             <div class="form-group mx-auto my-auto">     
                                 <button class="btn btn-success" type="button" onclick="sendCoreReq('core', 'request_pid_coeffs')">
@@ -340,8 +353,10 @@
                let pD = document.getElementById('pD');
                let vP = document.getElementById('vP');
                let vI = document.getElementById('vI');
+               let vD = document.getElementById('vD');
                let yP = document.getElementById('yP');
                let yD = document.getElementById('yD');
+               let pitch = document.getElementById('pitchZero');
 
               let xhr = new XMLHttpRequest();
               let url = "/action/set_pid_coeffs";
@@ -353,25 +368,30 @@
               xhr.onreadystatechange = function () {
                   if (xhr.readyState === 4 && xhr.status === 200) {
                        var data = JSON.parse(this.responseText).data;
-                       console.log(data)
+                       console.log(data);
                        pP.value = data.pitch.p;
                        pD.value = data.pitch.d;
                        vP.value = data.velocity.p;
                        vI.value = data.velocity.i;
+                       vD.value = data.velocity.d;
                        yP.value = data.yaw.p;
                        yD.value = data.yaw.d;
+                       pitch.value = data.balancePoint.pitch;
                   }
               };
               var data = JSON.stringify({"socket": "core", "request": "set_pid_coeffs",
                                             "pP": pP.value,
+                                            "pitchZero": pitch.value,
                                             "pI": "0",
                                             "pD": pD.value,
                                             "vP": vP.value,
                                             "vI": vI.value,
-                                            "vD": "0",
+                                            "vD": vD.value,
                                             "yP": yP.value,
                                             "yI": "0",
-                                            "yD": yD.value});
+                                            "yD": yD.value,
+                                            
+                                        });
               xhr.send(data);
            }
 
@@ -381,8 +401,11 @@
                 let pD = document.getElementById('pD');
                 let vP = document.getElementById('vP');
                 let vI = document.getElementById('vI');
+                let vD = document.getElementById('vD');
                 let yP = document.getElementById('yP');
                 let yD = document.getElementById('yD');
+                let pitch = document.getElementById('pitchZero');
+
 
                 // console.log("pid coeffs", pP, pD, vP, vI, yP, yD)
 
@@ -401,8 +424,10 @@
                         pD.value = data.pitch.d;
                         vP.value = data.velocity.p;
                         vI.value = data.velocity.i
+                        vD.value = data.velocity.d
                         yP.value = data.yaw.p;
                         yD.value = data.yaw.d;
+                        pitch.value = data.balancePoint.pitch;
                    }
                };
                var data = JSON.stringify({"socket": socket, "request": request});

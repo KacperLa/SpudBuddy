@@ -24,7 +24,7 @@ void Robot::react(RESET const &) {
 
 void Robot::react(cmd_data const &e)
 {
-  //desired_state.velocity  = e.v;
+  desired_state.velocity  = e.v;
   desired_state.rates.gyro_x = e.o;
 }
 
@@ -90,6 +90,11 @@ json Robot::getControllerCoeffs(){
                       {"d", vD}
                     }
                   },
+                  {"balancePoint",
+                    {
+                      {"pitch", desired_state.angles.pitch}
+                    }
+                  }
                };
   
   return j;
@@ -105,19 +110,20 @@ void Robot::setControllerCoeffs(json & coeffs){
     const double yP = std::stod(static_cast<std::string>(coeffs.at("yP")));
     const double yI = std::stod(static_cast<std::string>(coeffs.at("yI")));
     const double yD = std::stod(static_cast<std::string>(coeffs.at("yD")));
+    const double pitch = std::stod(static_cast<std::string>(coeffs.at("pitchZero")));
 
     controller.set_pitch_coeffs(&pP, &pI, &pD);
     controller.set_yaw_rate_coeffs(&yP, &yI, &yD);
     controller.set_velocity_coeffs(&vP, &vI, &vD);
+    desired_state.angles.pitch = pitch;
 }
-
 
 class Idle;
 class Error;
 class Running;
 
 int Robot::current_state = 0;
-RobotState Robot::desired_state = {{0.0, 10.0, 0.0}, {0.0, 0.0, 0.0}, {0.0}, {0.0}, {0.0}};
+RobotState Robot::desired_state = {{0.0, 7.5, 0.0}, {0.0, 0.0, 0.0}, {0.0}, {0.0}, {0.0}};
 RobotState Robot::actual_state;
 Controller Robot::controller;
 int nodes[2] = {Robot::leftNode, Robot::rightNode};

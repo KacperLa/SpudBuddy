@@ -877,6 +877,8 @@ def action(subpath):
             success = False
             data = ("Request %s does not exist." %subpath)
         
+        print(message)
+
         if success is None:
             if message['socket'] == "camera":
                 success, data = camera_socket.query(message)
