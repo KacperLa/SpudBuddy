@@ -118,6 +118,11 @@ def log_data():
 def data():
     return Response(generate_data(), mimetype='text/event-stream')
 
+
+@app.route('/tunning')
+def tunning():
+    return render_template('tunning.html')
+
 @app.route('/ron')
 def ron():
     return render_template('ron.html')
@@ -688,10 +693,11 @@ def sample_capture():
         content = request.json
 
         mission_info = None
+        PROBE_ID = 1111
 
         _ , batch_id = increment_batch_id(config['system_paths']['batch_id_path'])
         epoch = int(time.time())
-
+        print(content)
         wo = str(content.get('work_order_id', None)) if len(str(content.get('work_order_id', ''))) > 0 else None
         if wo is not None:
             if verify_workorder_number(wo):
@@ -707,7 +713,7 @@ def sample_capture():
             sensor_success, sensor_data = sensor_socket.query({"request": "get_env_status"})
             print("Sensor_time: ", time.time() - time_start, sensor_success)
             gps_success, gps_data = gps_socket.query({"request": "get_gps_status"})
-            print("GPS_time: ", time.time() - time_start, gps_success)
+            # print("GPS_time: ", time.time() - time_start, gps_success)
 
             if (check_if_running("AkerSC2")):
                 drone_success, drone_data = drone_socket.query({"request": "capture_info"})
@@ -718,13 +724,13 @@ def sample_capture():
                 threaded_save = False
                 focus_type = "center"
                 
-            camera_success, camera_data = camera_socket.query({"request": "capture_sample", "base_name": basename, "gps_data": gps_data, "sensor_data": sensor_data, "drone_data": drone_data, "threaded_save": threaded_save, "focus_type": focus_type}, timeout=3000)
-            print("Camera_time: ", time.time() - time_start, camera_success)
-            
-            if ((True in camera_success) if isinstance(camera_success, list) else camera_success) and sensor_success:
-                play_tone(config['tone_paths']['shutter'])
-            else:
-                play_tone(config['tone_paths']['alarm'])
+            #camera_success, camera_data = camera_socket.query({"request": "capture_sample", "base_name": basename, "gps_data": gps_data, "sensor_data": sensor_data, "drone_data": drone_data, "threaded_save": threaded_save, "focus_type": focus_type}, timeout=3000)
+            #print("Camera_time: ", time.time() - time_start, camera_success)
+           # 
+           # if ((True in camera_success) if isinstance(camera_success, list) else camera_success) and sensor_success:
+           #     play_tone(config['tone_paths']['shutter'])
+           # else:
+           #     play_tone(config['tone_paths']['alarm'])
 
             #print(wo)
             #print(camera_data)
