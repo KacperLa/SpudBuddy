@@ -36,9 +36,11 @@ public:
 private:
     std::mutex mtx;
 
-    MiniPID pitch_pid = MiniPID(0.1, 0.0, 1.25);
+    MiniPID pitch_pid = MiniPID(0.08, 0.0, 0.015);
     MiniPID yaw_rate_pid = MiniPID(0, 0, 0);
     MiniPID velocity_pid_l = MiniPID(0, 0.1, 0);
     MiniPID velocity_pid_r = MiniPID(0, 0.1, 0);
+    MiniPID velocity_pid = MiniPID(0, 0.1, 0);
+
 
 };

@@ -5,8 +5,8 @@
         "flight_plans": "/mnt/SD_CARD/aker-flight-plans",
         "image_path": "/mnt/SD_CARD/aker-images",
         "log_path": "/mnt/SD_CARD/application_logs",
-        "batch_id_path": "/mnt/SD_CARD/application_logs/local_batch.txt",
-        "probe_id": "/mnt/SD_CARD/pi_orchestration/config/PROBE_SERIAL",
+        "batch_id_path": "/opt/code/ronTheHelper/server/local_batch.txt",
+        "probe_id": "/opt/code/ronTheHelper/server/PROBE_SERIAL",
         "database": "/mnt/SD_CARD/pi_orchestration/flask/db/production.sqlite3",
         "update_probe": "/mnt/SD_CARD/pi_orchestration/lib/shell/update_probe.sh",
         "Shutdown": "/mnt/SD_CARD/pi_orchestration/services/sensor_service/graceful-shutdown.sh"

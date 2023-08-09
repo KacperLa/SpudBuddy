@@ -27,10 +27,6 @@ typedef enum {
     ERROR = 3
 } RobotStates;
 
-struct imu_data : tinyfsm::Event {
-    IMUState state;
-};
-
 struct cmd_data : tinyfsm::Event {
     double v;
     double o;
@@ -61,20 +57,23 @@ public:
     void react(FAIL const &);
     void react(SHUTDOWN const &);
 
-    void react(imu_data const &e);
     void react(cmd_data const &e);
     static json RequestAxisData(int id);
     static bool requestDriveSystemStatus();
+    static float getVelocityOfAxis(int axis);
+
     static json getControllerCoeffs();
     static void setControllerCoeffs(json & coeff);
+    static void set_imu(IMUState & new_imu_state);
 
     static RobotState desired_state;
     static RobotState actual_state;
 
-    static constexpr std::chrono::duration<double> error_time{1.0 / 100.0}; // 100 Hz
+    static constexpr std::chrono::duration<double> error_time{1.0 / 50.0}; // 50 Hz
 
 
     static int current_state;
+    static IMUState imu_state;
 
     static Controller controller;
     static DriveSystem driveSystem;
@@ -84,17 +83,17 @@ public:
     static const int leftNode       {0};
     static const int rightNode      {1};
 
+    static std::chrono::high_resolution_clock::time_point imu_timestamp;
+
 
 private:
   
-
   ODriveCAN::AxisState_t requestedWheelState = ODriveCAN::AXIS_STATE_UNDEFINED;
   
   ODriveCAN odriveCAN;
   
   static float adcVoltage;
   static float vbusVoltage;
-
 
 
   static std::chrono::time_point<std::chrono::steady_clock> clock_last_run;

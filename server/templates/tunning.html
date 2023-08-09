@@ -161,6 +161,11 @@
                             Status: UNKNOWN
                         </button>
                     </a>
+                    <a>
+                        <button id="pauseResumeBtn" class="btn btn-dark btn-lg" type="button" onclick="pauseResume()">
+                            <i class="fa fa-play"></i>
+                        </button>
+                    </a>
                 </ul>
                 <ul class="nav mx-1">
                     <a class="nav-item ml-lg-0">
@@ -219,10 +224,7 @@
 
 
 
-        <div id="joystickCard" style="display: block">
-            <div id="joy2Div"></div>
-        </div>
-
+        
         <div id="dashPanel">
             <p>Incoming Data:</p>
             <p id="incomingData"></p>
@@ -243,9 +245,11 @@
             <canvas height="600" id="chart" width="1000"></canvas>
         </div>
         
+        <div id="joystickCard" style="display: block">
+            <div id="joy2Div"></div>
+        </div>
 
 
-        <button id="pauseResumeBtn" onclick="pauseResume()">Pause</button>
         
         <style>
             *
@@ -326,17 +330,35 @@
                         borderColor: randomRGB(),
                     },
                     {
-                        label: 'roll',
+                        label: 'gyro_x',
                         data: [],
                         fill: false,
-                        strokeColor: "rgba(151,187,205,1)",
-                        pointColor: "rgba(151,187,205,1)",
-                        pointStrokeColor: "#fff",
-                        pointHighlightFill: "#fff",
-                        pointHighlightStroke: "rgba(151,187,205,1)",
                         borderColor: randomRGB(),
-                    }
-                    
+                    },
+                    {
+                        label: 'gyro_y',
+                        data: [],
+                        fill: false,
+                        borderColor: randomRGB(),
+                    },
+                    {
+                        label: 'gyro_z',
+                        data: [],
+                        fill: false,
+                        borderColor: randomRGB(),
+                    },
+                    {
+                        label: 'axis_0',
+                        data: [],
+                        fill: false,
+                        borderColor: randomRGB(),
+                    },
+                    {
+                        label: 'axis_1',
+                        data: [],
+                        fill: false,
+                        borderColor: randomRGB(),
+                    }                    
                 ]
             },
             options: {
@@ -382,14 +404,19 @@
                 }
                 chart.data.labels.push(label);
 
+                // imu data
                 chart.data.datasets.forEach(function (dataset, i) {
                     if(dataset.data.length > 500){
                         dataset.data.shift();
                     }
-                    dataset.data.push(data[dataset.label]);
-                    console.log(data[dataset.label])
+
+                    if (dataset.label == "axis_0" || dataset.label == "axis_1"){
+                        dataset.data.push((data.DriveSystem[dataset.label].state.velocity * 100));
+                    } else {
+                        dataset.data.push(data.imu[dataset.label]);
+                    }                   
                 });
-                console.log(chart.data.datasets)
+                
                 chart.update();
             }
 
@@ -397,23 +424,16 @@
             var log_source = new EventSource('/log_stream');
             var log_data = [];
 
-            // var paused = false;
-            // function pauseResume() {
-            //     if (!paused) {
-            //         source.close();
-            //         paused = true;
-            //         document.getElementById("pauseResumeBtn").innerHTML = "Resume";
-            //     } else {
-            //         source = new EventSource('/data');
-            //         source.onmessage = function(event) {
-            //             var data = JSON.parse(event.data);
-            //             document.getElementById("incomingData").innerHTML = JSON.stringify(data);
-            //             // update chart with new data
-            //         }
-            //         paused = false;
-            //         document.getElementById("pauseResumeBtn").innerHTML = "Pause";
-            //     }
-            // }
+            var paused = false;
+            function pauseResume() {
+                if (!paused) {
+                    paused = true;
+                    document.getElementById("pauseResumeBtn").innerHTML = "<i class=\"fa fa-play\"></i>";
+                } else {
+                    paused = false;
+                    document.getElementById("pauseResumeBtn").innerHTML = "<i class=\"fa fa-pause\"></i>";
+                }
+            }
 
             function sendCorePIDSet(){
                
@@ -542,27 +562,27 @@
 
             source.onmessage = function(event) {
                 var data = JSON.parse(event.data);
-        
+                console.log(data);
                 var table = '<table class="table table-dark"><tr><th>Key</th><th>Value</th></tr>';
                 for (var key in data) {
                     table += '<tr><td>' + key + '</td><td>' + JSON.stringify(data[key]) + '</td></tr>';
                 }
 
-                table += '</table>';
-                var imutable = '<table class="table table-dark"><tr><th>Axis</th><th>Value</th></tr>';
-                for (var key in data.imu) {
-                    let num = data.imu[key].toFixed(2);
-                    let str1 = num.toString();
-                    imutable += '<tr><td>' + key + '</td><td style="width: .5rem; text-align: right;">' + str1 + '</td></tr>';
-                }
+                // table += '</table>';
+                // var imutable = '<table class="table table-dark"><tr><th>Axis</th><th>Value</th></tr>';
+                // for (var key in data.imu) {
+                //     let num = data.imu[key].toFixed(2);
+                //     let str1 = num.toString();
+                //     imutable += '<tr><td>' + key + '</td><td style="width: .5rem; text-align: right;">' + str1 + '</td></tr>';
+                // }
 
                 var imuRotStrZ = "rotateZ(" + data.imu['yaw'] + "deg) "
                 var imuRotStrX = "rotateZ(" + data.imu['pitch'] + "deg) "
 
 
-                imutable += '</table>';
+                // imutable += '</table>';
                 document.getElementById("incomingData").innerHTML = table;
-                document.getElementById("imuData").innerHTML = imutable;
+                // document.getElementById("imuData").innerHTML = imutable;
                 document.getElementById("imuObject").style.transform = imuRotStrZ;
                 document.getElementById("imuObject").style.transition = "transform 25ms ease-in-out";
                 
@@ -585,7 +605,9 @@
                 }
                 document.getElementById("status").innerHTML = statusText;
                 
-                addData(LineChart, data.imu, data.timestamp);
+                if (!paused){
+                    addData(LineChart, data, data.timestamp);
+                }                
             }
         </script>
     </body>

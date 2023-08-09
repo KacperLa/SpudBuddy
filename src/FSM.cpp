@@ -28,17 +28,24 @@ void Robot::react(cmd_data const &e)
   desired_state.rates.gyro_x = e.o;
 }
 
-void Robot::react(imu_data const &e)
+void Robot::set_imu(IMUState & new_imu_state)
 {
-  if (std::chrono::high_resolution_clock::now() - e.state.timestamp > error_time){
+  if (std::chrono::high_resolution_clock::now() - new_imu_state.timestamp > error_time){
     logger->pushEvent("[FSM] IMU is too old.");
   }
-  actual_state.angles = e.state.angles;
-  actual_state.rates = e.state.rates;
+  actual_state.angles = new_imu_state.angles;
+  actual_state.rates = new_imu_state.rates;
+  imu_timestamp = new_imu_state.timestamp;
 }
 
 bool Robot::requestDriveSystemStatus(){ 
   return driveSystem.getStatus();
+}
+
+float Robot::getVelocityOfAxis(int axis){
+  float vel;
+  driveSystem.getVelocity(vel, axis);
+  return vel;
 }
 
 json Robot::RequestAxisData(int id)
@@ -127,8 +134,11 @@ RobotState Robot::desired_state = {{0.0, 7.5, 0.0}, {0.0, 0.0, 0.0}, {0.0}, {0.0
 RobotState Robot::actual_state;
 Controller Robot::controller;
 int nodes[2] = {Robot::leftNode, Robot::rightNode};
-DriveSystem Robot::driveSystem(nodes, 2);
+bool nodeRev[2] = {true, false};
+DriveSystem Robot::driveSystem(nodes, nodeRev, 2);
 Log* Robot::logger;
+std::chrono::high_resolution_clock::time_point Robot::imu_timestamp;
+IMUState Robot::imu_state;
 
 class Running : public Robot
 {
@@ -146,12 +156,24 @@ class Running : public Robot
     float rightWheel_cmd;
     driveSystem.getVelocity(actual_state.leftVelocity, leftNode);
     driveSystem.getVelocity(actual_state.rightVelocity, rightNode);
-   
+
+    actual_state.angles = imu_state.angles;
+    actual_state.rates  = imu_state.rates;
+
     if (fabs(actual_state.angles.pitch) > 30){
       logger->pushEvent("[FSM] Robot fell, going into error state.");
       transit<Error>();
     } else {
       if (controller.calculateOutput(actual_state, desired_state, leftWheel_cmd, rightWheel_cmd)){
+        // auto loop_dur = std::chrono::high_resolution_clock::now() - imu_timestamp;
+        // auto loop_dur_in_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(loop_dur);
+
+        // std::ostringstream stream;
+        // stream << loop_dur_in_seconds.count() << "ms";
+        // std::string duration_string = stream.str();
+        // std::string msg = "[FSM] IMU read to set vel: " + duration_string;
+        // logger->pushEvent(msg);
+        
         driveSystem.setTorque(leftWheel_cmd, leftNode);
         driveSystem.setTorque(rightWheel_cmd, rightNode);
       } else {

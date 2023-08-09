@@ -1,8 +1,9 @@
 #include "DriveSystem.h"
 
-DriveSystem::DriveSystem(const int id[], const int size) : 
+DriveSystem::DriveSystem(const int id[], const bool dir[], const int size) : 
     numberOfNodes(size),
     nodeIDs(id),
+    nodeReversed(dir),
     odriveCAN() {
         startReading();
     }
@@ -25,7 +26,7 @@ void DriveSystem::close() {
 }
 
 void DriveSystem::setTorque(float& t, const int axis_id){
-    odriveCAN.SetVelocity(axis_id, t);
+    odriveCAN.SetTorque(axis_id, t*(isReversed(axis_id) ? -1 : 1));
 }
 
 void DriveSystem::getVelocity(float& vel, const int axis_id){
@@ -54,11 +55,18 @@ bool DriveSystem::getStatus(){
     return (!is_running || axis_error > 0);
 }
 
+bool DriveSystem::isReversed(int axis_id)
+{
+    int axis_index = findIndex(nodeIDs, axis_id, numberOfNodes);
+    return nodeReversed[axis_index];
+}
+
 void DriveSystem::updateState(const DriveState& data, int axis_id) {
     std::lock_guard<std::mutex> lock(state_lock_);
     int axis_index = findIndex(nodeIDs, axis_id, numberOfNodes);
     state[axis_index] = data;
 }
+
 
 void DriveSystem::runState(int axisState){
     for (int index = 0; index < numberOfNodes; index++)
@@ -93,7 +101,7 @@ bool DriveSystem::reset(){
     return 0;
 }
 
-int DriveSystem::findIndex(const int arr[], int size, int target) {
+int DriveSystem::findIndex(const int arr[], int target, int size) {
     for (int i = 0; i < size; i++) {
         if (arr[i] == target) {
             return i;
@@ -112,11 +120,14 @@ void DriveSystem::readEventLoop() {
     // Read the odrive events
     can_frame frame;
     DriveState cur_state;
+    int dir;
+
     while (running.load(std::memory_order_relaxed)) { 
         if (readEvent(frame)) {
             uint32_t axis_id = frame.can_id >> 5;
             uint8_t cmd_id = frame.can_id & 0x01F;
             getState(cur_state, axis_id);
+            dir = isReversed(axis_id) ? -1 : 1;
             switch(cmd_id) {
                 case (ODriveCAN::CMD_ID_ODRIVE_HEARTBEAT_MESSAGE): {
                     HeartbeatMsg_t returnVals;
@@ -128,8 +139,8 @@ void DriveSystem::readEventLoop() {
                 case (ODriveCAN::CMD_ID_GET_ENCODER_ESTIMATES): {
                     EncoderEstimatesMsg_t returnVals;
                     odriveCAN.GetPositionVelocityResponse(returnVals, frame);
-                    cur_state.velocity = returnVals.velEstimate;
-                    cur_state.position = returnVals.posEstimate;
+                    cur_state.velocity = returnVals.velEstimate * dir;
+                    cur_state.position = returnVals.posEstimate * dir;
                     break;
                     }
                 case (ODriveCAN::CMD_ID_GET_IQ): {
@@ -150,6 +161,8 @@ void DriveSystem::readEventLoop() {
                     }
             }
             updateState(cur_state, axis_id);
+            std::cout << "[DriveSystem] " << axis_id << " , "<< dir << " , " << cur_state.velocity << std::endl;
+
         }
         //std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }

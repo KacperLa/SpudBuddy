@@ -147,7 +147,32 @@ void zmq_sockets_publish_state(int ronState, JoystickState &js, IMUState &imu, j
         auto duration = now.time_since_epoch();
         auto timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(duration).count();
         
-        json j = {{"state", ronState}, {"axis 0", j0},{"axis 1", j1}, {"js", {{"x", js.x},{"y", js.y}}}, {"imu", {{"yaw", imu.angles.yaw}, {"pitch", imu.angles.pitch}, {"roll", imu.angles.roll}}}, {"timestamp", timestamp}};
+        json j = {
+                    {"state", ronState},
+                    {"DriveSystem",
+                        {
+                            {"axis_0", j0},
+                            {"axis_1", j1}
+                        }
+                    },
+                    {"js", 
+                        {
+                            {"x", js.x},
+                            {"y", js.y}
+                        }
+                    },
+                    {"imu", 
+                        {
+                            {"yaw", imu.angles.yaw},
+                            {"pitch", imu.angles.pitch},
+                            {"roll", imu.angles.roll},
+                            {"gyro_x", imu.rates.gyro_x},
+                            {"gyro_y", imu.rates.gyro_y},
+                            {"gyro_z", imu.rates.gyro_z}
+                        }
+                    }, 
+                    {"timestamp", timestamp}
+                };
         std::string out_str = j.dump();
         zmq::message_t message(out_str.c_str(), out_str.size());
         socket_pub.send(message);
@@ -272,14 +297,13 @@ int main(int argc, char *argv[])
         std::chrono::duration<double> loop_time(1.0 / 20.0); // 20 Hz
         auto last_publish = std::chrono::high_resolution_clock::now();
         auto last_run = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> main_loop(1.0 / 20.0); // 100 Hz
+        std::chrono::duration<double> main_loop(1.0 / 20.0); // 20 Hz
 
         while(!time_to_quit){
                 last_run = std::chrono::high_resolution_clock::now();
 
-                zmq_sockets_poll();
                 joystick.getState(js_state);
-                imu_error = imu.getState(imu_state);
+                imu_error = imu.getState(fsm_handle::imu_state);
                 drive_system_error = fsm_handle::requestDriveSystemStatus();
                 robot_state = fsm_handle::get_state();
                 if ((imu_error || drive_system_error) && (robot_state != RobotStates::ERROR && robot_state != RobotStates::IDLE)){
@@ -294,12 +318,12 @@ int main(int argc, char *argv[])
                 new_cmd.o = (js_state.x / 100.0f);
                 fsm_handle::dispatch(new_cmd);
 
-                imu_data new_imu;
-                new_imu.state = imu_state;
-                fsm_handle::dispatch(new_imu);
+                fsm_handle::dispatch(Update());
 
-                if (std::chrono::high_resolution_clock::now() - last_publish > loop_time){
-                        zmq_sockets_publish_state(robot_state, js_state, imu_state, fsm_handle::RequestAxisData(0), fsm_handle::RequestAxisData(1));
+                zmq_sockets_poll();
+
+                if ((std::chrono::high_resolution_clock::now() - last_publish) > loop_time){
+                        zmq_sockets_publish_state(robot_state, js_state, fsm_handle::imu_state, fsm_handle::RequestAxisData(0), fsm_handle::RequestAxisData(1));
                         last_publish = std::chrono::high_resolution_clock::now();
                         //system("clear");
                         // std::cout << "\033[2J\033[1;1H";
@@ -316,7 +340,6 @@ int main(int argc, char *argv[])
                         std::string out_j = j.dump();
                         //std::cout << "axis 1 state: " << out_j << std::endl;
                 }
-                fsm_handle::dispatch(Update());
                 if ((std::chrono::high_resolution_clock::now() - last_run) > main_loop){
                     auto loop_dur = std::chrono::high_resolution_clock::now() - last_run;
                     auto loop_dur_in_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(loop_dur);

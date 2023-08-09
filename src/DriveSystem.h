@@ -24,7 +24,7 @@ struct DriveState {
 
 class DriveSystem {
 public:
-    DriveSystem(const int id[], const int size);
+    DriveSystem(const int id[], const bool dir[], const int size);
     virtual ~DriveSystem();
 
     virtual bool open();
@@ -48,7 +48,9 @@ public:
 private:
     void runState(int axisState);
 
-    int findIndex(const int arr[], int size, int target);
+    int findIndex(const int arr[], int target, int size);
+    
+    bool isReversed(int axis_id);
 
 protected:
 
@@ -68,6 +70,7 @@ protected:
     
     DriveState state[2];
     const int* nodeIDs;
+    const bool* nodeReversed;
 
 };
 

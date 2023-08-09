@@ -97,7 +97,11 @@ void IMUReader::loop() {
         updateState(data);
         std::cout << "[IMU] Updating the IMU to replace old data." << std::endl;    
       } else {
-        if (fabs(angles.pitch - last_state.angles.pitch) < 10)
+        if (fabs(angles.pitch - last_state.angles.pitch) < 10 &&
+            fabs(angles.yaw - last_state.angles.yaw) < 10 &&
+            fabs(rates.gyro_x) < 1000 &&
+            fabs(rates.gyro_y) < 1000
+            )
         {
           data = {angles, rates, std::chrono::high_resolution_clock::now(), 1, 0};
           updateState(data);
@@ -111,7 +115,7 @@ void IMUReader::loop() {
       std::cerr << "Error getting IMU data." << std::endl;
       data.error = true;
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
   }
 
   // Close the BNO055 device
