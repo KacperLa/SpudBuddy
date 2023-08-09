@@ -161,8 +161,6 @@ void DriveSystem::readEventLoop() {
                     }
             }
             updateState(cur_state, axis_id);
-            std::cout << "[DriveSystem] " << axis_id << " , "<< dir << " , " << cur_state.velocity << std::endl;
-
         }
         //std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }

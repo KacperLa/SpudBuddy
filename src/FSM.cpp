@@ -156,11 +156,11 @@ class Running : public Robot
     float rightWheel_cmd;
     driveSystem.getVelocity(actual_state.leftVelocity, leftNode);
     driveSystem.getVelocity(actual_state.rightVelocity, rightNode);
-
+    actual_state.velocity = (actual_state.leftVelocity+actual_state.rightVelocity) / 2.0f;
     actual_state.angles = imu_state.angles;
     actual_state.rates  = imu_state.rates;
 
-    if (fabs(actual_state.angles.pitch) > 30){
+    if (fabs(actual_state.angles.pitch - desired_state.angles.pitch) > 30){
       logger->pushEvent("[FSM] Robot fell, going into error state.");
       transit<Error>();
     } else {
