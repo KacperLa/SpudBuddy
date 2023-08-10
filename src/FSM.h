@@ -44,7 +44,7 @@ public:
     
     void get_vbusVoltage(float& voltage);
 
-    static int get_state() { return current_state; }
+    static RobotState get_state() { return actual_state; }
     static void set_logger(Log* new_logger) { logger = new_logger;};
     //void process_odrive_heartbeat(uint32_t id, HeartbeatMsg_t heartbeat);
 
@@ -64,7 +64,7 @@ public:
 
     static json getControllerCoeffs();
     static void setControllerCoeffs(json & coeff);
-    static void set_imu(IMUState & new_imu_state);
+    static void updateIMU(IMUState & new_imu_state);
 
     static RobotState desired_state;
     static RobotState actual_state;
@@ -72,7 +72,6 @@ public:
     static constexpr std::chrono::duration<double> error_time{1.0 / 50.0}; // 50 Hz
 
 
-    static int current_state;
     static IMUState imu_state;
 
     static Controller controller;

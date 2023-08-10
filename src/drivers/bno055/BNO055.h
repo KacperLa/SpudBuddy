@@ -274,9 +274,9 @@ public:
     };
 
     struct gyro{
-            double gyro_x;   // gyroscope value, X-axis
-            double gyro_y;   // gyroscope value, Y-axis
-            double gyro_z;   // gyroscope value, Z-axis
+            double gyro_roll;   // gyroscope value, X-axis
+            double gyro_pitch;   // gyroscope value, Y-axis
+            double gyro_yaw;   // gyroscope value, Z-axis
     };
 
     struct euler_angles{

@@ -28,7 +28,7 @@ void zmq_sockets_initialize()
 }
 
 json status_of_robot(){
-    int state = fsm_handle::get_state();
+    int state = fsm_handle::get_state().state;
     json j = {{"success", true},{"message", state}};
     return j;
 }
@@ -53,7 +53,7 @@ json request_transition(int action){
         default:
             break;
     }
-    int current_state = fsm_handle::get_state();
+    int current_state = fsm_handle::get_state().state;
     json j = {{"success", true},{"message", current_state}};
     return j;
 }
@@ -142,13 +142,60 @@ void zmq_sockets_poll()
     }
 }
 
-void zmq_sockets_publish_state(int ronState, JoystickState &js, IMUState &imu, json j0, json j1){
+void zmq_sockets_publish_state(RobotState actual_state, RobotState desired_state, JoystickState &js, json j0, json j1){
         auto now = std::chrono::high_resolution_clock::now();
         auto duration = now.time_since_epoch();
         auto timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(duration).count();
         
         json j = {
-                    {"state", ronState},
+                    {"robotState",
+                        {
+                            {"desired",
+                                {
+                                    {"angles",
+                                        {
+                                            {"yaw", desired_state.angles.yaw},
+                                            {"pitch", desired_state.angles.pitch},
+                                            {"roll", desired_state.angles.roll}
+                                        }
+                                    },
+                                    {"rates",
+                                        {
+                                            {"gyro_yaw", desired_state.rates.gyro_yaw},
+                                            {"gyro_pitch", desired_state.rates.gyro_pitch},
+                                            {"gyro_roll", desired_state.rates.gyro_roll}
+                                        }
+                                    },
+                                    {"velocity", desired_state.velocity},
+                                    {"leftVelocity", desired_state.leftVelocity},
+                                    {"rightVelocity", desired_state.rightVelocity}, 
+                                    {"state", desired_state.state},
+                                }
+                            },
+                            {"actual",
+                                {
+                                    {"angles",
+                                        {
+                                            {"yaw", actual_state.angles.yaw},
+                                            {"pitch", actual_state.angles.pitch},
+                                            {"roll", actual_state.angles.roll}
+                                        }
+                                    },
+                                    {"rates",
+                                        {
+                                            {"gyro_yaw", actual_state.rates.gyro_yaw},
+                                            {"gyro_pitch", actual_state.rates.gyro_pitch},
+                                            {"gyro_roll", actual_state.rates.gyro_roll}
+                                        }
+                                    },
+                                    {"velocity", actual_state.velocity},
+                                    {"leftVelocity", actual_state.leftVelocity},
+                                    {"rightVelocity", actual_state.rightVelocity}, 
+                                    {"state", actual_state.state},
+                                }
+                            }
+                        }
+                    },
                     {"DriveSystem",
                         {
                             {"axis_0", j0},
@@ -159,16 +206,6 @@ void zmq_sockets_publish_state(int ronState, JoystickState &js, IMUState &imu, j
                         {
                             {"x", js.x},
                             {"y", js.y}
-                        }
-                    },
-                    {"imu", 
-                        {
-                            {"yaw", imu.angles.yaw},
-                            {"pitch", imu.angles.pitch},
-                            {"roll", imu.angles.roll},
-                            {"gyro_x", imu.rates.gyro_x},
-                            {"gyro_y", imu.rates.gyro_y},
-                            {"gyro_z", imu.rates.gyro_z}
                         }
                     }, 
                     {"timestamp", timestamp}
@@ -292,7 +329,8 @@ int main(int argc, char *argv[])
         IMUState imu_state;
         bool imu_error = false;
         bool drive_system_error = false;
-        int robot_state = 0;
+        RobotState actual_state;
+        RobotState desired_state;
 
         std::chrono::duration<double> loop_time(1.0 / 20.0); // 20 Hz
         auto last_publish = std::chrono::high_resolution_clock::now();
@@ -303,10 +341,12 @@ int main(int argc, char *argv[])
                 last_run = std::chrono::high_resolution_clock::now();
 
                 joystick.getState(js_state);
-                imu_error = imu.getState(fsm_handle::imu_state);
+                imu_error = imu.getState(imu_state);
+                fsm_handle::updateIMU(imu_state);
+              
                 drive_system_error = fsm_handle::requestDriveSystemStatus();
-                robot_state = fsm_handle::get_state();
-                if ((imu_error || drive_system_error) && (robot_state != RobotStates::ERROR && robot_state != RobotStates::IDLE)){
+                actual_state = fsm_handle::get_state();
+                if ((imu_error || drive_system_error) && (actual_state.state != RobotStates::ERROR && actual_state.state != RobotStates::IDLE)){
                     std::string err_msg = "[MAIN] imu_error = " + std::to_string(imu_error) + " drive stystem error = " + std::to_string(drive_system_error);
                     std::cout << err_msg << std::endl;
                     logger.pushEvent(err_msg);
@@ -323,7 +363,7 @@ int main(int argc, char *argv[])
                 zmq_sockets_poll();
 
                 if ((std::chrono::high_resolution_clock::now() - last_publish) > loop_time){
-                        zmq_sockets_publish_state(robot_state, js_state, fsm_handle::imu_state, fsm_handle::RequestAxisData(0), fsm_handle::RequestAxisData(1));
+                        zmq_sockets_publish_state(actual_state, desired_state, js_state, fsm_handle::RequestAxisData(0), fsm_handle::RequestAxisData(1));
                         last_publish = std::chrono::high_resolution_clock::now();
                         //system("clear");
                         // std::cout << "\033[2J\033[1;1H";

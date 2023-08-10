@@ -54,8 +54,19 @@ bool Controller::calculateOutput(RobotState actual_state, RobotState desired_sta
    
     
     float yaw_error;
+    double yaw_output = 0;
     calcTheta(desired_state.angles.yaw, actual_state.angles.yaw, yaw_error);
-    double yaw_output = (yaw_error * yaw_rate_pid.getP()) + (actual_state.rates.gyro_z * yaw_rate_pid.getI());
+    if (fabs(yaw_error) > 5.0)
+    {
+        yaw_output = (yaw_error * yaw_rate_pid.getP()) + (-1*actual_state.rates.gyro_yaw * yaw_rate_pid.getD());
+        if (fabs(yaw_output) < 0.01f){
+            yaw_output = 0;
+        }
+    }
+    std::cout << "yaw error: " <<  yaw_error << std::endl;
+
+   
+
 
     double velocity_output_left  = velocity_pid_l.getOutput(actual_state.leftVelocity,  (desired_state.velocity + yaw_output));
     double velocity_output_right = velocity_pid_r.getOutput(actual_state.rightVelocity, (desired_state.velocity - yaw_output));
@@ -70,7 +81,7 @@ bool Controller::calculateOutput(RobotState actual_state, RobotState desired_sta
 
     //std::cout << "output L: " <<  velocity_output_left << "output r: " <<  velocity_output_right << "actual l: " << actual_state.leftVelocity << "actual r: " << actual_state.rightVelocity << " desired vel: " <<  desired_state.velocity << std::endl;
     double pitch_error = desired_state.angles.pitch - (actual_state.angles.pitch + velocity_output);
-    double pitch_output   =  (pitch_error * pitch_pid.getP()) + (actual_state.rates.gyro_y * pitch_pid.getD());
+    double pitch_output   =  (pitch_error * pitch_pid.getP()) + (actual_state.rates.gyro_pitch * pitch_pid.getD());
     //pitch_pid.getOutput(actual_state.angles.pitch, (desired_state.angles.pitch));
     if (fabs(pitch_output) < 0.001f){
         pitch_output = 0;
@@ -86,8 +97,8 @@ bool Controller::calculateOutput(RobotState actual_state, RobotState desired_sta
     }
 
     if (!std::isnan(pitch_output) && !std::isnan(yaw_output) && !std::isnan(velocity_output_left)) {
-        outputLeft  = pitch_output - yaw_output;
-        outputRight = pitch_output + yaw_output;
+        outputLeft  = pitch_output + yaw_output;
+        outputRight = pitch_output - yaw_output;
     } else {
         outputLeft  = 0;
         outputRight = 0;

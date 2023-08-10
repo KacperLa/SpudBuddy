@@ -199,13 +199,19 @@
                 </ul>
                 <ul class="nav-item">
                     <div class="imuWindow" style="display: flex; flex-direction: column;align-items: center;"">
-                        <img id="imuObject" src="{{ url_for('static', filename='radar2.svg') }}"></img>
+                        <div class="imuObjectWrapper">
+                            <img class="imuObjectOverlay" src="{{ url_for('static', filename='ronTop.svg') }}"></img>
+                            <img class="imuObjectOverlay" id="imuObject" src="{{ url_for('static', filename='radar2.svg') }}"></img>
+                        </div>
                     </div>
                 </ul>
                 <ul class="nav-item">
-                    <div class="imuWindow2" style="display: flex; flex-direction: column;align-items: center;"">
-                        <img id="imuObject2" src="{{ url_for('static', filename='ronSide.svg') }}"></img>
-                    </div>
+                    <div class="imuWindow2"  style="display: flex; flex-direction: column;align-items: center;"">
+                        <div class="imuObjectWrapper">
+                            <img class="imuObjectOverlay" id="imuObject2ref" src="{{ url_for('static', filename='ronSidePointer.svg') }}"></img>
+                            <img class="imuObjectOverlay" id="imuObject2" src="{{ url_for('static', filename='ronSide2.svg') }}"></img> 
+                        </div>
+                     </div>
                 </ul>
                 <ul class="nav mt-auto mb-1">
                     <a class="nav-item mx-1">
@@ -275,6 +281,16 @@
             {
                 border: 1px solid #FF0000;
             }
+            .imuObjectWrapper {
+                position: relative;
+            }
+            .imuObjectOverlay
+            {
+                position: absolute;
+                top: -50px;
+                left: 0;
+               
+            }
         </style>
         <script>
           
@@ -330,19 +346,13 @@
                         borderColor: randomRGB(),
                     },
                     {
-                        label: 'gyro_x',
+                        label: 'gyro_yaw',
                         data: [],
                         fill: false,
                         borderColor: randomRGB(),
                     },
                     {
-                        label: 'gyro_y',
-                        data: [],
-                        fill: false,
-                        borderColor: randomRGB(),
-                    },
-                    {
-                        label: 'gyro_z',
+                        label: 'gyro_pitch',
                         data: [],
                         fill: false,
                         borderColor: randomRGB(),
@@ -363,6 +373,12 @@
             },
             options: {
                 responsive: true,
+                elements:{
+                    point:{
+                        borderWidth: 0,
+                        backgroundColor: 'rgba(0,0,0,0)'
+                    }
+                },
                 scales: {
                 x: {
                     ticks: {
@@ -372,6 +388,8 @@
                     }
                 },
                 y: {
+                    min: -400,
+                    max: 400,
                     ticks: {
                         font: {
                             size: 20,
@@ -398,22 +416,43 @@
     
             LineChart.options.animation = false;
 
+            const findByKey = (obj, goal) => {
+                for (key in obj)
+                {
+                    if (Object.keys(obj[key]).length > 0)
+                    {
+                        for (key2 in obj[key])
+                        {
+                            return obj[key][key2];
+                        }
+                    }
+                    else
+                    {
+                        if (key == goal)
+                        {
+                            return obj[key];
+                        }
+                    }
+                return 0;
+                }
+            }
+
             function addData(chart, data, label) {
-                if(chart.data.labels.length > 500){
+                if(chart.data.labels.length > 100){
                     chart.data.labels.shift();
                 }
                 chart.data.labels.push(label);
 
                 // imu data
                 chart.data.datasets.forEach(function (dataset, i) {
-                    if(dataset.data.length > 500){
+                    if(dataset.data.length > 100){
                         dataset.data.shift();
                     }
 
                     if (dataset.label == "axis_0" || dataset.label == "axis_1"){
                         dataset.data.push((data.DriveSystem[dataset.label].state.velocity * 100));
                     } else {
-                        dataset.data.push(data.imu[dataset.label]);
+                        dataset.data.push(findByKey(data.robotState.actual, dataset.label));
                     }                   
                 });
                 
@@ -562,7 +601,7 @@
 
             source.onmessage = function(event) {
                 var data = JSON.parse(event.data);
-                console.log(data);
+
                 var table = '<table class="table table-dark"><tr><th>Key</th><th>Value</th></tr>';
                 for (var key in data) {
                     table += '<tr><td>' + key + '</td><td>' + JSON.stringify(data[key]) + '</td></tr>';
@@ -576,8 +615,8 @@
                 //     imutable += '<tr><td>' + key + '</td><td style="width: .5rem; text-align: right;">' + str1 + '</td></tr>';
                 // }
 
-                var imuRotStrZ = "rotateZ(" + data.imu['yaw'] + "deg) "
-                var imuRotStrX = "rotateZ(" + data.imu['pitch'] + "deg) "
+                var imuRotStrZ = "rotateZ(" + data["robotState"]["actual"]["angles"]['yaw'] + "deg) "
+                var imuRotStrX = "rotateZ(" + data["robotState"]["actual"]["angles"]['pitch'] + "deg) "
 
 
                 // imutable += '</table>';

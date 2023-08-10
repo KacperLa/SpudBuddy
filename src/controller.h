@@ -16,6 +16,7 @@ struct RobotState
     float velocity {0.0};
     float leftVelocity {0.0};
     float rightVelocity {0.0};
+    int state {0};
 };
 
 class Controller {

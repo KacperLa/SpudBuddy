@@ -52,7 +52,7 @@ void IMUReader::stop() {
 void transformReading(angles_t & reading)
 {
   double tmp = reading.pitch;
-  reading.pitch = reading.roll * -1;
+  reading.pitch = reading.roll * -1.0;
   reading.roll = tmp;
 }
 
@@ -87,6 +87,7 @@ void IMUReader::loop() {
     if (!readAngles(angles) && !readRates(rates))
     {
       transformReading(angles);
+      // rates.gyro_y = rates.gyro_y * -1.0;
 
       getState(last_state);
       //log("old pitch: " + std::to_string(last_state.angles.pitch) + " new pitch: " + std::to_string(angles.pitch));
@@ -97,17 +98,32 @@ void IMUReader::loop() {
         updateState(data);
         std::cout << "[IMU] Updating the IMU to replace old data." << std::endl;    
       } else {
-        if (fabs(angles.pitch - last_state.angles.pitch) < 10 &&
-            fabs(angles.yaw - last_state.angles.yaw) < 10 &&
-            fabs(rates.gyro_x) < 1000 &&
-            fabs(rates.gyro_y) < 1000
-            )
+        if (fabs(angles.pitch - last_state.angles.pitch) > 100)
         {
-          data = {angles, rates, std::chrono::high_resolution_clock::now(), 1, 0};
-          updateState(data);
-        } else {
-          std::cout << "[IMU] Difference between consecative pitch reading was greater than 10 degrees, ignorring reading." << std::endl;    
+          std::cout << "[IMU] pitch was: "<< angles.pitch << std::endl;    
+          angles.pitch = last_state.angles.pitch;
         }
+        if (fabs(angles.yaw - last_state.angles.yaw) > 100)
+        {
+          std::cout << "[IMU] yaw was: "<< angles.yaw << std::endl;    
+          angles.yaw = last_state.angles.yaw;
+        }
+        if (fabs(rates.gyro_yaw) > 1000)
+        {
+          std::cout << "[IMU] gyro_yaw was: "<< rates.gyro_yaw << std::endl;    
+          rates.gyro_yaw = 0;
+        }
+        if (fabs(rates.gyro_pitch) > 1000)
+        {
+          std::cout << "[IMU] gyro_pitch was: "<< rates.gyro_pitch << std::endl;    
+          rates.gyro_pitch = 0;
+        }
+           
+        data = {angles, rates, std::chrono::high_resolution_clock::now(), 1, 0};
+        updateState(data);
+        // } else {
+        //   //std::cout << "[IMU] Difference between consecative pitch reading was greater than 10 degrees, ignorring reading." << std::endl;    
+        // }
       }
     } 
     else

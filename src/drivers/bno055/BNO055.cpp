@@ -785,21 +785,21 @@ int BNO055::get_gyro_data(gyro *gyro)
         printf("Debug: Gyroscope Data X: LSB [0x%02X] MSB [0x%02X] INT16 [%d]\n", data[0], data[1],buf);
     }
 
-    gyro->gyro_x = static_cast<double>(buf) / 16.0;
+    gyro->gyro_roll = static_cast<double>(buf) / 16.0;
 
     buf = ((int16_t)data[3] << 8) | data[2];
     if(verbose == 1) {
         printf("Debug: Gyrosscope Data Y: LSB [0x%02X] MSB [0x%02X] INT16 [%d]\n", data[2], data[3],buf);
     }
 
-    gyro->gyro_y = static_cast<double>(buf) / 16.0;
+    gyro->gyro_pitch = static_cast<double>(buf) / 16.0;
 
     buf = ((int16_t)data[5] << 8) | data[4];
     if(verbose == 1) {
         printf("Debug: Gyroscope Data Z: LSB [0x%02X] MSB [0x%02X] INT16 [%d]\n", data[4], data[5],buf);
     }
 
-    gyro->gyro_z = static_cast<double>(buf) / 16.0;
+    gyro->gyro_yaw = static_cast<double>(buf) / 16.0;
     return(0);
 }
 

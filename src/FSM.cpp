@@ -25,10 +25,10 @@ void Robot::react(RESET const &) {
 void Robot::react(cmd_data const &e)
 {
   desired_state.velocity  = e.v;
-  desired_state.rates.gyro_x = e.o;
+  desired_state.rates.gyro_yaw = e.o;
 }
 
-void Robot::set_imu(IMUState & new_imu_state)
+void Robot::updateIMU(IMUState & new_imu_state)
 {
   if (std::chrono::high_resolution_clock::now() - new_imu_state.timestamp > error_time){
     logger->pushEvent("[FSM] IMU is too old.");
@@ -129,8 +129,7 @@ class Idle;
 class Error;
 class Running;
 
-int Robot::current_state = 0;
-RobotState Robot::desired_state = {{0.0, 7.5, 0.0}, {0.0, 0.0, 0.0}, {0.0}, {0.0}, {0.0}};
+RobotState Robot::desired_state = {{0.0, 7.0, 90.0}, {0.0, 0.0, 0.0}, {0.0}, {0.0}, {0.0}};
 RobotState Robot::actual_state;
 Controller Robot::controller;
 int nodes[2] = {Robot::leftNode, Robot::rightNode};
@@ -143,7 +142,7 @@ IMUState Robot::imu_state;
 class Running : public Robot
 {
   void entry() override {
-    current_state = 2;
+    actual_state.state = 2;
     logger->pushEvent("[FSM] Entering running state.");
     driveSystem.enable();
   };
@@ -161,7 +160,7 @@ class Running : public Robot
     actual_state.rates  = imu_state.rates;
 
     if (fabs(actual_state.angles.pitch - desired_state.angles.pitch) > 30){
-      logger->pushEvent("[FSM] Robot fell, going into error state.");
+      logger->pushEvent("[FSM] Robot fell, going into error state." + std::to_string(actual_state.angles.pitch));
       transit<Error>();
     } else {
       if (controller.calculateOutput(actual_state, desired_state, leftWheel_cmd, rightWheel_cmd)){
@@ -195,7 +194,7 @@ class Running : public Robot
 class Error : public Robot
 {
   void entry() override {
-    current_state = 3;
+    actual_state.state = 3;
     logger->pushEvent("[FSM] Entering error state.");
     driveSystem.ESTOP();
   };  
@@ -218,7 +217,7 @@ class Error : public Robot
 class Idle : public Robot
 {
   void entry() override {
-    current_state = 1;
+    actual_state.state = 1;
     logger->pushEvent("[FSM] Entering idle state.");
     //play_melody(idle_enter_melody, idle_enter_noteDurations);
     driveSystem.disable();
