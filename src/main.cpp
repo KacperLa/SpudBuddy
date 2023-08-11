@@ -346,6 +346,7 @@ int main(int argc, char *argv[])
               
                 drive_system_error = fsm_handle::requestDriveSystemStatus();
                 actual_state = fsm_handle::get_state();
+                desired_state = fsm_handle::get_desired_state();
                 if ((imu_error || drive_system_error) && (actual_state.state != RobotStates::ERROR && actual_state.state != RobotStates::IDLE)){
                     std::string err_msg = "[MAIN] imu_error = " + std::to_string(imu_error) + " drive stystem error = " + std::to_string(drive_system_error);
                     std::cout << err_msg << std::endl;
@@ -355,7 +356,7 @@ int main(int argc, char *argv[])
                 
                 cmd_data new_cmd;
                 new_cmd.v = js_state.y / 100.0f;
-                new_cmd.o = (js_state.x / 100.0f);
+                new_cmd.o = (fabs(js_state.x) > 1.0f ) ? (js_state.x / 100.0f) : 0.0f;
                 fsm_handle::dispatch(new_cmd);
 
                 fsm_handle::dispatch(Update());
@@ -374,7 +375,7 @@ int main(int argc, char *argv[])
                         // std::string msg = "imu: pitch=" + std::to_string(imu_state.angles.pitch);
                         // logger.pushEvent(msg);
                         // std::cout << "imu: yaw=" << imu_state.angles.yaw << std::endl;
-                        //std::cout << "joystick: x=" << js_state.x << " , a=" << js_state.y << std::endl;
+                        // std::cout << "joystick: x=" << js_state.x << " , a=" << js_state.y << std::endl;
 
                         json j = fsm_handle::RequestAxisData(1);
                         std::string out_j = j.dump();

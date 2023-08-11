@@ -28,8 +28,8 @@ typedef enum {
 } RobotStates;
 
 struct cmd_data : tinyfsm::Event {
-    double v;
-    double o;
+    double v {0.0};
+    double o {0.0};
 };
 
 
@@ -45,6 +45,7 @@ public:
     void get_vbusVoltage(float& voltage);
 
     static RobotState get_state() { return actual_state; }
+    static RobotState get_desired_state() { return desired_state; }
     static void set_logger(Log* new_logger) { logger = new_logger;};
     //void process_odrive_heartbeat(uint32_t id, HeartbeatMsg_t heartbeat);
 

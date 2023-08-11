@@ -1,5 +1,6 @@
 #include "IMUReader.h"
 #include <sys/resource.h>
+#include <cmath>
 
 IMUReader::IMUReader(const std::string& new_bus, const std::string name, Log& logger) :
   ronThread(name, logger)
@@ -56,6 +57,24 @@ void transformReading(angles_t & reading)
   reading.roll = tmp;
 }
 
+double mod(double a, double n)
+{
+    return (a - floor(a/n) * n);
+}
+
+double calcTheta(double cmd, double actual)
+{
+    double b = mod(((actual - cmd) + (2.0 * 180.0)), (2.0 * 180));
+    double f = mod(((cmd - actual) + (2.0 * 180.0)), (2.0 * 180));
+
+    if (b < 180.0) {
+        return (-1.0 * b);
+    }
+    else {
+        return f;
+    }
+}
+
 void IMUReader::loop() {
   setpriority(PRIO_PROCESS, getpid(), 1);
 
@@ -103,7 +122,8 @@ void IMUReader::loop() {
           std::cout << "[IMU] pitch was: "<< angles.pitch << std::endl;    
           angles.pitch = last_state.angles.pitch;
         }
-        if (fabs(angles.yaw - last_state.angles.yaw) > 100)
+
+        if (calcTheta(angles.yaw, last_state.angles.yaw) > 50)
         {
           std::cout << "[IMU] yaw was: "<< angles.yaw << std::endl;    
           angles.yaw = last_state.angles.yaw;

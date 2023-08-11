@@ -25,7 +25,7 @@ void Robot::react(RESET const &) {
 void Robot::react(cmd_data const &e)
 {
   desired_state.velocity  = e.v;
-  desired_state.rates.gyro_yaw = e.o;
+  desired_state.angles.yaw += e.o;
 }
 
 void Robot::updateIMU(IMUState & new_imu_state)
@@ -156,8 +156,7 @@ class Running : public Robot
     driveSystem.getVelocity(actual_state.leftVelocity, leftNode);
     driveSystem.getVelocity(actual_state.rightVelocity, rightNode);
     actual_state.velocity = (actual_state.leftVelocity+actual_state.rightVelocity) / 2.0f;
-    actual_state.angles = imu_state.angles;
-    actual_state.rates  = imu_state.rates;
+
 
     if (fabs(actual_state.angles.pitch - desired_state.angles.pitch) > 30){
       logger->pushEvent("[FSM] Robot fell, going into error state." + std::to_string(actual_state.angles.pitch));

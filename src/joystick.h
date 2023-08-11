@@ -16,7 +16,8 @@
 
 struct JoystickState {
     std::chrono::time_point<std::chrono::high_resolution_clock> time;
-    float x, y;
+    float x {0.0f};
+    float y {0.0f};
 };
 
 class Joystick : public ronThread

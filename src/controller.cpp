@@ -5,10 +5,6 @@
 Controller::Controller() {
     pitch_pid.setOutputLimits(-1.0, 1.0);
     yaw_rate_pid.setOutputLimits(-1.0, 1.0);
-    velocity_pid_l.setOutputLimits(-1.0, 1.0);
-    velocity_pid_l.setMaxIOutput(1.0);
-    velocity_pid_r.setOutputLimits(-1.0, 1.0);
-    velocity_pid_r.setMaxIOutput(1.0);
     velocity_pid.setOutputLimits(-15.0, 15.0);
     velocity_pid.setMaxIOutput(15.0);
 }
@@ -24,7 +20,6 @@ float mod(float a, float n)
 
 void calcTheta(float cmd, float actual, float & error)
 {
-    cmd = 60.0f;
     float b = mod(((actual - cmd) + (2.0 * 180)), (2.0 * 180));
     float f = mod(((cmd - actual) + (2.0 * 180)), (2.0 * 180));
 
@@ -46,35 +41,16 @@ bool Controller::calculateOutput(RobotState actual_state, RobotState desired_sta
     // }
     
 
-    if (fabs(actual_state.velocity - desired_state.velocity) > 5){
-        printf("velocity error too large!\n");
-        return false;
-    }
-
-   
-    
     float yaw_error;
     double yaw_output = 0;
     calcTheta(desired_state.angles.yaw, actual_state.angles.yaw, yaw_error);
+    std::cout << "actual: " << actual_state.angles.yaw << " , desired: " << desired_state.angles.yaw << ", error: " << yaw_error << std::endl;
     if (fabs(yaw_error) > 5.0)
     {
         yaw_output = (yaw_error * yaw_rate_pid.getP()) + (-1*actual_state.rates.gyro_yaw * yaw_rate_pid.getD());
         if (fabs(yaw_output) < 0.01f){
             yaw_output = 0;
         }
-    }
-    std::cout << "yaw error: " <<  yaw_error << std::endl;
-
-   
-
-
-    double velocity_output_left  = velocity_pid_l.getOutput(actual_state.leftVelocity,  (desired_state.velocity + yaw_output));
-    double velocity_output_right = velocity_pid_r.getOutput(actual_state.rightVelocity, (desired_state.velocity - yaw_output));
-    if (fabs(velocity_output_left) < 0.001f){
-            velocity_output_left = 0;
-    }
-    if (fabs(velocity_output_right) < 0.001f){
-        velocity_output_right = 0;
     }
 
     double velocity_output = velocity_pid.getOutput(actual_state.velocity, desired_state.velocity);
@@ -96,7 +72,7 @@ bool Controller::calculateOutput(RobotState actual_state, RobotState desired_sta
         return false;
     }
 
-    if (!std::isnan(pitch_output) && !std::isnan(yaw_output) && !std::isnan(velocity_output_left)) {
+    if (!std::isnan(pitch_output) && !std::isnan(yaw_output) && !std::isnan(velocity_output)) {
         outputLeft  = pitch_output + yaw_output;
         outputRight = pitch_output - yaw_output;
     } else {
@@ -122,9 +98,9 @@ void Controller::get_yaw_rate_coeffs(double& P, double& I, double& D){
 
 void Controller::get_velocity_coeffs(double& P, double& I, double& D){
     std::unique_lock<std::mutex> lock(mtx);
-    P = velocity_pid_l.getP();
-    I = velocity_pid_l.getI();
-    D = velocity_pid_l.getD();
+    P = velocity_pid.getP();
+    I = velocity_pid.getI();
+    D = velocity_pid.getD();
 }
 
 void Controller::set_pitch_coeffs(const double* P, const double* I, const double* D)  {
@@ -139,8 +115,6 @@ void Controller::set_yaw_rate_coeffs(const double* P, const double* I, const dou
 
 void Controller::set_velocity_coeffs(const double* P, const double* I, const double* D) {
     std::unique_lock<std::mutex> lock(mtx);
-    velocity_pid_l.setPID(*P, *I, *D);
-    velocity_pid_r.setPID(*P, *I, *D);
     velocity_pid.setPID(*P, *I, *D);
 }
 

@@ -198,19 +198,15 @@
                     </div>
                 </ul>
                 <ul class="nav-item">
-                    <div class="imuWindow" style="display: flex; flex-direction: column;align-items: center;"">
-                        <div class="imuObjectWrapper">
-                            <img class="imuObjectOverlay" src="{{ url_for('static', filename='ronTop.svg') }}"></img>
-                            <img class="imuObjectOverlay" id="imuObject" src="{{ url_for('static', filename='radar2.svg') }}"></img>
-                        </div>
+                    <div class="imuObjectWrapper" style="display: flex; flex-direction: column;align-items: center;"">
+                        <img class="imuObjectOverlay" id="imuObjectref" src="{{ url_for('static', filename='ronTop.svg') }}"></img>
+                        <img class="imuObjectOverlay" id="imuObject" src="{{ url_for('static', filename='radar2.svg') }}"></img>
                     </div>
                 </ul>
                 <ul class="nav-item">
-                    <div class="imuWindow2"  style="display: flex; flex-direction: column;align-items: center;"">
-                        <div class="imuObjectWrapper">
-                            <img class="imuObjectOverlay" id="imuObject2ref" src="{{ url_for('static', filename='ronSidePointer.svg') }}"></img>
-                            <img class="imuObjectOverlay" id="imuObject2" src="{{ url_for('static', filename='ronSide2.svg') }}"></img> 
-                        </div>
+                    <div class="imuObjectWrapper2"  style="display: flex; flex-direction: column;align-items: center;"">
+                        <img class="imuObjectOverlay2" id="imuObject2ref" src="{{ url_for('static', filename='ronSidePointer.svg') }}"></img>
+                        <img class="imuObjectOverlay2" id="imuObject2" src="{{ url_for('static', filename='ronSide2.svg') }}"></img> 
                      </div>
                 </ul>
                 <ul class="nav mt-auto mb-1">
@@ -248,7 +244,7 @@
 			
           
         <div style="text-align:center">
-            <canvas height="600" id="chart" width="1000"></canvas>
+            <canvas height="300" id="chart" width="1000"></canvas>
         </div>
         
         <div id="joystickCard" style="display: block">
@@ -284,12 +280,22 @@
             .imuObjectWrapper {
                 position: relative;
             }
+            .imuObjectWrapper2 {
+                position: relative;
+                transform: scale(1.25); 
+            }
             .imuObjectOverlay
             {
                 position: absolute;
                 top: -50px;
                 left: 0;
                
+            }
+            .imuObjectOverlay2
+            {
+                position: absolute;
+                top: -30px;
+                left: 0;
             }
         </style>
         <script>
@@ -326,7 +332,7 @@
 
             const randomNum = () => Math.floor(Math.random() * (235 - 52 + 1) + 52);
             const randomRGB = () => `rgb(${randomNum()}, ${randomNum()}, ${randomNum()})`;
-
+            
             var ctx = document.getElementById("chart").getContext("2d");
             var LineChart = new Chart(ctx, {
             type: 'line',
@@ -423,7 +429,10 @@
                     {
                         for (key2 in obj[key])
                         {
-                            return obj[key][key2];
+                            if (key2 == goal)
+                            {
+                                return obj[key][key2];
+                            } 
                         }
                     }
                     else
@@ -433,8 +442,8 @@
                             return obj[key];
                         }
                     }
-                return 0;
                 }
+                return 0;
             }
 
             function addData(chart, data, label) {
@@ -602,10 +611,10 @@
             source.onmessage = function(event) {
                 var data = JSON.parse(event.data);
 
-                var table = '<table class="table table-dark"><tr><th>Key</th><th>Value</th></tr>';
-                for (var key in data) {
-                    table += '<tr><td>' + key + '</td><td>' + JSON.stringify(data[key]) + '</td></tr>';
-                }
+                // var table = '<table class="table table-dark"><tr><th>Key</th><th>Value</th></tr>';
+                // for (var key in data) {
+                //     table += '<tr><td>' + key + '</td><td>' + JSON.stringify(data[key]) + '</td></tr>';
+                // }
 
                 // table += '</table>';
                 // var imutable = '<table class="table table-dark"><tr><th>Axis</th><th>Value</th></tr>';
@@ -616,20 +625,29 @@
                 // }
 
                 var imuRotStrZ = "rotateZ(" + data["robotState"]["actual"]["angles"]['yaw'] + "deg) "
-                var imuRotStrX = "rotateZ(" + data["robotState"]["actual"]["angles"]['pitch'] + "deg) "
+                var imuRotStrZref = "rotateZ(" + data["robotState"]["desired"]["angles"]['yaw'] + "deg) "
+                var imuRotStrX = "rotateZ(" + data["robotState"]["actual"]["angles"]['pitch'] + "deg)"
+                var imuRotStrXref = "rotateZ(" + data["robotState"]["desired"]["angles"]['pitch'] + "deg) "
 
-
+                
                 // imutable += '</table>';
-                document.getElementById("incomingData").innerHTML = table;
+                // document.getElementById("incomingData").innerHTML = table;
                 // document.getElementById("imuData").innerHTML = imutable;
                 document.getElementById("imuObject").style.transform = imuRotStrZ;
                 document.getElementById("imuObject").style.transition = "transform 25ms ease-in-out";
                 
+                document.getElementById("imuObjectref").style.transform = imuRotStrZref;
+                document.getElementById("imuObjectref").style.transition = "transform 25ms ease-in-out";
+                
                 document.getElementById("imuObject2").style.transform = imuRotStrX;
                 document.getElementById("imuObject2").style.transition = "transform 25ms ease-in-out";
                 
+                document.getElementById("imuObject2ref").style.transform = imuRotStrXref;
+                document.getElementById("imuObject2ref").style.transition = "transform 25ms ease-in-out";
+
+
                 let statusText = "Status: UNKNOWN";
-                switch(data.state) {
+                switch(data["robotState"]["actual"]['state']) {
                     case 1:
                         statusText = "Status:  IDLE  ";
                         break;
