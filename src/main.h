@@ -10,9 +10,11 @@ using json = nlohmann::json;
 #include<FSM.h>
 #include<cmd.h>
 #include<Logging.h>
+#include "DriveSystem.h"
 
 bool time_to_quit = false;
 
+using fsm_handle = Robot;
 
 // Socket specific
 zmq::context_t context;
@@ -20,7 +22,6 @@ zmq::socket_t socket_pub{context, zmq::socket_type::pub};
 zmq::socket_t socket_rep{context, zmq::socket_type::rep};
 
 Log logger{context};
-
 
 json default_response = {{"success", false}, {"message", "Endpoint now valid"}};
 

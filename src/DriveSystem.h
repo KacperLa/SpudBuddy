@@ -12,6 +12,7 @@
 #include <iterator>
 
 #include "drivers/ODriveCAN/ODriveCAN.h"
+#include<ronThread.h>
 
 
 struct DriveState {
@@ -22,17 +23,16 @@ struct DriveState {
     bool error {0};
 };
 
-class DriveSystem {
+class DriveSystem : public ronThread
+{
 public:
-    DriveSystem(const int id[], const bool dir[], const int size);
+    DriveSystem(const int id[], const bool dir[], const int size, const std::string name, Log& logger);
     virtual ~DriveSystem();
 
     virtual bool open();
     virtual bool readEvent(can_frame& event);
     virtual void close();
 
-    virtual void startReading();
-    virtual void stopReading();
     virtual void updateState(const DriveState& data, const int axos_id);
 
     void setTorque(float& t, const int axis_id);
@@ -46,6 +46,8 @@ public:
     bool reset();
 
 private:
+    virtual void loop() override;
+
     void runState(int axisState);
 
     int findIndex(const int arr[], int target, int size);
@@ -56,17 +58,13 @@ protected:
 
     ODriveCAN::AxisState_t requestedWheelState = ODriveCAN::AXIS_STATE_UNDEFINED;
     ODriveCAN odriveCAN;
-    std::atomic<bool> running {false};
     std::thread read_thread;
 
     int numberOfNodes {2};
 
     float vBusVoltage;
 
-    virtual void readEventLoop();
-
     std::string device;
-    std::mutex state_lock_;
     
     DriveState state[2];
     const int* nodeIDs;

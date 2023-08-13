@@ -21,7 +21,7 @@ bool IMUReader::readAngles(angles_t& angles) {
   // Read a euler angles from BNO055
   int ret = bno055.get_euler_angles(&angles);
   if (ret < 0){
-    std::cerr << "Error getting IMU angles." << std::endl;
+    log("Error getting IMU angles.");
   }
   return ret < 0;
 }
@@ -30,19 +30,19 @@ bool IMUReader::readRates(rates_t& rates) {
   // Read a rates from BNO055
   int ret = bno055.get_gyro_data(&rates);
   if (ret < 0){
-    std::cerr << "Error getting IMU gyreo rates." << std::endl;
+    log("Error getting IMU gyreo rates.");
   }
   return ret < 0;
 }
 
 bool IMUReader::getState(IMUState& data) {
-  std::lock_guard<std::mutex> lock(imu_state_lock);
+  std::lock_guard<std::mutex> lock(thread_lock);
   data = imu_state;
   return data.error;
 }
 
 void IMUReader::updateState(IMUState data) {
-  std::lock_guard<std::mutex> lock(imu_state_lock);
+  std::lock_guard<std::mutex> lock(thread_lock);
   imu_state = data;
 }
 
@@ -106,10 +106,9 @@ void IMUReader::loop() {
     if (!readAngles(angles) && !readRates(rates))
     {
       transformReading(angles);
-      // rates.gyro_y = rates.gyro_y * -1.0;
+      rates.gyro_pitch = rates.gyro_pitch * -1;
 
       getState(last_state);
-      //log("old pitch: " + std::to_string(last_state.angles.pitch) + " new pitch: " + std::to_string(angles.pitch));
      
       if ((std::chrono::high_resolution_clock::now() - last_state.timestamp) > forget_time)
       {
@@ -117,25 +116,25 @@ void IMUReader::loop() {
         updateState(data);
         std::cout << "[IMU] Updating the IMU to replace old data." << std::endl;    
       } else {
-        if (fabs(angles.pitch - last_state.angles.pitch) > 100)
-        {
-          std::cout << "[IMU] pitch was: "<< angles.pitch << std::endl;    
-          angles.pitch = last_state.angles.pitch;
-        }
+        // if (fabs(angles.pitch - last_state.angles.pitch) > 100)
+        // {
+        //   log("[IMU] pitch was: " + std::to_string(angles.pitch));
+        //   angles.pitch = last_state.angles.pitch;
+        // }
 
-        if (calcTheta(angles.yaw, last_state.angles.yaw) > 50)
-        {
-          std::cout << "[IMU] yaw was: "<< angles.yaw << std::endl;    
-          angles.yaw = last_state.angles.yaw;
-        }
-        if (fabs(rates.gyro_yaw) > 1000)
-        {
-          std::cout << "[IMU] gyro_yaw was: "<< rates.gyro_yaw << std::endl;    
-          rates.gyro_yaw = 0;
-        }
+        // if (calcTheta(angles.yaw, last_state.angles.yaw) > 50)
+        // {
+        //   log("[IMU] yaw was: " + std::to_string(angles.yaw));
+        //   angles.yaw = last_state.angles.yaw;
+        // }
+        // if (fabs(rates.gyro_yaw) > 1000)
+        // {
+        //   log("[IMU] gyro_yaw was: " + std::to_string(rates.gyro_yaw));
+        //   rates.gyro_yaw = 0;
+        // }
         if (fabs(rates.gyro_pitch) > 1000)
         {
-          std::cout << "[IMU] gyro_pitch was: "<< rates.gyro_pitch << std::endl;    
+          log("[IMU] gyro_pitch was: " + std::to_string(rates.gyro_pitch));
           rates.gyro_pitch = 0;
         }
            

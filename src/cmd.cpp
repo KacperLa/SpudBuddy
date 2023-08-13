@@ -40,12 +40,12 @@ void Cmd::close() {
 }
 
 void Cmd::getState(JoystickState& data) {
-    std::lock_guard<std::mutex> lock(joystick_state_lock_);
+    std::lock_guard<std::mutex> lock(thread_lock);
     data = js_state;
 }
 
 void Cmd::updateState(const JoystickState& data) {
-    std::lock_guard<std::mutex> lock(joystick_state_lock_);
+    std::lock_guard<std::mutex> lock(thread_lock);
     js_state = data;
 }
 

@@ -45,7 +45,6 @@ protected:
 
 
     JoystickState js_state;
-    std::mutex joystick_state_lock_;
 };
 
 #endif // CMD_H

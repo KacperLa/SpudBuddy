@@ -47,7 +47,6 @@ class Log {
   void processEventLoop();
 
 protected:
-  std::mutex state_lock;
 
   zmq::context_t& context;
   zmq::socket_t socket_pub{context, zmq::socket_type::pub};

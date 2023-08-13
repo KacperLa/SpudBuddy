@@ -2,7 +2,6 @@
 #include "iostream"
 #include <sys/resource.h>
 
-using fsm_handle = Robot;
 
 void zmq_sockets_open()
 {
@@ -321,8 +320,13 @@ int main(int argc, char *argv[])
 
         IMUReader imu("/dev/i2c-1", "IMU", logger);
         imu.startThread();
+        int nodes[2] = {fsm_handle::leftNode, fsm_handle::rightNode};
+        bool nodeRev[2] = {true, false};
+        DriveSystem drive_system(nodes, nodeRev, 2, "DriveSystem", logger);
+        drive_system.startThread();
 
         fsm_handle::set_logger(&logger);
+        fsm_handle::setDriveSystem(&drive_system);
         fsm_handle::start();
 
         JoystickState js_state;
@@ -395,6 +399,7 @@ int main(int argc, char *argv[])
         }
 
 	    fsm_handle::dispatch(SHUTDOWN());
+        drive_system.stopThread();
         imu.stopThread();
         joystick.stopThread();
         logger.stopProcessing();

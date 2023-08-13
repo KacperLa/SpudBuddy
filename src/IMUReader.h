@@ -58,8 +58,6 @@ protected:
   bool readAngles(BNO055::euler_angles& angles);
   bool readRates(rates_t& rates);
 
-  std::mutex imu_state_lock;
-
   std::string device;
 
   BNO055 bno055{};

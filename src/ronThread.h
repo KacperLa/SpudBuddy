@@ -28,6 +28,8 @@ protected:
     
     std::string threadName;
 
+    std::mutex thread_lock;
+
     Log& logger;
 
     std::atomic<bool> running {false};

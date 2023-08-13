@@ -47,6 +47,8 @@ public:
     static RobotState get_state() { return actual_state; }
     static RobotState get_desired_state() { return desired_state; }
     static void set_logger(Log* new_logger) { logger = new_logger;};
+    static void setDriveSystem(DriveSystem* new_drive_system) { drive_system = new_drive_system;};
+
     //void process_odrive_heartbeat(uint32_t id, HeartbeatMsg_t heartbeat);
 
     virtual void entry(void);  /* entry actions in some states */
@@ -76,9 +78,9 @@ public:
     static IMUState imu_state;
 
     static Controller controller;
-    static DriveSystem driveSystem;
     
     static Log* logger;
+    static DriveSystem* drive_system;
 
     static const int leftNode       {0};
     static const int rightNode      {1};

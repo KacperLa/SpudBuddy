@@ -39,19 +39,19 @@ void Robot::updateIMU(IMUState & new_imu_state)
 }
 
 bool Robot::requestDriveSystemStatus(){ 
-  return driveSystem.getStatus();
+  return drive_system->getStatus();
 }
 
 float Robot::getVelocityOfAxis(int axis){
   float vel;
-  driveSystem.getVelocity(vel, axis);
+  drive_system->getVelocity(vel, axis);
   return vel;
 }
 
 json Robot::RequestAxisData(int id)
 {
     DriveState a_s;
-    driveSystem.getState(a_s, id);
+    drive_system->getState(a_s, id);
     double timeInSeconds = a_s.timestamp.time_since_epoch().count() * std::chrono::high_resolution_clock::period::num / static_cast<double>(std::chrono::high_resolution_clock::period::den);
     json j = {
                   {"axis", id}, 
@@ -132,10 +132,9 @@ class Running;
 RobotState Robot::desired_state = {{0.0, 7.0, 90.0}, {0.0, 0.0, 0.0}, {0.0}, {0.0}, {0.0}};
 RobotState Robot::actual_state;
 Controller Robot::controller;
-int nodes[2] = {Robot::leftNode, Robot::rightNode};
-bool nodeRev[2] = {true, false};
-DriveSystem Robot::driveSystem(nodes, nodeRev, 2);
-Log* Robot::logger;
+
+DriveSystem* Robot::drive_system = {nullptr};
+Log* Robot::logger = {nullptr};
 std::chrono::high_resolution_clock::time_point Robot::imu_timestamp;
 IMUState Robot::imu_state;
 
@@ -144,17 +143,17 @@ class Running : public Robot
   void entry() override {
     actual_state.state = 2;
     logger->pushEvent("[FSM] Entering running state.");
-    driveSystem.enable();
+    drive_system->enable();
   };
   void exit() override {
     logger->pushEvent("[FSM] Exiting running state.");
-    driveSystem.disable();
+    drive_system->disable();
   };
   void react(Update const &) override {
     float leftWheel_cmd;
     float rightWheel_cmd;
-    driveSystem.getVelocity(actual_state.leftVelocity, leftNode);
-    driveSystem.getVelocity(actual_state.rightVelocity, rightNode);
+    drive_system->getVelocity(actual_state.leftVelocity, leftNode);
+    drive_system->getVelocity(actual_state.rightVelocity, rightNode);
     actual_state.velocity = (actual_state.leftVelocity+actual_state.rightVelocity) / 2.0f;
 
 
@@ -172,8 +171,8 @@ class Running : public Robot
         // std::string msg = "[FSM] IMU read to set vel: " + duration_string;
         // logger->pushEvent(msg);
         
-        driveSystem.setTorque(leftWheel_cmd, leftNode);
-        driveSystem.setTorque(rightWheel_cmd, rightNode);
+        drive_system->setTorque(leftWheel_cmd, leftNode);
+        drive_system->setTorque(rightWheel_cmd, rightNode);
       } else {
         logger->pushEvent("[FSM] Robot controller failure\n");
         transit<Error>();
@@ -195,11 +194,11 @@ class Error : public Robot
   void entry() override {
     actual_state.state = 3;
     logger->pushEvent("[FSM] Entering error state.");
-    driveSystem.ESTOP();
+    drive_system->ESTOP();
   };  
   void exit () override {
     logger->pushEvent("[FSM] Exiting error state.");
-    driveSystem.reset();
+    drive_system->reset();
   };
   void react(Update const &) override {
     // logger->pushEvent("[FSM] error_state");
@@ -219,7 +218,7 @@ class Idle : public Robot
     actual_state.state = 1;
     logger->pushEvent("[FSM] Entering idle state.");
     //play_melody(idle_enter_melody, idle_enter_noteDurations);
-    driveSystem.disable();
+    drive_system->disable();
   };
   void exit() override {
     logger->pushEvent("[FSM] Exitting idle.");
@@ -244,7 +243,6 @@ void Robot::react(FAIL const &)
 void Robot::react(SHUTDOWN const &)
 {
   transit<Idle>();
-  driveSystem.stopReading();
 }
 
 FSM_INITIAL_STATE(Robot, Idle)

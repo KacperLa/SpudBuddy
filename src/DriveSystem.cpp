@@ -1,18 +1,18 @@
 #include "DriveSystem.h"
 
-DriveSystem::DriveSystem(const int id[], const bool dir[], const int size) : 
+DriveSystem::DriveSystem(const int id[], const bool dir[], const int size, const std::string name, Log& logger) :
+    ronThread(name, logger),
     numberOfNodes(size),
     nodeIDs(id),
     nodeReversed(dir),
     odriveCAN() {
-        startReading();
     }
 
 DriveSystem::~DriveSystem() {}
 
 bool DriveSystem::open() {
     // Open the can interface
-    std::cout << "opening can" << std::endl;
+    log("opening can");
     return odriveCAN.open();
 }
 
@@ -37,7 +37,7 @@ void DriveSystem::getVelocity(float& vel, const int axis_id){
 
 
 bool DriveSystem::getState(DriveState& data, int axis_id) {
-    std::lock_guard<std::mutex> lock(state_lock_);
+    std::lock_guard<std::mutex> lock(thread_lock);
     // check if index if out of range
     int axis_index = findIndex(nodeIDs, axis_id, numberOfNodes);
     data = state[axis_index];
@@ -62,7 +62,7 @@ bool DriveSystem::isReversed(int axis_id)
 }
 
 void DriveSystem::updateState(const DriveState& data, int axis_id) {
-    std::lock_guard<std::mutex> lock(state_lock_);
+    std::lock_guard<std::mutex> lock(thread_lock);
     int axis_index = findIndex(nodeIDs, axis_id, numberOfNodes);
     state[axis_index] = data;
 }
@@ -110,10 +110,10 @@ int DriveSystem::findIndex(const int arr[], int target, int size) {
     return -1; // target not found
 }
 
-void DriveSystem::readEventLoop() {
+void DriveSystem::loop() {
     // Open the odrive device
     if (open()) {
-        std::cerr << "Error opening odrive device" << std::endl;
+        log("Error opening odrive device");
         running.store(false, std::memory_order_relaxed);
     }
 
@@ -169,26 +169,3 @@ void DriveSystem::readEventLoop() {
     close();
 }
 
-void DriveSystem::startReading() {
-    // Create a new thread to read the odrive events
-    read_thread = std::thread([this](){ this->readEventLoop(); });
-
-    // Set the running flag to true
-    running.store(true, std::memory_order_relaxed);
-}
-
-void DriveSystem::stopReading() {
-    // Set the running flag to false
-    running.store(false, std::memory_order_relaxed);
-    std::cout << "[DriveSystem] joining thread..." << std::endl;
-
-    // Wait for the thread to finish
-    if (read_thread.joinable()) {
-        std::cout << "[DriveSystem] thread is still running." << std::endl;
-        read_thread.join();
-    } else {
-        std::cout << "[DriveSystem] thread is already dead." << std::endl;
-    }
-
-    std::cout << "[DriveSystem] thread has been joined." << std::endl;
-}

@@ -12,11 +12,11 @@ void ronThread::log(std::string strToLog) {
 }
 
 void ronThread::startThread() {
+    // Set the running flag to true
+    running.store(true, std::memory_order_relaxed);
     // Create a new thread
     object_thread = std::thread([this](){ this->loop(); });
     log("thread has started.");
-    // Set the running flag to true
-    running.store(true, std::memory_order_relaxed);
 }
 
 void ronThread::stopThread() {
