@@ -1,12 +1,13 @@
 #include "IMUReader.h"
 #include <sys/resource.h>
 #include <cmath>
+#include <iostream>
+#include <sstream>
 
 IMUReader::IMUReader(const std::string& new_bus, const std::string name, Log& logger) :
   ronThread(name, logger)
 {
   this->bus = new_bus;
-  this->running = true;
 }
 
 IMUReader::~IMUReader()
@@ -39,6 +40,21 @@ bool IMUReader::getState(IMUState& data) {
   std::lock_guard<std::mutex> lock(thread_lock);
   data = imu_state;
   return data.error;
+}
+
+void IMUReader::logCalStatus(){
+  imu_cal_info_t cal;
+  imu_sys_info_t info;
+  int ret = bno055.get_cal_status(&cal);
+  ret = bno055.get_info(&info);
+
+  bno055.print_mode(info.opr_mode);
+
+  log("IMU op mode: , IMU cal: " + std::to_string(cal.scal_st) + \
+      ", gyro cal: " + std::to_string(cal.gcal_st) + \ 
+      ", acel cal: " + std::to_string(cal.acal_st) + \ 
+      ", mag cal: " + std::to_string(cal.mcal_st));
+   
 }
 
 void IMUReader::updateState(IMUState data) {
@@ -86,6 +102,14 @@ void IMUReader::loop() {
     return;
   }
 
+  // set bno 055 to config
+  bno055.set_mode(operation_mode_t::config);
+  // set fmu on 
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+  bno055.set_mode(operation_mode_t::ndof);
+
+
   // Read the IMU data
   angles_t angles;
   rates_t rates;
@@ -116,22 +140,22 @@ void IMUReader::loop() {
         updateState(data);
         std::cout << "[IMU] Updating the IMU to replace old data." << std::endl;    
       } else {
-        // if (fabs(angles.pitch - last_state.angles.pitch) > 100)
-        // {
-        //   log("[IMU] pitch was: " + std::to_string(angles.pitch));
-        //   angles.pitch = last_state.angles.pitch;
-        // }
+        if (fabs(angles.pitch - last_state.angles.pitch) > 100)
+        {
+          log("[IMU] pitch was: " + std::to_string(angles.pitch));
+          angles.pitch = last_state.angles.pitch;
+        }
 
         // if (calcTheta(angles.yaw, last_state.angles.yaw) > 50)
         // {
         //   log("[IMU] yaw was: " + std::to_string(angles.yaw));
         //   angles.yaw = last_state.angles.yaw;
         // }
-        // if (fabs(rates.gyro_yaw) > 1000)
-        // {
-        //   log("[IMU] gyro_yaw was: " + std::to_string(rates.gyro_yaw));
-        //   rates.gyro_yaw = 0;
-        // }
+        if (fabs(rates.gyro_yaw) > 1000)
+        {
+          log("[IMU] gyro_yaw was: " + std::to_string(rates.gyro_yaw));
+          rates.gyro_yaw = 0;
+        }
         if (fabs(rates.gyro_pitch) > 1000)
         {
           log("[IMU] gyro_pitch was: " + std::to_string(rates.gyro_pitch));

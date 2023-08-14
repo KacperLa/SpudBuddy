@@ -250,8 +250,6 @@
         <div id="joystickCard" style="display: block">
             <div id="joy2Div"></div>
         </div>
-
-
         
         <style>
             *
@@ -268,9 +266,9 @@
             {
                 position: fixed;
                 bottom: 100px;
-                right: 100px;
-                width:200px;
-                height:200px;
+                right: 50px;
+                width:300px;
+                height:300px;
                 margin:50px
             }
             #joystick
@@ -312,7 +310,7 @@
             var joy = new JoyStick('joy2Div', joy2Param);
             var joystickCard = document.getElementById("joystickCard");
             joystickCard.style.display = "none";
-   
+
             var joySocket = io();
             joySocket.on('connect', function() {
                 joySocket.emit('joystick event', {data: 'I\'m connected!'});

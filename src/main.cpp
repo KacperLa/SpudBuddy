@@ -214,8 +214,6 @@ void zmq_sockets_publish_state(RobotState actual_state, RobotState desired_state
         socket_pub.send(message);
 }
 
-
-
 void signal_handler(const int signal)
 {
     /**
@@ -295,7 +293,6 @@ void signal_handler(const int signal)
     }
 }
 
-
 int main(int argc, char *argv[])
 {
         std::cout << "Starting up.." << std::endl;
@@ -359,8 +356,8 @@ int main(int argc, char *argv[])
                 }
                 
                 cmd_data new_cmd;
-                new_cmd.v = js_state.y / 100.0f;
-                new_cmd.o = (fabs(js_state.x) > 1.0f ) ? (js_state.x / 100.0f) : 0.0f;
+                new_cmd.v = (fabs(js_state.y) > 5) ? js_state.y / 100.0f : 0.0f;
+                new_cmd.w = (fabs(js_state.x) > 5) ? js_state.x / -100.0f : 0.0f;
                 fsm_handle::dispatch(new_cmd);
 
                 fsm_handle::dispatch(Update());
@@ -380,7 +377,7 @@ int main(int argc, char *argv[])
                         // logger.pushEvent(msg);
                         // std::cout << "imu: yaw=" << imu_state.angles.yaw << std::endl;
                         // std::cout << "joystick: x=" << js_state.x << " , a=" << js_state.y << std::endl;
-
+                        // imu.logCalStatus();
                         json j = fsm_handle::RequestAxisData(1);
                         std::string out_j = j.dump();
                         //std::cout << "axis 1 state: " << out_j << std::endl;

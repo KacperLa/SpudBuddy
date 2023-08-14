@@ -7,6 +7,7 @@ Controller::Controller() {
     yaw_rate_pid.setOutputLimits(-1.0, 1.0);
     velocity_pid.setOutputLimits(-15.0, 15.0);
     velocity_pid.setMaxIOutput(15.0);
+
 }
 
 Controller::~Controller() {
@@ -41,24 +42,23 @@ bool Controller::calculateOutput(RobotState actual_state, RobotState desired_sta
     // }
     
 
-    float yaw_error;
-    double yaw_output = 0;
-    calcTheta(desired_state.angles.yaw, actual_state.angles.yaw, yaw_error);
-    std::cout << "actual: " << actual_state.angles.yaw << " , desired: " << desired_state.angles.yaw << ", error: " << yaw_error << std::endl;
-    if (fabs(yaw_error) > 5.0)
-    {
-        yaw_output = (yaw_error * yaw_rate_pid.getP()) + (-1*actual_state.rates.gyro_yaw * yaw_rate_pid.getD());
-        if (fabs(yaw_output) < 0.01f){
-            yaw_output = 0;
-        }
+    float yaw_rate_error = (actual_state.leftVelocity - actual_state.rightVelocity) + desired_state.rates.gyro_yaw;
+    //calcTheta(desired_state.angles.yaw, actual_state.angles.yaw, yaw_error);
+    double yaw_output = yaw_rate_pid.getOutput(yaw_rate_error); //(yaw_error * yaw_rate_pid.getP()) + (actual_state.rates.gyro_yaw * yaw_rate_pid.getD());
+    
+    if (fabs(yaw_output) < 0.001f){
+        yaw_output = 0;
     }
+    
 
-    double velocity_output = velocity_pid.getOutput(actual_state.velocity, desired_state.velocity);
+    double velocity_output = velocity_pid.getOutput(actual_state.velocity, (-1*desired_state.velocity));
+    // double velocity_l_output = velocity_pid_l.getOutput(actual_state.leftVelocity,  (desired_state.velocity + yaw_output));
+    // double velocity_r_output = velocity_pid_r.getOutput(actual_state.rightVelocity, (desired_state.velocity - yaw_output));
 
-    //std::cout << "output L: " <<  velocity_output_left << "output r: " <<  velocity_output_right << "actual l: " << actual_state.leftVelocity << "actual r: " << actual_state.rightVelocity << " desired vel: " <<  desired_state.velocity << std::endl;
+    //std::cout << "output L: " <<  velocity_l_output << "output r: " <<  velocity_r_output << "actual l: " << actual_state.leftVelocity << "actual r: " << actual_state.rightVelocity << " desired vel: " <<  desired_state.velocity << std::endl;
     double pitch_error = desired_state.angles.pitch - (actual_state.angles.pitch + velocity_output);
     double pitch_output   =  (pitch_error * pitch_pid.getP()) + (actual_state.rates.gyro_pitch * pitch_pid.getD());
-    //pitch_pid.getOutput(actual_state.angles.pitch, (desired_state.angles.pitch));
+
     if (fabs(pitch_output) < 0.001f){
         pitch_output = 0;
     }
@@ -103,6 +103,14 @@ void Controller::get_velocity_coeffs(double& P, double& I, double& D){
     D = velocity_pid.getD();
 }
 
+void Controller::get_sync_coeffs(double& P, double& I, double& D){
+    std::unique_lock<std::mutex> lock(mtx);
+    P = sync_pid.getP();
+    I = sync_pid.getI();
+    D = sync_pid.getD();
+}
+
+
 void Controller::set_pitch_coeffs(const double* P, const double* I, const double* D)  {
     std::unique_lock<std::mutex> lock(mtx);
     pitch_pid.setPID(*P, *I, *D);
@@ -118,3 +126,7 @@ void Controller::set_velocity_coeffs(const double* P, const double* I, const dou
     velocity_pid.setPID(*P, *I, *D);
 }
 
+void Controller::set_sync_coeffs(const double* P, const double* I, const double* D) {
+    std::unique_lock<std::mutex> lock(mtx);
+    sync_pid.setPID(*P, *I, *D);
+}

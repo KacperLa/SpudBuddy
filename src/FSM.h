@@ -29,7 +29,7 @@ typedef enum {
 
 struct cmd_data : tinyfsm::Event {
     double v {0.0};
-    double o {0.0};
+    double w {0.0};
 };
 
 

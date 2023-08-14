@@ -17,6 +17,8 @@
 
 typedef BNO055::euler_angles angles_t;
 typedef BNO055::gyro rates_t;
+typedef BNO055::bno_cal imu_cal_info_t;
+typedef BNO055::bno_info imu_sys_info_t;
 
 
 // FAILURE MODES
@@ -46,6 +48,7 @@ public:
   virtual ~IMUReader();
 
   bool getState(IMUState& data);
+  void logCalStatus();
 
 private:
   virtual void loop() override;

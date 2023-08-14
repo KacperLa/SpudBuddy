@@ -25,7 +25,7 @@ void Robot::react(RESET const &) {
 void Robot::react(cmd_data const &e)
 {
   desired_state.velocity  = e.v;
-  desired_state.angles.yaw += e.o;
+  desired_state.rates.gyro_yaw = e.w;
 }
 
 void Robot::updateIMU(IMUState & new_imu_state)
