@@ -123,6 +123,10 @@ def data():
 def tunning():
     return render_template('tunning.html')
 
+@app.route('/3dview')
+def threeDView():
+    return render_template('3dview.html')
+
 @app.route('/ron')
 def ron():
     return render_template('ron.html')

@@ -157,7 +157,7 @@ class Running : public Robot
     actual_state.velocity = (actual_state.leftVelocity+actual_state.rightVelocity) / 2.0f;
 
 
-    if (fabs(actual_state.angles.pitch - desired_state.angles.pitch) > 30){
+    if (fabs(actual_state.angles.pitch - desired_state.angles.pitch) > 50){
       logger->pushEvent("[FSM] Robot fell, going into error state." + std::to_string(actual_state.angles.pitch));
       transit<Error>();
     } else {

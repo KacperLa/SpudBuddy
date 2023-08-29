@@ -1,4 +1,5 @@
 #include "DriveSystem.h"
+#define PI 3.14159265
 
 DriveSystem::DriveSystem(const int id[], const bool dir[], const int size, const std::string name, Log& logger) :
     ronThread(name, logger),
@@ -9,6 +10,45 @@ DriveSystem::DriveSystem(const int id[], const bool dir[], const int size, const
     }
 
 DriveSystem::~DriveSystem() {}
+
+void DriveSystem::calcDeadRec(float & x, float & y)
+{
+    static double inter_tire_distance = 0.240; // 240 mm
+    static double tire_radius = 0.080; //80mm
+    static double tire_cir = 2.0*PI*tire_radius;
+
+    float currentWheelPos[2];
+    getPosition(currentWheelPos[0], 0);
+    getPosition(currentWheelPos[1], 1);
+
+
+  
+    double arcR = (tire_cir)*(currentWheelPos[0] - lastWheelPos[0]);
+    double arcL = (tire_cir)*(currentWheelPos[1] - lastWheelPos[1]);
+
+    double radius = 0.0;
+    double angle = (arcR-arcL)/inter_tire_distance; 
+    if (angle != 0.0f){
+        radius = (arcL/angle) + (inter_tire_distance/2.0f);
+        
+        double local_x = (radius - (cos(angle) * radius));
+        double local_y = radius * sin(angle);
+
+        deadRecPos[0] += (sin(deadRecPos[2]) * local_y) + (cos(deadRecPos[2]) * local_x);
+        deadRecPos[1] += (cos(deadRecPos[2]) * local_y) + (sin(deadRecPos[2]) * local_x);
+        
+        deadRecPos[2] += angle;
+
+    } else {
+        deadRecPos[1] += (arcR+arcL)/2;
+    }
+
+
+    x = deadRecPos[0];
+    y = deadRecPos[1];
+
+    std::memcpy(lastWheelPos, currentWheelPos, sizeof(currentWheelPos));
+}
 
 bool DriveSystem::open() {
     // Open the can interface
@@ -35,6 +75,11 @@ void DriveSystem::getVelocity(float& vel, const int axis_id){
     vel = cur_state.velocity;
 }
 
+void DriveSystem::getPosition(float& pos, const int axis_id){
+    DriveState cur_state;
+    getState(cur_state, axis_id);
+    pos = cur_state.position;
+}
 
 bool DriveSystem::getState(DriveState& data, int axis_id) {
     std::lock_guard<std::mutex> lock(thread_lock);
@@ -124,6 +169,7 @@ void DriveSystem::loop() {
 
     while (running.load(std::memory_order_relaxed)) { 
         if (readEvent(frame)) {
+            // auto message_time = std::chrono::high_resolution_clock::now();
             uint32_t axis_id = frame.can_id >> 5;
             uint8_t cmd_id = frame.can_id & 0x01F;
             getState(cur_state, axis_id);
@@ -141,6 +187,7 @@ void DriveSystem::loop() {
                     odriveCAN.GetPositionVelocityResponse(returnVals, frame);
                     cur_state.velocity = returnVals.velEstimate * dir;
                     cur_state.position = returnVals.posEstimate * dir;
+                    // cur_state.timestamp = message_time;
                     break;
                     }
                 case (ODriveCAN::CMD_ID_GET_IQ): {

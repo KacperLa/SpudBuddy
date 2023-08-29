@@ -141,7 +141,7 @@ void zmq_sockets_poll()
     }
 }
 
-void zmq_sockets_publish_state(RobotState actual_state, RobotState desired_state, JoystickState &js, json j0, json j1){
+void zmq_sockets_publish_state(RobotState actual_state, RobotState desired_state, float x, float y, JoystickState &js, json j0, json j1){
         auto now = std::chrono::high_resolution_clock::now();
         auto duration = now.time_since_epoch();
         auto timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(duration).count();
@@ -173,6 +173,12 @@ void zmq_sockets_publish_state(RobotState actual_state, RobotState desired_state
                             },
                             {"actual",
                                 {
+                                    {"pos",
+                                        {
+                                            {"x", x},
+                                            {"y", y}
+                                        }
+                                    },
                                     {"angles",
                                         {
                                             {"yaw", actual_state.angles.yaw},
@@ -362,10 +368,15 @@ int main(int argc, char *argv[])
 
                 fsm_handle::dispatch(Update());
 
+                // calc position guess
+                float x, y;
+                drive_system.calcDeadRec(x, y);
+                // std::cout << "x, y; " << x << ", " << y << std::endl;
+
                 zmq_sockets_poll();
 
                 if ((std::chrono::high_resolution_clock::now() - last_publish) > loop_time){
-                        zmq_sockets_publish_state(actual_state, desired_state, js_state, fsm_handle::RequestAxisData(0), fsm_handle::RequestAxisData(1));
+                        zmq_sockets_publish_state(actual_state, desired_state, x, y, js_state, fsm_handle::RequestAxisData(0), fsm_handle::RequestAxisData(1));
                         last_publish = std::chrono::high_resolution_clock::now();
                         //system("clear");
                         // std::cout << "\033[2J\033[1;1H";

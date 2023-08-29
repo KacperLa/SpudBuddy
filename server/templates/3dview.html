@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Live Graph</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+        <script src="{{ url_for('static', filename='chartjs/package/dist/chart.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='joy.js') }}"></script>
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+
+    </head>
+    <body>
+        <div class="modal fade" id="batteryModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body">
+                  ...
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                  <button type="button" class="btn btn-primary">Save changes</button>
+                </div>
+              </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="pidModal" tabindex="-1" role="dialog" aria-labelledby="Options" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="optionModalLabel">PID Tunning</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body">
+                    <form> 
+                        <div class="form-group row">
+                            <div class="form-group mx-1 col-md-2 my-auto">Pitch:</div>
+                            <div class="form-group mx-1 my-auto">P</div>
+                            <div class="form-group mx-1 col-md-2 my-auto">
+                                <input type="text" class="form-control" id="pP" value="0">
+                            </div>
+                            <div class="form-group mx-1 my-auto">D</div>
+                            <div class="form-group mx-1 col-md-2 my-auto">
+                                <input type="text" class="form-control" id="pD" value="0">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="form-group mx-1 col-md-2 my-auto">Velocity:</div>
+                            <div class="form-group mx-1 my-auto">P</div>
+                            <div class="form-group mx-1 col-md-2 my-auto">
+                                <input type="text" class="form-control" id="vP" value="0">
+                            </div>
+                            <div class="form-group mx-1 my-auto">I</div>
+                            <div class="form-group mx-1 col-md-2 my-auto">
+                                <input type="text" class="form-control" id="vI" value="0">
+                            </div>
+                            <div class="form-group mx-1 my-auto">D</div>
+                            <div class="form-group mx-1 col-md-2 my-auto">
+                                <input type="text" class="form-control" id="vD" value="0">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="form-group mx-1 col-md-2 my-auto">Yaw:</div>
+                            <div class="form-group mx-1 my-auto">P</div>
+                            <div class="form-group mx-1 col-md-2 my-auto">
+                                <input type="text" class="form-control" id="yP" value="0">
+                            </div>
+                            <div class="form-group mx-1 my-auto">D</div>
+                            <div class="form-group mx-1 col-md-2 my-auto">
+                                <input type="text" class="form-control" id="yD" value="0">
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div class="form-group mx-1 col-md-4 my-auto">Balance Point:</div>
+                            <div class="form-group mx-1 my-auto">Pitch</div>
+                            <div class="form-group mx-1 col-md-2 my-auto">
+                                <input type="text" class="form-control" id="pitchZero" value="0">
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div class="form-group mx-auto my-auto">     
+                                <button class="btn btn-success" type="button" onclick="sendCoreReq('core', 'request_pid_coeffs')">
+                                    GET
+                                </button> 
+                                <button class="btn btn-success" type="button" onclick="sendCorePIDSet()">
+                                    SET
+                                </button>
+                            </div>
+                        </div>
+                      </form>
+                </div>
+                <div class="modal-footer">
+                    <div> 
+                        <button class="btn btn-danger" type="button" onclick="sendAction('core', 'request_transition', 3)">
+                            ESTOP
+                        </button>
+                    </div>
+                    <div>
+
+                    </div>
+                    
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary">Save changes</button>
+                </div>
+              </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="logModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body" id="logs-from-core">
+                  ...
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+              </div>
+            </div>
+        </div>
+
+        <div class="fixed-top">
+            <nav class="nav my-1">
+                <ul class="nav mr-auto">
+                    <a class="nav-item nav-item active mx-1">
+                        <div class="btn-group btn-group-lg" role="group">
+                            <button class="btn btn-success" type="button" onclick="sendAction('core', 'request_transition', 1)">
+                                Start
+                            </button> 
+                            <button class="btn btn-secondary" type="button" onclick="sendAction('core', 'request_transition', 2)">
+                                Reset
+                            </button> 
+                        </div>
+                    </a>
+                    <a class="nav-item active mx-1">
+                        <button class="btn btn-dark btn-lg" type="button" data-toggle="modal" data-target="#batteryModal">
+                            <i class="fa fa-battery-full"></i>
+                        </button>
+                    </a>
+                    <a class="nav-item active mx-1">
+                        <button id="status" class="btn btn-dark btn-lg" type="button">
+                            Status: UNKNOWN
+                        </button>
+                    </a>
+                    <a>
+                        <button id="pauseResumeBtn" class="btn btn-dark btn-lg" type="button" onclick="pauseResume()">
+                            <i class="fa fa-play"></i>
+                        </button>
+                    </a>
+                </ul>
+                <ul class="nav mx-1">
+                    <a class="nav-item ml-lg-0">
+                        <button class="btn btn-danger" type="button" onclick="sendAction('core', 'request_transition', 3)">
+                            ESTOP
+                        </button>
+                    </a>
+                </ul>
+            </nav>
+        </div>
+
+
+        <div class="fixed-bottom">
+            <nav class="nav nav-pills nav-justified">
+                <ul class="nav mt-auto mb-1">
+                    <a class="nav-item nav-item active mt-auto mx-1">
+                        <button class="btn btn-dark btn-lg" type="button" data-toggle="modal" data-target="#optionsModal">
+                            <i class="fa fa-gear"></i>
+                        </button>
+                    </a>
+                    <a class="nav-item">
+                       <button class="btn btn-dark btn-lg" type="button" data-toggle="modal" data-target="#pidModal">
+                            PID
+                        </button>
+                    </a>
+                </ul>
+                <ul class="nav-item">
+                    <div class="imuWindow" style="display: flex; flex-direction: column;align-items: center;"">
+
+                    </div>
+                </ul>
+                <ul class="nav-item">
+                    <div class="imuObjectWrapper" style="display: flex; flex-direction: column;align-items: center;"">
+                        <img class="imuObjectOverlay" id="imuObjectref" src="{{ url_for('static', filename='ronTop.svg') }}"></img>
+                        <img class="imuObjectOverlay" id="imuObject" src="{{ url_for('static', filename='radar2.svg') }}"></img>
+                    </div>
+                </ul>
+                <ul class="nav-item">
+                    <div class="imuObjectWrapper2"  style="display: flex; flex-direction: column;align-items: center;"">
+                        <img class="imuObjectOverlay2" id="imuObject2ref" src="{{ url_for('static', filename='ronSidePointer.svg') }}"></img>
+                        <img class="imuObjectOverlay2" id="imuObject2" src="{{ url_for('static', filename='ronSide2.svg') }}"></img> 
+                     </div>
+                </ul>
+                <ul class="nav mt-auto mb-1">
+                    <a class="nav-item mx-1">
+                        <button type="button" class="btn btn-dark btn-lg" onclick="hideJoystick()">
+                            <i class="fa fa-gamepad"></i>
+                        </button>
+                    </a>
+                    <a class="nav-item mx-1">
+                        <button class="btn btn-dark btn-lg" type="button" data-toggle="modal" data-target="#logModal">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                    </a>
+                </ul>
+            </nav>
+        </div>
+
+
+
+        
+        <div id="dashPanel">
+            <p>Incoming Data:</p>
+            <p id="incomingData"></p>
+
+            <div class="card" style="width: 18rem;">
+                <div class="card-body">
+                  <h5 class="card-title">IMU Data</h5>
+                  <p id="imuData"></p>
+                </div>
+              </div>
+
+
+        </div>
+        <div class="col-md-12">
+			
+          
+        <div class="chart-container"" style="text-align:center">
+            <canvas id="chart"></canvas>
+        </div>
+        
+        <div id="joystickCard" style="display: block">
+            <div id="joy2Div"></div>
+        </div>
+        
+        <style>
+            *
+            {
+                box-sizing: border-box;
+            }
+            body
+            {
+                margin: 0px;
+                padding: 0px;
+                font-family: monospace;
+            }
+            .chart-container
+            {
+                width: 600px;
+                height:600px
+            }
+            #joy2Div
+            {
+                position: fixed;
+                bottom: 100px;
+                right: 50px;
+                width:300px;
+                height:300px;
+                margin:50px
+            }
+            #joystick
+            {
+                border: 1px solid #FF0000;
+            }
+            .imuObjectWrapper {
+                position: relative;
+            }
+            .imuObjectWrapper2 {
+                position: relative;
+                transform: scale(1.25); 
+            }
+            .imuObjectOverlay
+            {
+                position: absolute;
+                top: -50px;
+                left: 0;
+               
+            }
+            .imuObjectOverlay2
+            {
+                position: absolute;
+                top: -30px;
+                left: 0;
+            }
+        </style>
+        <script>
+          
+            function hideJoystick() {
+                var joystickCard = document.getElementById("joystickCard");
+                if (joystickCard.style.display === "none") {
+                    joystickCard.style.display = "block";
+                } else {
+                    joystickCard.style.display = "none";
+                }
+            }
+            var joy2Param = { "title": "joystick", "autoReturnToCenter": true };
+            var joy = new JoyStick('joy2Div', joy2Param);
+            var joystickCard = document.getElementById("joystickCard");
+            joystickCard.style.display = "none";
+
+            var joySocket = io();
+            joySocket.on('connect', function() {
+                joySocket.emit('joystick event', {data: 'I\'m connected!'});
+            });
+            setInterval(function() {
+                var joystickCard = document.getElementById("joystickCard");
+                if (joystickCard.style.display === "block"){
+                      var js_data = {
+                        x: joy.GetX(),
+                        y: joy.GetY(),
+                        timestamp: Date.now()
+                    };
+                    console.log(js_data);
+                    joySocket.emit('js', JSON.stringify(js_data));
+                }
+            }, 100);
+            
+            const randomNum = () => Math.floor(Math.random() * (235 - 52 + 1) + 52);
+            const randomRGB = () => `rgb(${randomNum()}, ${randomNum()}, ${randomNum()})`;
+            
+            var ctx = document.getElementById("chart").getContext("2d");
+            var LineChart = new Chart(ctx, {
+                type: 'scatter',            
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'robotDeadRec',
+                            data: [],
+                            fill: true,
+                            borderColor: randomRGB(),
+                        }             
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    elements:{
+                        point:{
+                            borderWidth: 1,
+                            backgroundColor: 'rgba(0,0,0,0)'
+                        }
+                    },
+                    scales: {
+                    x: {
+                        min: -2,
+                        max: 2,
+                        ticks: {
+                            font: {
+                                size: 20,
+                            }
+                        },
+                        grid: {
+                            display: true,
+                            drawOnChartArea: true,
+                            drawTicks: true,
+                        }
+                    },
+                    y: {
+                        min: -2,
+                        max:  2,
+                        ticks: {
+                            font: {
+                                size: 20,
+                            }
+                        },
+                        grid: {
+                            display: true,
+                            drawOnChartArea: true,
+                            drawTicks: true,
+                        }
+                    }                       
+                    },
+                    plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    // This more specific font property overrides the global property
+                                    font: {
+                                        size: 20
+                                    }
+                                }
+                            },
+                            title: {
+                                display: true,
+                            }
+                        }
+                    }
+                }
+            );
+
+            LineChart.options.animation = false;
+
+            function addData(chart, x, y) {
+                if(chart.data.labels.length > 100){
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
+                }
+
+                chart.data.labels.push(x);
+                chart.data.datasets[0].data.push(y);
+                console.log(chart.data.datasets[0]);
+        
+                chart.update();
+            }
+
+            const findByKey = (obj, goal) => {
+                for (key in obj)
+                {
+                    if (Object.keys(obj[key]).length > 0)
+                    {
+                        for (key2 in obj[key])
+                        {
+                            if (key2 == goal)
+                            {
+                                return obj[key][key2];
+                            } 
+                        }
+                    }
+                    else
+                    {
+                        if (key == goal)
+                        {
+                            return obj[key];
+                        }
+                    }
+                }
+                return 0;
+            }
+
+           
+            var source = new EventSource('/data');
+            var log_source = new EventSource('/log_stream');
+            var log_data = [];
+
+            var paused = false;
+            function pauseResume() {
+                if (!paused) {
+                    paused = true;
+                    document.getElementById("pauseResumeBtn").innerHTML = "<i class=\"fa fa-play\"></i>";
+                } else {
+                    paused = false;
+                    document.getElementById("pauseResumeBtn").innerHTML = "<i class=\"fa fa-pause\"></i>";
+                }
+            }
+
+            function sendCorePIDSet(){
+               
+               let pP = document.getElementById('pP');
+               let pD = document.getElementById('pD');
+               let vP = document.getElementById('vP');
+               let vI = document.getElementById('vI');
+               let vD = document.getElementById('vD');
+               let yP = document.getElementById('yP');
+               let yD = document.getElementById('yD');
+               let pitch = document.getElementById('pitchZero');
+
+              let xhr = new XMLHttpRequest();
+              let url = "/action/set_pid_coeffs";
+          
+              xhr.open("POST", url, true);
+          
+              xhr.setRequestHeader("Content-Type", "application/json");
+          
+              xhr.onreadystatechange = function () {
+                  if (xhr.readyState === 4 && xhr.status === 200) {
+                       var data = JSON.parse(this.responseText).data;
+                       console.log(data);
+                       pP.value = data.pitch.p;
+                       pD.value = data.pitch.d;
+                       vP.value = data.velocity.p;
+                       vI.value = data.velocity.i;
+                       vD.value = data.velocity.d;
+                       yP.value = data.yaw.p;
+                       yD.value = data.yaw.d;
+                       pitch.value = data.balancePoint.pitch;
+                  }
+              };
+              var data = JSON.stringify({"socket": "core", "request": "set_pid_coeffs",
+                                            "pP": pP.value,
+                                            "pitchZero": pitch.value,
+                                            "pI": "0",
+                                            "pD": pD.value,
+                                            "vP": vP.value,
+                                            "vI": vI.value,
+                                            "vD": vD.value,
+                                            "yP": yP.value,
+                                            "yI": "0",
+                                            "yD": yD.value,
+                                            
+                                        });
+              xhr.send(data);
+           }
+
+            function sendCoreReq(socket, request){
+               
+                let pP = document.getElementById('pP');
+                let pD = document.getElementById('pD');
+                let vP = document.getElementById('vP');
+                let vI = document.getElementById('vI');
+                let vD = document.getElementById('vD');
+                let yP = document.getElementById('yP');
+                let yD = document.getElementById('yD');
+                let pitch = document.getElementById('pitchZero');
+
+
+                // console.log("pid coeffs", pP, pD, vP, vI, yP, yD)
+
+               let xhr = new XMLHttpRequest();
+               let url = "/action/" + request;
+           
+               xhr.open("POST", url, true);
+           
+               xhr.setRequestHeader("Content-Type", "application/json");
+           
+               xhr.onreadystatechange = function () {
+                   if (xhr.readyState === 4 && xhr.status === 200) {
+                        var data = JSON.parse(this.responseText).data;
+                        console.log(data)
+                        pP.value = data.pitch.p;
+                        pD.value = data.pitch.d;
+                        vP.value = data.velocity.p;
+                        vI.value = data.velocity.i
+                        vD.value = data.velocity.d
+                        yP.value = data.yaw.p;
+                        yD.value = data.yaw.d;
+                        pitch.value = data.balancePoint.pitch;
+                   }
+               };
+               var data = JSON.stringify({"socket": socket, "request": request});
+               xhr.send(data);
+            }
+
+            function sendAction(socket, request, action){
+               
+               //let result = document.querySelector('.system_result');
+               
+               let xhr = new XMLHttpRequest();
+               let url = "/action/" + request;
+           
+               xhr.open("POST", url, true);
+           
+               xhr.setRequestHeader("Content-Type", "application/json");
+           
+               xhr.onreadystatechange = function () {
+                   if (xhr.readyState === 4 && xhr.status === 200) {
+                      
+                   }
+               };
+               var data = JSON.stringify({"socket": socket, "request": request, "action": action});
+               xhr.send(data);
+            }
+
+           
+
+            log_source.onmessage = function(event) {
+                var data = JSON.parse(event.data);
+                var d = new Date(0);
+                d.setUTCSeconds(data["timestamp"]);
+                var logStr = "["+d.getHours()+":"+d.getMinutes()+":"+d.getSeconds()+"] "+ data["log"] + "<br>"
+
+                document.getElementById("logs-from-core").innerHTML += logStr;
+            }
+
+            source.onmessage = function(event) {
+                var data = JSON.parse(event.data);
+
+                // var table = '<table class="table table-dark"><tr><th>Key</th><th>Value</th></tr>';
+                // for (var key in data) {
+                //     table += '<tr><td>' + key + '</td><td>' + JSON.stringify(data[key]) + '</td></tr>';
+                // }
+
+                // table += '</table>';
+                // var imutable = '<table class="table table-dark"><tr><th>Axis</th><th>Value</th></tr>';
+                // for (var key in data.imu) {
+                //     let num = data.imu[key].toFixed(2);
+                //     let str1 = num.toString();
+                //     imutable += '<tr><td>' + key + '</td><td style="width: .5rem; text-align: right;">' + str1 + '</td></tr>';
+                // }
+
+                var imuRotStrZ = "rotateZ(" + data["robotState"]["actual"]["angles"]['yaw'] + "deg) "
+                var imuRotStrZref = "rotateZ(" + data["robotState"]["desired"]["angles"]['yaw'] + "deg) "
+                var imuRotStrX = "rotateZ(" + data["robotState"]["actual"]["angles"]['pitch'] + "deg)"
+                var imuRotStrXref = "rotateZ(" + data["robotState"]["desired"]["angles"]['pitch'] + "deg) "
+
+                
+                // imutable += '</table>';
+                // document.getElementById("incomingData").innerHTML = table;
+                // document.getElementById("imuData").innerHTML = imutable;
+                document.getElementById("imuObject").style.transform = imuRotStrZ;
+                document.getElementById("imuObject").style.transition = "transform 25ms ease-in-out";
+                
+                document.getElementById("imuObjectref").style.transform = imuRotStrZref;
+                document.getElementById("imuObjectref").style.transition = "transform 25ms ease-in-out";
+                
+                document.getElementById("imuObject2").style.transform = imuRotStrX;
+                document.getElementById("imuObject2").style.transition = "transform 25ms ease-in-out";
+                
+                document.getElementById("imuObject2ref").style.transform = imuRotStrXref;
+                document.getElementById("imuObject2ref").style.transition = "transform 25ms ease-in-out";
+
+
+                let statusText = "Status: UNKNOWN";
+                switch(data["robotState"]["actual"]['state']) {
+                    case 1:
+                        statusText = "Status:  IDLE  ";
+                        break;
+                    case 2:
+                        statusText = "Status: RUNNING";
+                        break;
+                    case 3:
+                        statusText = "Status:  ERROR ";
+                        break;
+                    default:
+                        statusText = "Status: UNKNOWN";
+                }
+                document.getElementById("status").innerHTML = statusText;
+                
+                if (!paused){
+                    addData(LineChart, data["robotState"]["actual"]["pos"]["x"], data["robotState"]["actual"]["pos"]["y"]);
+                }                
+            }
+        </script>
+    </body>
+</html>
