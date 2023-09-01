@@ -388,65 +388,46 @@ def video_feed_0():
 
 @app.route("/video_feed_1")
 def video_feed_1():
-	return Response(generate(1), mimetype = "multipart/x-mixed-replace; boundary=frame")
+	return Response(generate(), mimetype = "multipart/x-mixed-replace; boundary=frame")
+
+def generate():
+    sock = context.socket(zmq.SUB)
+    sock.connect(("tcp://localhost:5530"))
+    sock.subscribe(b"")
+    poller = zmq.Poller()
+    poller.register(sock, zmq.POLLIN)
+    while True:
+        socks = dict(poller.poll(0))
+        if sock in socks and socks[sock] == zmq.POLLIN:
+            data = sock.recv(zmq.NOBLOCK)
+            yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + data + b'\r\n')
+        else:
+            time.sleep(.05)
+            continue
+
+@app.route("/map_stream")
+def map_stream():
+    return Response(generate_map(), mimetype='text/event-stream')
+
+def generate_map():
+    sock = context.socket(zmq.SUB)
+    sock.connect(("tcp://localhost:5500"))
+    sock.subscribe(b"")
+    poller = zmq.Poller()
+    poller.register(sock, zmq.POLLIN)
+    while True:
+        socks = dict(poller.poll(0))
+        if sock in socks and socks[sock] == zmq.POLLIN:
+            message = sock.recv(zmq.NOBLOCK)
+            data = json.loads(message)
+            yield f"data: {json.dumps(data)}\n\n"
+        else:
+            time.sleep(.05)
+            continue
 
 @app.route("/video_feed_2")
 def video_feed_2():
 	return Response(generate(2), mimetype = "multipart/x-mixed-replace; boundary=frame")
-
-def generate(camera=0):
-    if False: #camera == 1:
-        print("starting camera")
-        # Create pipeline
-        pipeline = dai.Pipeline()
-
-        # INPUT
-        camRgb = pipeline.create(dai.node.ColorCamera)
-        camRgb.setBoardSocket(dai.CameraBoardSocket.RGB)
-        camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
-        camRgb.setVideoSize(1920, 1080)
-
-        # Properties
-        videoEnc = pipeline.create(dai.node.VideoEncoder)
-        videoEnc.setDefaultProfilePreset(1, dai.VideoEncoderProperties.Profile.MJPEG)
-        camRgb.video.link(videoEnc.input)
-
-        # OUTPUT
-        xoutVideo = pipeline.create(dai.node.XLinkOut)
-        xoutVideo.setStreamName("video")
-        videoEnc.bitstream.link(xoutVideo.input)
-
-        xoutVideo.input.setBlocking(False)
-        xoutVideo.input.setQueueSize(1)
-
-        # Connect to device and start pipeline
-        with dai.Device(pipeline) as device:
-            print("8")
-
-            # Output queue will be used to get the rgb frames from the output defined above
-            qStill = device.getOutputQueue(name="video", maxSize=1, blocking=False)
-            print('MxId:',device.getDeviceInfo().getMxId())
-            print('USB speed:',device.getUsbSpeed())
-            print('Connected cameras:',device.getConnectedCameras())
-            imuType = device.getConnectedIMU()
-            imuFirmwareVersion = device.getIMUFirmwareVersion()
-            print(f"IMU type: {imuType}, firmware version: {imuFirmwareVersion}")
-
-            while True:
-                    # dump =  device.getCrashDump()
-                    # if dump is not None:
-                    #     crash_dump_json = dump.serializeToJson()
-
-                    #     # Process the crash dump as needed, e.g., upload to AWS S3
-                    #     print("crash dump:", crash_dump_json)
-                    videoIn = qStill.get()
-                    if videoIn is not None:
-                        frame = videoIn.getData()
-                        # Get BGR frame from NV12 encoded video frame to show with opencv
-                        # Visualizing the frame on slower hosts might have overhead
-                        img = bytearray(frame)
-                        yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + img + b'\r\n')
-
 
 @app.route("/wifi_configuration/<path:subpath>", methods=['GET', 'POST'])
 def wifi_configuration(subpath):

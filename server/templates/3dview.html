@@ -246,7 +246,8 @@
         <div class="chart-container"" style="text-align:center">
             <canvas id="chart"></canvas>
         </div>
-        
+        <img src="{{ url_for('video_feed_1') }}" class="responsive_img">
+
         <div id="joystickCard" style="display: block">
             <div id="joy2Div"></div>
         </div>
@@ -345,9 +346,15 @@
                         {
                             label: 'robotDeadRec',
                             data: [],
-                            fill: true,
+                            fill: false,
                             borderColor: randomRGB(),
-                        }             
+                        },
+                        {
+                            label: 'lidar',
+                            data:[],
+                            fill: false,
+                            borderColor: 'rgb(0,0,0)',
+                        }           
                     ]
                 },
                 options: {
@@ -361,8 +368,8 @@
                     },
                     scales: {
                     x: {
-                        min: -2,
-                        max: 2,
+                        min: -10,
+                        max: 10,
                         ticks: {
                             font: {
                                 size: 20,
@@ -375,8 +382,8 @@
                         }
                     },
                     y: {
-                        min: -2,
-                        max:  2,
+                        min: -10,
+                        max:  10,
                         ticks: {
                             font: {
                                 size: 20,
@@ -410,7 +417,7 @@
             LineChart.options.animation = false;
 
             function addData(chart, x, y) {
-                if(chart.data.labels.length > 100){
+                if(chart.data.labels.length > 10000){
                     chart.data.labels.shift();
                     chart.data.datasets[0].data.shift();
                 }
@@ -449,6 +456,7 @@
            
             var source = new EventSource('/data');
             var log_source = new EventSource('/log_stream');
+            var map_source = new EventSource('/map_stream');
             var log_data = [];
 
             var paused = false;
@@ -463,7 +471,6 @@
             }
 
             function sendCorePIDSet(){
-               
                let pP = document.getElementById('pP');
                let pD = document.getElementById('pD');
                let vP = document.getElementById('vP');
@@ -511,7 +518,6 @@
            }
 
             function sendCoreReq(socket, request){
-               
                 let pP = document.getElementById('pP');
                 let pD = document.getElementById('pD');
                 let vP = document.getElementById('vP');
@@ -569,8 +575,6 @@
                xhr.send(data);
             }
 
-           
-
             log_source.onmessage = function(event) {
                 var data = JSON.parse(event.data);
                 var d = new Date(0);
@@ -579,6 +583,24 @@
 
                 document.getElementById("logs-from-core").innerHTML += logStr;
             }
+
+            map_source.onmessage = function(event) {
+                var data = JSON.parse(event.data);
+                for (var point in data["frame"]) {
+                    //  LineChart.data.datasets[1].labels.shift();
+                    if(LineChart.data.datasets[1].data.length > 600){
+                        LineChart.data.datasets[1].data.shift();
+                    }
+                    if (data["frame"][point][2] != 0){
+                        LineChart.data.datasets[1].data.push({x: data["frame"][point][0], y: data["frame"][point][2]});
+                    }
+                    // console.log(data["frame"][point], (point/100))
+                    // LineChart.data.datasets[1].labels.push(index);
+                    
+                }
+                LineChart.update();
+            }
+
 
             source.onmessage = function(event) {
                 var data = JSON.parse(event.data);
