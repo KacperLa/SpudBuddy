@@ -1,5 +1,5 @@
 #include "DriveSystem.h"
-#define PI 3.14159265
+#define PI 3.1415926535897932384626433832795
 
 DriveSystem::DriveSystem(const int id[], const bool dir[], const int size, const std::string name, Log& logger) :
     ronThread(name, logger),
@@ -11,36 +11,35 @@ DriveSystem::DriveSystem(const int id[], const bool dir[], const int size, const
 
 DriveSystem::~DriveSystem() {}
 
-void DriveSystem::calcDeadRec(float & x, float & y)
+void DriveSystem::calcDeadRec(float & x, float & y, double imu_angle)
 {
     static double inter_tire_distance = 0.240; // 240 mm
-    static double tire_radius = 0.080; //80mm
+    static double tire_radius = 0.189/2.0; //80mm
     static double tire_cir = 2.0*PI*tire_radius;
 
     float currentWheelPos[2];
     getPosition(currentWheelPos[0], 0);
     getPosition(currentWheelPos[1], 1);
 
-
-  
     double arcR = (tire_cir)*(currentWheelPos[0] - lastWheelPos[0]);
     double arcL = (tire_cir)*(currentWheelPos[1] - lastWheelPos[1]);
 
     double radius = 0.0;
     double angle = (arcR-arcL)/inter_tire_distance; 
     if (angle != 0.0f){
-        radius = (arcL/angle) + (inter_tire_distance/2.0f);
+        radius = (arcL/angle) + (inter_tire_distance/2.0);
         
         double local_x = (radius - (cos(angle) * radius));
         double local_y = radius * sin(angle);
 
         deadRecPos[0] += (sin(deadRecPos[2]) * local_y) + (cos(deadRecPos[2]) * local_x);
         deadRecPos[1] += (cos(deadRecPos[2]) * local_y) + (sin(deadRecPos[2]) * local_x);
-        
-        deadRecPos[2] += angle;
+         
+        deadRecPos[2] = (imu_angle/180)*PI;
 
     } else {
-        deadRecPos[1] += (arcR+arcL)/2;
+        deadRecPos[0] += (sin(deadRecPos[2]) * (arcR+arcL)/2.0);
+        deadRecPos[1] += (cos(deadRecPos[2]) * (arcR+arcL)/2.0);        
     }
 
 

@@ -42,7 +42,7 @@ public:
 
     bool getState(DriveState& data, int axid_id);
     bool getStatus();
-    void calcDeadRec(float & x, float & y);
+    void calcDeadRec(float & x, float & y, double imu_angle);
 
     bool enable(); // ODriveCAN::AxisState_t::AXIS_STATE_CLOSED_LOOP_CONTROL
     bool disable(); // ODriveCAN::AxisState_t::AXIS_STATE_IDLE

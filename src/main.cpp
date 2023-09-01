@@ -370,7 +370,7 @@ int main(int argc, char *argv[])
 
                 // calc position guess
                 float x, y;
-                drive_system.calcDeadRec(x, y);
+                drive_system.calcDeadRec(x, y, imu_state.angles.yaw);
                 // std::cout << "x, y; " << x << ", " << y << std::endl;
 
                 zmq_sockets_poll();
