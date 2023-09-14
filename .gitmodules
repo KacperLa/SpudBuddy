@@ -8,6 +8,7 @@
 [submodule "src/libraries/libzmq"]
 	path = src/libraries/libzmq
 	url = https://github.com/zeromq/libzmq.git
+	branch = v4.3.4
 [submodule "src/libraries/tinyfsm"]
 	path = src/libraries/tinyfsm
 	url = https://github.com/digint/tinyfsm.git
