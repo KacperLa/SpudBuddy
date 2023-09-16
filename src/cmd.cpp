@@ -22,10 +22,10 @@ bool Cmd::readEvent(json& event) {
     auto n = sub_poller.wait_all(sub_events, timeout);
     if (n) {
         if (zmq::event_flags::pollin == sub_events[0].events) {
-            socket_sub.recv(&message);
+            const auto ok = socket_sub.recv(message);
             std::string str = std::string(static_cast<char*>(message.data()), message.size());
             
-            //log("cmd got a request: " + str);
+            log("cmd got a request: " + str);
             
             event = json::parse(str);
 
@@ -60,7 +60,7 @@ void Cmd::loop() {
     json event;
     while (running.load(std::memory_order_relaxed)){
         if (readEvent(event)) {
-            JoystickState data{std::chrono::high_resolution_clock::now(), std::stof(static_cast<std::string>(event.at("x"))), std::stof(static_cast<std::string>(event.at("y")))};
+            JoystickState data{std::stof(static_cast<std::string>(event.at("x"))), std::stof(static_cast<std::string>(event.at("y"))), std::chrono::high_resolution_clock::now()};
             updateState(data);
         }
         // no need to sleep becasue the poll has a timeout.

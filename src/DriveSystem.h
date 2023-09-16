@@ -17,7 +17,6 @@
 
 
 struct DriveState {
-    std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
     float velocity {0};
     float position {0};
     int state {0};

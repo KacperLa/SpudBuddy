@@ -9,21 +9,35 @@ SET(CMAKE_CXX_STANDARD 17)
 SET(CMAKE_STANDARD_REQUIRES ON)
 
 # Set the Compilation flags.
-SET(CMAKE_C_FLAGS "-std=gnu14 -fms-extensions")
-SET(CMAKE_CXX_FLAGS "-std=gnu++14 -fms-extensions -pthread")
+#SET(CMAKE_C_FLAGS "-std=gnu14")
+SET(CMAKE_CXX_FLAGS "-std=gnu++14 -pthread")
 
-SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+#SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 # Create compile_commands.json file so that it may be used by various
 # editors/plugins/IDEs that support it.
 SET(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
+list(APPEND CMAKE_PREFIX_PATH "/opt/code/ronTheHelper/src/libraries/msgpack11/build")
+
+
 # Prefer -pthread compiler and linker flag when using libpthread. This must
 # be set before call to FIND_PACKAGE(Threads).
-#SET(THREADS_HAVE_PTHREAD_ARG 1)
+SET(THREADS_HAVE_PTHREAD_ARG 1)
 #SET(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-#FIND_PACKAGE(Threads REQUIRED)
+FIND_PACKAGE(Threads REQUIRED)
 
+#message(HELLO)
+#set(CMAKE_PREFIX_PATH "/usr/lib/aarch64-linux-gnu")
+
+find_package(BLAS REQUIRED)
+#if(BLAS_FOUND)
+#    message("BLAS found")
+#else()
+#    message(FATAL_ERROR "BLAS not found")
+#endif()
+
+message(HELLO2)
 
 SET(LIBPREFIX "${CMAKE_STATIC_LIBRARY_PREFIX}")
 SET(LIBSUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")

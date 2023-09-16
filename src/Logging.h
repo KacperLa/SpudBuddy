@@ -1,8 +1,13 @@
 #ifndef LOGGING_H
 #define LOGGING_H
 
-#include <zmq.hpp>
-#include <zmq_addon.hpp>
+
+#include <string>
+#include <cstring>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 
 #include <iostream>
 #include <mutex>
@@ -14,6 +19,8 @@
 
 #include <libraries/json/json.hpp>
 using json = nlohmann::json;
+
+#include <msgpack11.hpp>
 
 
 #include <chrono>
@@ -27,37 +34,48 @@ using json = nlohmann::json;
 #include <libraries/readerwriterqueue/atomicops.h>
 
 using namespace moodycamel;
+using namespace msgpack11;
 
+struct LogMessage {
+    std::string log;
+    double timestamp;
+};
 
-class Log {
- public:
-  Log(zmq::context_t& ctx);
-  virtual ~Log();
+class Log
+{
+public:
+    Log();
+    ~Log();
 
-  virtual bool open();
-  virtual void close();
+    bool open();
 
-  virtual bool pullEvent(std::string& data);
-  virtual void pushEvent(std::string  data);
+    void pushEvent(std::string  data);
 
-  bool publish_message(std::string message);
-
-  virtual void startProcessing();
-  virtual void stopProcessing();
-  void processEventLoop();
+    void startThread();
+    void stopThread();
 
 protected:
+    bool pullEvent(std::string& data);
+    bool publishMessage(const std::string& message);
 
-  zmq::context_t& context;
-  zmq::socket_t socket_pub{context, zmq::socket_type::pub};
+    void closeSocket();
+    void loop();
+
+    BlockingReaderWriterQueue<std::string> log_queue{1000}; 
+
+    struct sockaddr_in pub_address;
+
+    int socket_pub;
+
+    static constexpr int PORT    = 3000;  // Choose a port number
+    static constexpr int BACKLOG = 5;     // Maximum number of pending connections
+
+    const std::string LOG_SERVER_IP = "0.0.0.0";  // Set your server's IP address here
     
-  std::string socket_pub_address {"tcp://0.0.0.0:6000"};
+    std::mutex thread_lock;
 
-  BlockingReaderWriterQueue<std::string> log_queue{1000}; 
-
-  std::atomic<bool> running{true};
-  std::thread process_thread;
-
+    std::atomic<bool> running {false};
+    std::thread object_thread;
 };
 
 #endif

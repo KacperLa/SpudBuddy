@@ -1,25 +1,41 @@
 #include <Logging.h>
 
-Log::Log(zmq::context_t& ctx) :
-    context(ctx)
+Log::Log()
 {
-
 }
 
-Log::~Log(){
-
+Log::~Log()
+{
 }
 
-bool Log::open(){
-    // Open and bind zmq socket
-    socket_pub.bind(socket_pub_address);
-    socket_pub.set(zmq::sockopt::linger, 0);
-    return 0;
+bool Log::open() {
+    socket_pub = socket(AF_INET, SOCK_STREAM, 0);
+    if (socket_pub == -1) {
+        std::cerr << "[log} Error connecting to server" << std::endl;
+        return false;
+    }
+
+    // Set up server address
+    sockaddr_in serverAddr;
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(PORT);
+    serverAddr.sin_addr.s_addr = inet_addr(LOG_SERVER_IP.c_str());
+ 
+    // Connect to server
+    if (connect(socket_pub, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
+        std::cerr << "[log] Error connecting to server" << std::endl;
+        return false;
+    }
+
+    return true;
 }
 
-void Log::close(){
+void Log::closeSocket() {
     std::cout << "[LOG] closing socket..." << std::endl;
-    socket_pub.close();
+    if (socket_pub != -1) {
+        close(socket_pub);
+        socket_pub = -1;
+    }
 }
 
 bool Log::pullEvent(std::string& data){
@@ -31,73 +47,86 @@ void Log::pushEvent(std::string  data){
     std::cout << data << std::endl;
 }
 
-bool Log::publish_message(std::string message){
+bool Log::publishMessage(const std::string& message) {
+    // Serialize the message using MessagePack
     auto now = std::chrono::high_resolution_clock::now();
     auto duration = now.time_since_epoch();
     auto timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(duration).count();
     
-    json j = {{"log", message}, {"timestamp", timestamp}};
-    std::string out_str = j.dump();
-    zmq::message_t out_msg(out_str.c_str(), out_str.size());
-    try {
-        socket_pub.send(out_msg);
-        return 0;
-    } catch (const zmq::error_t& e) {
-        if (e.num() == EINTR) {
-            // System call was interrupted, retry the operation
-            return 1;
-        } else {
-            // Some other error occurred, handle it appropriately
-            std::cerr << "Error: " << e.what() << std::endl;
-            return 1;
-        }
+    MsgPack message_out = MsgPack::object {
+        { "data", message },
+        { "timestamp", timestamp }
+    };
+
+    //serialize
+    std::string msgpack_bytes = message_out.dump();
+    
+
+    // Check if socket is still open
+    if (socket_pub == -1) {
+        std::cerr << "[log] Socket is closed" << std::endl;
+        return false;
     }
+
+    // Send the serialized message over the socket
+    ssize_t bytes_sent = send(socket_pub, msgpack_bytes.data(), msgpack_bytes.size(), 0);
+    if (bytes_sent == -1) {
+        std::cerr << "Error sending message: " << strerror(errno) << std::endl;
+        std::cout << "Size of msgpack_bytes: " << msgpack_bytes.size() << std::endl;
+        return false;
+    }
+    
+    return true;
 }
 
-void Log::processEventLoop(){
+void Log::loop(){
     sigset_t set;
     sigfillset(&set);
     pthread_sigmask(SIG_BLOCK, &set, nullptr);
     
-    if (open()) {
-        std::cerr << "Error opening zmq socket" << std::endl;
+    if (!open()) {
+        std::cerr << "[log] Error opening socket" << std::endl;
         running.store(false, std::memory_order_relaxed);
     }
 
+    std::string message;
+
     // Read the queue events
     while (running.load(std::memory_order_relaxed)) {
-        std::string message;
-
         if (pullEvent(message)) {
-           publish_message(message);
+           publishMessage(message);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 
-    // Close the zmq socket
-    close();
+    closeSocket();
 }
 
-void Log::startProcessing(){
-    // Create a new thread to read the log events
-    process_thread = std::thread([this](){ this->processEventLoop(); });
-
+void Log::startThread() {
     // Set the running flag to true
     running.store(true, std::memory_order_relaxed);
+    // Create a new thread
+    object_thread = std::thread([this](){ this->loop(); });
+    std::cout << "[log] thread has started." << std::endl;
 }
 
-void Log::stopProcessing(){
+void Log::stopThread() {
     // Set the running flag to false
     running.store(false, std::memory_order_relaxed);
-    std::cout << "[LOG] joining thread..." << std::endl;
+    std::cout << "[Log] joining thread..." << std::endl;
 
     // Wait for the thread to finish
-    if (process_thread.joinable()) {
-        std::cout << "[LOG] thread is still running." << std::endl;
-        process_thread.join();
+    if (object_thread.joinable()) {
+        std::cout << "[log] thread is still running." << std::endl;
+        object_thread.join();
     } else {
-        std::cout << "[LOG] thread is already dead." << std::endl;
+        std::cout << "[log] thread is already dead." << std::endl;
     }
-
-    std::cout << "[LOG] thread has been joined." << std::endl;
+    std::cout << "[log] thread has been joined." << std::endl;
 }
+
+
+
+
+
+

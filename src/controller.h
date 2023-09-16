@@ -9,13 +9,17 @@ typedef BNO055::euler_angles angles_t;
 typedef BNO055::gyro rates_t;
 
 
-struct RobotState
+struct robot_state_t
 {
+    struct position {
+        float x {0.0f};
+        float y {0.0f};
+    } position;
     angles_t angles {0.0, 0.0, 0.0};
     rates_t rates {0.0, 0.0, 0.0};
-    float velocity {0.0};
-    float leftVelocity {0.0};
-    float rightVelocity {0.0};
+    float velocity {0.0f};
+    float leftVelocity {0.0f};
+    float rightVelocity {0.0f};
     int state {0};
 };
 
@@ -24,7 +28,7 @@ public:
     Controller();
     ~Controller();
 
-    bool calculateOutput(RobotState actual_state, RobotState desired_state, float& outputLeft, float& outputRight);
+    bool calculateOutput(robot_state_t actual_state, robot_state_t desired_state, float& outputLeft, float& outputRight);
 
     void get_pitch_coeffs(double & P, double & I, double & D);
     void get_yaw_rate_coeffs(double & P, double & I, double & D);

@@ -33,7 +33,7 @@ then
     echo "Database exists..."
 else
     echo "No database found creating..."
-    #flask init-db
+    flask init-db
 fi
 
 python main.py $f

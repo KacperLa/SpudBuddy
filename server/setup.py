@@ -14,8 +14,6 @@ setup(
         'numpy',
         'flask-socketio',
         'simple-websocket',
-        'depthai',
-        'opencv-python',
-        'msgpack'
+        'opencv-python'
         ]
 )

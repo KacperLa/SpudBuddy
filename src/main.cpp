@@ -12,6 +12,7 @@ void zmq_sockets_open()
     socket_rep.bind(socket_rep_address);
     socket_rep.set(zmq::sockopt::linger, 0);
     rep_poller.add(socket_rep, zmq::event_flags::pollin);
+
 }
 
 void zmq_sockets_close()
@@ -94,7 +95,10 @@ void zmq_sockets_poll()
     if (n) {
         printf("GOT ZMQ poller event.");
         if (zmq::event_flags::pollin == rep_events[0].events) {
+            printf("recv.");
             socket_rep.recv(&message);
+            printf("recv done.");
+
             //zmq_sockets_log_message(&message);
             //default response
             json reply_json = default_response;
@@ -139,85 +143,6 @@ void zmq_sockets_poll()
             socket_rep.send(reply);
         }
     }
-}
-
-void zmq_sockets_publish_state(RobotState actual_state, RobotState desired_state, float x, float y, JoystickState &js, json j0, json j1){
-        auto now = std::chrono::high_resolution_clock::now();
-        auto duration = now.time_since_epoch();
-        auto timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(duration).count();
-        
-        json j = {
-                    {"robotState",
-                        {
-                            {"desired",
-                                {
-                                    {"angles",
-                                        {
-                                            {"yaw", desired_state.angles.yaw},
-                                            {"pitch", desired_state.angles.pitch},
-                                            {"roll", desired_state.angles.roll}
-                                        }
-                                    },
-                                    {"rates",
-                                        {
-                                            {"gyro_yaw", desired_state.rates.gyro_yaw},
-                                            {"gyro_pitch", desired_state.rates.gyro_pitch},
-                                            {"gyro_roll", desired_state.rates.gyro_roll}
-                                        }
-                                    },
-                                    {"velocity", desired_state.velocity},
-                                    {"leftVelocity", desired_state.leftVelocity},
-                                    {"rightVelocity", desired_state.rightVelocity}, 
-                                    {"state", desired_state.state},
-                                }
-                            },
-                            {"actual",
-                                {
-                                    {"pos",
-                                        {
-                                            {"x", x},
-                                            {"y", y}
-                                        }
-                                    },
-                                    {"angles",
-                                        {
-                                            {"yaw", actual_state.angles.yaw},
-                                            {"pitch", actual_state.angles.pitch},
-                                            {"roll", actual_state.angles.roll}
-                                        }
-                                    },
-                                    {"rates",
-                                        {
-                                            {"gyro_yaw", actual_state.rates.gyro_yaw},
-                                            {"gyro_pitch", actual_state.rates.gyro_pitch},
-                                            {"gyro_roll", actual_state.rates.gyro_roll}
-                                        }
-                                    },
-                                    {"velocity", actual_state.velocity},
-                                    {"leftVelocity", actual_state.leftVelocity},
-                                    {"rightVelocity", actual_state.rightVelocity}, 
-                                    {"state", actual_state.state},
-                                }
-                            }
-                        }
-                    },
-                    {"DriveSystem",
-                        {
-                            {"axis_0", j0},
-                            {"axis_1", j1}
-                        }
-                    },
-                    {"js", 
-                        {
-                            {"x", js.x},
-                            {"y", js.y}
-                        }
-                    }, 
-                    {"timestamp", timestamp}
-                };
-        std::string out_str = j.dump();
-        zmq::message_t message(out_str.c_str(), out_str.size());
-        socket_pub.send(message);
 }
 
 void signal_handler(const int signal)
@@ -312,7 +237,7 @@ int main(int argc, char *argv[])
 
         zmq_sockets_initialize();
 
-        logger.startProcessing();
+        logger.startThread();
 
         // Joystick joystick("Joystick", logger);
         // joystick.addDevice("/dev/input/js0");
@@ -322,7 +247,7 @@ int main(int argc, char *argv[])
         joystick.startThread();
 
         IMUReader imu("/dev/i2c-1", "IMU", logger);
-        imu.startThread();
+        // imu.startThread();
         int nodes[2] = {fsm_handle::leftNode, fsm_handle::rightNode};
         bool nodeRev[2] = {true, false};
         DriveSystem drive_system(nodes, nodeRev, 2, "DriveSystem", logger);
@@ -336,23 +261,48 @@ int main(int argc, char *argv[])
         IMUState imu_state;
         bool imu_error = false;
         bool drive_system_error = false;
-        RobotState actual_state;
-        RobotState desired_state;
+        robot_state_t actual_state;
+        robot_state_t desired_state;
 
         std::chrono::duration<double> loop_time(1.0 / 20.0); // 20 Hz
         auto last_publish = std::chrono::high_resolution_clock::now();
         auto last_run = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> main_loop(1.0 / 20.0); // 20 Hz
 
+        // create a memory mapped instance of systemState_t
+        // this will be used by the webserver to get the current state of the robot
+        // and by the main loop to update the state
+        // open the mapped memory file descriptor
+        int fd = open(shared_state_file, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+        if (fd == -1) {
+            logger.pushEvent("Error opening/creating memory-mapped file");
+            return 1;
+        }
+        // Truncate the file to the desired size (if it already exists)
+        if (ftruncate(fd, sizeof(sytemState_t)) == -1) {
+            logger.pushEvent("Error truncating file");
+            close(fd);
+            return 1;
+        }
+
+        sytemState_t* shared_state = static_cast<sytemState_t*>(mmap(NULL, sizeof(sytemState_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
+        if (shared_state == MAP_FAILED) {
+            logger.pushEvent("Error mapping memory");
+            close(fd);
+            return 1;
+        } else {
+            logger.pushEvent("Memory mapped successfully");
+        }
+
         while(!time_to_quit){
                 last_run = std::chrono::high_resolution_clock::now();
-
+                
                 joystick.getState(js_state);
                 imu_error = imu.getState(imu_state);
                 fsm_handle::updateIMU(imu_state);
-              
+
                 drive_system_error = fsm_handle::requestDriveSystemStatus();
-                actual_state = fsm_handle::get_state();
+                actual_state  = fsm_handle::get_state();
                 desired_state = fsm_handle::get_desired_state();
                 if ((imu_error || drive_system_error) && (actual_state.state != RobotStates::ERROR && actual_state.state != RobotStates::IDLE)){
                     std::string err_msg = "[MAIN] imu_error = " + std::to_string(imu_error) + " drive stystem error = " + std::to_string(drive_system_error);
@@ -373,10 +323,19 @@ int main(int argc, char *argv[])
                 drive_system.calcDeadRec(x, y, imu_state.angles.yaw);
                 // std::cout << "x, y; " << x << ", " << y << std::endl;
 
-                zmq_sockets_poll();
+                // zmq_sockets_poll();
 
                 if ((std::chrono::high_resolution_clock::now() - last_publish) > loop_time){
-                        zmq_sockets_publish_state(actual_state, desired_state, x, y, js_state, fsm_handle::RequestAxisData(0), fsm_handle::RequestAxisData(1));
+                        shared_state->joystick = js_state;
+                        shared_state->actual = actual_state;
+                        shared_state->actual.position.x = x;
+                        shared_state->actual.position.y = y;
+                        drive_system.getState(shared_state->driveSystem.axis_0, 0);
+                        drive_system.getState(shared_state->driveSystem.axis_1, 1);
+                        logger.pushEvent("Publishing state");
+                        // // sync the memory mapped file
+                        // msync(shared_state, sizeof(sytemState_t), MS_SYNC);
+
                         last_publish = std::chrono::high_resolution_clock::now();
                         //system("clear");
                         // std::cout << "\033[2J\033[1;1H";
@@ -410,7 +369,7 @@ int main(int argc, char *argv[])
         drive_system.stopThread();
         imu.stopThread();
         joystick.stopThread();
-        logger.stopProcessing();
+        logger.stopThread();
         zmq_sockets_close();
         return 0;
 }

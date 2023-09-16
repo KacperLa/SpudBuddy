@@ -44,8 +44,8 @@ public:
     
     void get_vbusVoltage(float& voltage);
 
-    static RobotState get_state() { return actual_state; }
-    static RobotState get_desired_state() { return desired_state; }
+    static robot_state_t get_state() { return actual_state; }
+    static robot_state_t get_desired_state() { return desired_state; }
     static void set_logger(Log* new_logger) { logger = new_logger;};
     static void setDriveSystem(DriveSystem* new_drive_system) { drive_system = new_drive_system;};
 
@@ -69,8 +69,8 @@ public:
     static void setControllerCoeffs(json & coeff);
     static void updateIMU(IMUState & new_imu_state);
 
-    static RobotState desired_state;
-    static RobotState actual_state;
+    static robot_state_t desired_state;
+    static robot_state_t actual_state;
 
     static constexpr std::chrono::duration<double> error_time{1.0 / 50.0}; // 50 Hz
 

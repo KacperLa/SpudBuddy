@@ -32,7 +32,7 @@ void calcTheta(float cmd, float actual, float & error)
     }
 }
 
-bool Controller::calculateOutput(RobotState actual_state, RobotState desired_state, float& outputLeft, float& outputRight)
+bool Controller::calculateOutput(robot_state_t actual_state, robot_state_t desired_state, float& outputLeft, float& outputRight)
 {
  
 

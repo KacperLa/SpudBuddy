@@ -22,7 +22,6 @@ from flask import Response
 import io
 from flask_socketio import SocketIO
 import cv2
-import depthai as dai
 
 
 DEVNULL = open(os.devnull, 'w')
@@ -56,7 +55,7 @@ config = import_config(config_file_path)
 # Setting up ZeroMQ
 context = zmq.Context()
 wifi_socket = zmq_req_rep_socket(context, ("tcp://localhost:" + config['sockets']['wifi']))
-core_socket = zmq_req_rep_socket(context, ("tcp://localhost:" + config['sockets']['core']))
+core_socket = zmq_req_rep_socket(context, ("ipc:///tmp/ron" + config['sockets']['core']))
 camera_socket = zmq_req_rep_socket(context, ("tcp://localhost:" + config['sockets']['camera']))
 gps_socket = zmq_req_rep_socket(context, ("tcp://localhost:" + config['sockets']['gps']))
 
@@ -79,7 +78,7 @@ def home():
 
 def generate_data():
     sock = context.socket(zmq.SUB)
-    sock.connect(("tcp://localhost:" + config['sockets']['joystick']))
+    sock.connect(("ipc:///tmp/ron" + config['sockets']['joystick']))
     sock.subscribe(b"")
     poller = zmq.Poller()
     poller.register(sock, zmq.POLLIN)

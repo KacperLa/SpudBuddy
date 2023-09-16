@@ -17,3 +17,6 @@
 	path = src/libraries/MiniPID
 	url = https://github.com/KacperLa/MiniPID
 	branch = adding_cmake_and_getters
+[submodule "src/libraries/msgpack11"]
+	path = src/libraries/msgpack11
+	url = git@github.com:ar90n/msgpack11.git

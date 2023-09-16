@@ -21,10 +21,10 @@
     },
     "sockets": {
         "camera": "6557",
-        "core": "6556",
+        "core": "3001",
         "core_logs": "6000",
         "gps": "6558",
-        "joystick": "6581",
+        "joystick": "3000",
         "web_js": "6681",
         "wifi": "6555",
         "stream": [

@@ -33,7 +33,7 @@ bool Joystick::readEvent(js_event& event) {
 
 void Joystick::close() {
     // Close the joystick device
-    logger.pushEvent("[joystick] closing fd");
+    log("[joystick] closing fd");
     ::close(joystick_);
 }
 
@@ -50,7 +50,7 @@ void Joystick::updateState(const JoystickState& data) {
 void Joystick::loop() {
     // Open the joystick device
     if (!open()) {
-        logger.pushEvent("[joystick] Error opening joystick");
+        log("[joystick] Error opening joystick");
         return;
     }
 
@@ -72,7 +72,7 @@ void Joystick::loop() {
                 }
 
                 // Add the new values to the queue
-                JoystickState data{std::chrono::high_resolution_clock::now(), x, y};
+                JoystickState data{x, y, std::chrono::high_resolution_clock::now(), };
                 updateState(data);
             }
         }
