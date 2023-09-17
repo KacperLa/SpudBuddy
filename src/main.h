@@ -12,7 +12,7 @@ using json = nlohmann::json;
 #include<cmd.h>
 #include<Logging.h>
 #include "DriveSystem.h"
-// #include "ZEDReader.h"
+#include "ZEDReader.h"
 
 bool time_to_quit = false;
 

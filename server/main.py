@@ -22,6 +22,8 @@ from flask import Response
 import io
 from flask_socketio import SocketIO
 import cv2
+import mmap
+import struct
 
 
 DEVNULL = open(os.devnull, 'w')
@@ -77,20 +79,31 @@ def home():
     return render_template('home.html')
 
 def generate_data():
-    sock = context.socket(zmq.SUB)
-    sock.connect(("ipc:///tmp/ron" + config['sockets']['joystick']))
-    sock.subscribe(b"")
-    poller = zmq.Poller()
-    poller.register(sock, zmq.POLLIN)
+    format_string = 'ffffddddddfffiffddddddfffiffibffibffii'
+    memory_size = struct.calcsize(format_string)  # Use the format string for your struct
+
+    # Open the file for reading
+    with open('/tmp/robot_state', 'r+b') as f:
+        # Memory-map the file, size 0 means whole file
+        mmapped_file = mmap.mmap(f.fileno(), memory_size, mmap.MAP_SHARED)
+    
+    data_json = config['robotState']
     while True:
-        socks = dict(poller.poll(0))
-        if sock in socks and socks[sock] == zmq.POLLIN:
-            message = sock.recv_string(zmq.NOBLOCK)
-            data = json.loads(message)
-            yield f"data: {json.dumps(data)}\n\n"
-        else:
-            time.sleep(.05)
-            continue
+        binary_data = mmapped_file[:]
+        data_json['actual']['positionDeadReckoning']['x'] = struct.unpack('f', mmapped_file[0:4])[0]
+        data_json['actual']['positionDeadReckoning']['y'] = struct.unpack('f', mmapped_file[4:8])[0]
+        data_json['actual']['positionSlam']['x'] = struct.unpack('f', mmapped_file[8:12])[0]
+        data_json['actual']['positionSlam']['y'] = struct.unpack('f', mmapped_file[12:16])[0]
+        data_json['actual']['orientation']['roll'] = struct.unpack('d', mmapped_file[16:24])[0]
+        data_json['actual']['orientation']['pitch'] = struct.unpack('d', mmapped_file[24:32])[0]
+        data_json['actual']['orientation']['yaw'] = struct.unpack('d', mmapped_file[32:40])[0]
+        data_json['actual']['angular_velocity']['roll'] = struct.unpack('d', mmapped_file[40:48])[0]
+        data_json['actual']['angular_velocity']['pitch'] = struct.unpack('d', mmapped_file[48:56])[0]
+        data_json['actual']['angular_velocity']['yaw'] = struct.unpack('d', mmapped_file[56:64])[0]
+        data_json['actual']['state'] = struct.unpack('i', mmapped_file[64:68])[0]
+
+        yield f"data: {json.dumps(data_json)}\n\n"
+        time.sleep(.1)
 
 def generate_log_data():
     sock = context.socket(zmq.SUB)

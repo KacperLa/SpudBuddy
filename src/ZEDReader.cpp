@@ -22,12 +22,23 @@ bool ZEDReader::open() {
     init_parameters.sdk_verbose = true;
     init_parameters.camera_fps = 15;
     init_parameters.camera_resolution = RESOLUTION::VGA;
-
+    
+    PositionalTrackingParameters positional_tracking_param;  
+    positional_tracking_param.enable_imu_fusion = true;
+    // positional_tracking_param.enable_area_memory = true;
     // Open the camera
     auto returned_state = zed.open(init_parameters);
     if (returned_state != ERROR_CODE::SUCCESS)
     {
         // log("Camera Open " + std::to_string(returned_state) + " exit thread.");
+        return false;
+    }
+
+    returned_state = zed.enablePositionalTracking(positional_tracking_param);
+    if (returned_state != ERROR_CODE::SUCCESS)
+    {
+        log("Enabling positionnal tracking failed");
+        zed.close();
         return false;
     }
     return true;
@@ -39,9 +50,20 @@ bool ZEDReader::getState(IMUState& data) {
   return data.error;
 }
 
+bool ZEDReader::getState(slamState_t& data) {
+  std::lock_guard<std::mutex> lock(thread_lock);
+  data = slam_state;
+  return data.tracking_state;
+}
+
 void ZEDReader::updateState(IMUState data) {
   std::lock_guard<std::mutex> lock(thread_lock);
   imu_state = data;
+}
+
+void ZEDReader::updateState(slamState_t data) {
+  std::lock_guard<std::mutex> lock(thread_lock);
+  slam_state = data;
 }
 
 void ZEDReader::stop() {
@@ -52,6 +74,7 @@ void ZEDReader::loop() {
     setpriority(PRIO_PROCESS, getpid(), 1);
 
     IMUState data;
+    slamState_t slam_data;
     SensorsData sensors_data;
     Pose camera_path;
     POSITIONAL_TRACKING_STATE tracking_state;
@@ -78,17 +101,20 @@ void ZEDReader::loop() {
                 data = {angles,
                         rates,
                         std::chrono::high_resolution_clock::now(), 1, 0};
-                // log("x: " + std::to_string(zedAngles[0]) + " y: " + std::to_string(zedAngles[0]) + " z: " + std::to_string(zedAngles[2]));
             }
             updateState(data);
 
-            // if (tracking_state == POSITIONAL_TRACKING_STATE::OK)
-            // {
-            //     // Get rotation and translation and displays it
-            //     // setTxt(camera_path.getEulerAngles(), text_rotation);
-            //     //  << camera_path.getTranslation(), text_translation);
-            //     std::cout << camera_path.getTranslation().tx << ", " << camera_path.getTranslation().ty << ", " << camera_path.getTranslation().tz << std::endl;
-            // }
+            if (tracking_state == POSITIONAL_TRACKING_STATE::OK)
+            {
+                slam_data = {camera_path.getTranslation().tx*-1, 
+                            camera_path.getTranslation().tz, 
+                            camera_path.getTranslation().ty, 
+                            true};
+            } else {
+                slam_data = {0.0f, 0.0f, 0.0f, false};
+            }
+            log("ZEDReader: " + std::to_string(slam_data.x) + " " + std::to_string(slam_data.y) + " " + std::to_string(slam_data.z) + " " + std::to_string(slam_data.tracking_state));
+            updateState(slam_data);
         }  
         else
         {

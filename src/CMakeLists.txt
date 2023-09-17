@@ -12,7 +12,8 @@ link_directories(${ZED_LIBRARY_DIR})
 link_directories(${CUDA_LIBRARY_DIRS})
 
 
-SET(ZED_LIBS ${ZED_STATIC_LIBRARIES} ${CUDA_CUDA_LIBRARY} ${CUDA_LIBRARY})
+#SET(ZED_LIBS ${ZED_STATIC_LIBRARIES} ${CUDA_CUDA_LIBRARY} ${CUDA_LIBRARY})
+SET(ZED_LIBS ${ZED_LIBRARIES} ${CUDA_CUDA_LIBRARY} ${CUDA_CUDART_LIBRARY})
 
 add_subdirectory(libraries)
 add_subdirectory(drivers)
@@ -21,7 +22,7 @@ add_executable(ron_core
     main.cpp
     joystick.cpp
     IMUReader.cpp
-#    ZEDReader.cpp
+    ZEDReader.cpp
     controller.cpp
     DriveSystem.cpp
     FSM.cpp

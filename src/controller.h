@@ -8,13 +8,15 @@
 typedef BNO055::euler_angles angles_t;
 typedef BNO055::gyro rates_t;
 
+struct position_t {
+        float x {0.0f};
+        float y {0.0f};
+    };
 
 struct robot_state_t
 {
-    struct position {
-        float x {0.0f};
-        float y {0.0f};
-    } position;
+    position_t positionDeadReckoning;
+    position_t positionSlam;
     angles_t angles {0.0, 0.0, 0.0};
     rates_t rates {0.0, 0.0, 0.0};
     float velocity {0.0f};

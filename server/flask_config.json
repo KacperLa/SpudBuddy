@@ -394,5 +394,50 @@
               }
           }
         }
+    },
+    "robotState": {
+        "desired": {
+          "position": {
+            "x": null,
+            "y": null
+          },
+          "orientation": {
+            "yaw": null,
+            "pitch": null,
+            "roll": null
+          },
+          "angular_velocity": {
+            "yaw": null,
+            "pitch": null,
+            "roll": null
+          },
+          "velocity": null,
+          "omega": null,
+          "state": null
+        },
+        "actual": {
+          "positionDeadReckoning": {
+            "x": null,
+            "y": null
+          },
+          "positionSlam": {
+            "x": null,
+            "y": null
+          },
+          "orientation": {
+            "yaw": null,
+            "pitch": null,
+            "roll": null
+          },
+          "angular_velocity": {
+            "yaw": null,
+            "pitch": null,
+            "roll": null
+          },
+          "velocity": null,
+          "omega": null,
+          "state": null
+        },
+        "timestamp": null
     }
 }

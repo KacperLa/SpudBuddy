@@ -246,8 +246,8 @@ int main(int argc, char *argv[])
         Cmd joystick("webJoystick", logger);
         joystick.startThread();
 
-        IMUReader imu("/dev/i2c-1", "IMU", logger);
-        // imu.startThread();
+        ZEDReader imu("/dev/i2c-1", "IMU", logger);
+        imu.startThread();
         int nodes[2] = {fsm_handle::leftNode, fsm_handle::rightNode};
         bool nodeRev[2] = {true, false};
         DriveSystem drive_system(nodes, nodeRev, 2, "DriveSystem", logger);
@@ -321,18 +321,23 @@ int main(int argc, char *argv[])
                 // calc position guess
                 float x, y;
                 drive_system.calcDeadRec(x, y, imu_state.angles.yaw);
-                // std::cout << "x, y; " << x << ", " << y << std::endl;
+                actual_state.positionDeadReckoning.x = x;
+                actual_state.positionDeadReckoning.y = y;   
+
+                slamState_t slam_state;
+                imu.getState(slam_state);
 
                 // zmq_sockets_poll();
 
                 if ((std::chrono::high_resolution_clock::now() - last_publish) > loop_time){
                         shared_state->joystick = js_state;
                         shared_state->actual = actual_state;
-                        shared_state->actual.position.x = x;
-                        shared_state->actual.position.y = y;
+                        shared_state->actual.positionDeadReckoning.x = x;
+                        shared_state->actual.positionDeadReckoning.y = y;
+                        shared_state->actual.positionSlam.x = slam_state.x;
+                        shared_state->actual.positionSlam.y = slam_state.y;
                         drive_system.getState(shared_state->driveSystem.axis_0, 0);
                         drive_system.getState(shared_state->driveSystem.axis_1, 1);
-                        logger.pushEvent("Publishing state");
                         // // sync the memory mapped file
                         // msync(shared_state, sizeof(sytemState_t), MS_SYNC);
 

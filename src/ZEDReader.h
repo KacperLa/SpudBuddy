@@ -17,6 +17,12 @@
 
 #include <sl/Camera.hpp>
 
+struct slamState_t {
+  float x{0.0f};
+  float y{0.0f};
+  float z{0.0f};
+  bool tracking_state{false};
+};
 
 using namespace sl;
 class ZEDReader : public ronThread
@@ -26,6 +32,7 @@ public:
   virtual ~ZEDReader();
 
   bool getState(IMUState& data);
+  bool getState(slamState_t& data);
 
 private:
   virtual void loop() override;
@@ -33,6 +40,7 @@ private:
 protected:
     void stop();
     void updateState(IMUState data);
+    void updateState(slamState_t data);
 
     bool open();
 
@@ -44,6 +52,7 @@ protected:
     std::chrono::duration<double> time_limit{1.0 / 10.0}; // 20 Hz
     std::chrono::duration<double> forget_time{1.0 / 1.0}; // 1 Hz
 
+    slamState_t slam_state;
     IMUState imu_state;
 };
 

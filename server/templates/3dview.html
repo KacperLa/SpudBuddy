@@ -329,7 +329,7 @@
                         y: joy.GetY(),
                         timestamp: Date.now()
                     };
-                    console.log(js_data);
+                    // console.log(js_data);
                     joySocket.emit('js', JSON.stringify(js_data));
                 }
             }, 100);
@@ -344,7 +344,13 @@
                     labels: [],
                     datasets: [
                         {
-                            label: 'robotDeadRec',
+                            label: 'positionDeadReckoning',
+                            data: [],
+                            fill: false,
+                            borderColor: randomRGB(),
+                        },
+                        {
+                            label: 'positionSlam',
                             data: [],
                             fill: false,
                             borderColor: randomRGB(),
@@ -416,7 +422,7 @@
 
             LineChart.options.animation = false;
 
-            function addData(chart, x, y) {
+            function addData(chart, dataSet, x, y) {
                 if(chart.data.labels.length > 10000){
                     chart.data.labels.shift();
                     chart.data.datasets[0].data.shift();
@@ -424,7 +430,6 @@
 
                 chart.data.labels.push(x);
                 chart.data.datasets[0].data.push(y);
-                console.log(chart.data.datasets[0]);
         
                 chart.update();
             }
@@ -618,10 +623,10 @@
                 //     imutable += '<tr><td>' + key + '</td><td style="width: .5rem; text-align: right;">' + str1 + '</td></tr>';
                 // }
 
-                var imuRotStrZ = "rotateZ(" + data["robotState"]["actual"]["angles"]['yaw'] + "deg) "
-                var imuRotStrZref = "rotateZ(" + data["robotState"]["desired"]["angles"]['yaw'] + "deg) "
-                var imuRotStrX = "rotateZ(" + data["robotState"]["actual"]["angles"]['pitch'] + "deg)"
-                var imuRotStrXref = "rotateZ(" + data["robotState"]["desired"]["angles"]['pitch'] + "deg) "
+                var imuRotStrZ = "rotateZ(" + data["actual"]["orientation"]['yaw'] + "deg) "
+                var imuRotStrZref = "rotateZ(" + data["desired"]["orientation"]['yaw'] + "deg) "
+                var imuRotStrX = "rotateZ(" + data["actual"]["orientation"]['pitch'] + "deg)"
+                var imuRotStrXref = "rotateZ(" + data["desired"]["orientation"]['pitch'] + "deg) "
 
                 
                 // imutable += '</table>';
@@ -641,7 +646,7 @@
 
 
                 let statusText = "Status: UNKNOWN";
-                switch(data["robotState"]["actual"]['state']) {
+                switch(data["actual"]['state']) {
                     case 1:
                         statusText = "Status:  IDLE  ";
                         break;
@@ -657,7 +662,13 @@
                 document.getElementById("status").innerHTML = statusText;
                 
                 if (!paused){
-                    addData(LineChart, data["robotState"]["actual"]["pos"]["x"], data["robotState"]["actual"]["pos"]["y"]);
+                    if(LineChart.data.datasets[0].data.length > 600){
+                        LineChart.data.datasets[0].data.shift();
+                        LineChart.data.datasets[1].data.shift();
+                    }
+                    LineChart.data.datasets[0].data.push({x: data["actual"]["positionDeadReckoning"]["x"], y: data["actual"]["positionDeadReckoning"]["y"]});
+                    LineChart.data.datasets[1].data.push({x: data["actual"]["positionSlam"]["x"], y: data["actual"]["positionSlam"]["y"]});
+                    LineChart.update();
                 }                
             }
         </script>
