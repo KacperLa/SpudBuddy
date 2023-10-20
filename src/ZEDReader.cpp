@@ -113,7 +113,7 @@ void ZEDReader::loop() {
             } else {
                 slam_data = {0.0f, 0.0f, 0.0f, false};
             }
-            log("ZEDReader: " + std::to_string(slam_data.x) + " " + std::to_string(slam_data.y) + " " + std::to_string(slam_data.z) + " " + std::to_string(slam_data.tracking_state));
+            // log("ZEDReader: " + std::to_string(slam_data.x) + " " + std::to_string(slam_data.y) + " " + std::to_string(slam_data.z) + " " + std::to_string(slam_data.tracking_state));
             updateState(slam_data);
         }  
         else

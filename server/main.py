@@ -79,13 +79,13 @@ def home():
     return render_template('home.html')
 
 def generate_data():
-    format_string = 'ffffddddddfffiffddddddfffiffibffibffii'
-    memory_size = struct.calcsize(format_string)  # Use the format string for your struct
+    format_string = 'ffffddddddfffiffibffib'
+    memory_size = struct.calcsize(format_string) 
 
     # Open the file for reading
-    with open('/tmp/robot_state', 'r+b') as f:
+    with open('/tmp/robot_actual', 'r+b') as f:
         # Memory-map the file, size 0 means whole file
-        mmapped_file = mmap.mmap(f.fileno(), memory_size, mmap.MAP_SHARED)
+        mmapped_file = mmap.mmap(f.fileno(), 0, mmap.MAP_SHARED)
     
     data_json = config['robotState']
     while True:

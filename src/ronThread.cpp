@@ -8,7 +8,8 @@ ronThread::ronThread(const std::string name, Log& logger) :
 ronThread::~ronThread() {}
 
 void ronThread::log(std::string strToLog) {
-    logger.pushEvent("[" + threadName + "] " +  strToLog);
+    std::cout << "[" << threadName << "] " << strToLog << std::endl;
+    // logger.pushEvent("[" + threadName + "] " +  strToLog);
 }
 
 void ronThread::startThread() {

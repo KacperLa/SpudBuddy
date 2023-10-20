@@ -3,35 +3,6 @@
 #include <sys/resource.h>
 
 
-void zmq_sockets_open()
-{
-    // Open and bind zmq sockets
-    socket_pub.bind(socket_pub_address);
-    socket_pub.set(zmq::sockopt::linger, 0);
-
-    socket_rep.bind(socket_rep_address);
-    socket_rep.set(zmq::sockopt::linger, 0);
-    rep_poller.add(socket_rep, zmq::event_flags::pollin);
-
-}
-
-void zmq_sockets_close()
-{
-    socket_pub.close();
-    socket_rep.close();
-    context.shutdown();
-}
-
-void zmq_sockets_initialize()
-{
-    zmq_sockets_open();
-}
-
-json status_of_robot(){
-    int state = fsm_handle::get_state().state;
-    json j = {{"success", true},{"message", state}};
-    return j;
-}
 
 json request_transition(int action){
     typedef enum {
@@ -78,72 +49,72 @@ json request_transition(int action){
 //     return j;
 // }
 
-json zmq_sockets_parse_message(zmq::message_t *message)
-{
-    std::string str = std::string(static_cast<char*>(message -> data()), message -> size());
-    json j = json::parse(str);
-    std::string msg = "[MAIN] ZMQ req/rep got a request: " + str;
-    logger.pushEvent(msg);
-    return j;
-}
+// json zmq_sockets_parse_message(zmq::message_t *message)
+// {
+//     std::string str = std::string(static_cast<char*>(message -> data()), message -> size());
+//     json j = json::parse(str);
+//     std::string msg = "[MAIN] ZMQ req/rep got a request: " + str;
+//     logger.pushEvent(msg);
+//     return j;
+// }
 
-void zmq_sockets_poll()
-{
-    std::vector<zmq::poller_event<zmq::socket_t>> rep_events(1);
-    zmq::message_t message;
-    auto n = rep_poller.wait_all(rep_events, timeout);
-    if (n) {
-        printf("GOT ZMQ poller event.");
-        if (zmq::event_flags::pollin == rep_events[0].events) {
-            printf("recv.");
-            socket_rep.recv(&message);
-            printf("recv done.");
+// void zmq_sockets_poll()
+// {
+//     std::vector<zmq::poller_event<zmq::socket_t>> rep_events(1);
+//     zmq::message_t message;
+//     auto n = rep_poller.wait_all(rep_events, timeout);
+//     if (n) {
+//         printf("GOT ZMQ poller event.");
+//         if (zmq::event_flags::pollin == rep_events[0].events) {
+//             printf("recv.");
+//             socket_rep.recv(&message);
+//             printf("recv done.");
 
-            //zmq_sockets_log_message(&message);
-            //default response
-            json reply_json = default_response;
-            json parsed_message = zmq_sockets_parse_message(&message);
+//             //zmq_sockets_log_message(&message);
+//             //default response
+//             json reply_json = default_response;
+//             json parsed_message = zmq_sockets_parse_message(&message);
 
-            if (parsed_message.at("request") == "status") {
-                reply_json = status_of_robot();
-            } else if (parsed_message.at("request") == "request_transition"){
-                if (parsed_message.contains("action")){
-                    reply_json = request_transition(parsed_message.at("action"));
-                }
-            } else if (parsed_message.at("request") == "request_pid_coeffs"){
-                reply_json = {{"success", true},{"message", fsm_handle::getControllerCoeffs()}};
-            } else if (parsed_message.at("request") == "set_pid_coeffs"){
-                if (parsed_message.contains("pP") &&
-                    parsed_message.contains("pI") &&
-                    parsed_message.contains("pD") &&
-                    parsed_message.contains("vP") &&
-                    parsed_message.contains("vI") &&
-                    parsed_message.contains("vD") &&
-                    parsed_message.contains("yP") &&
-                    parsed_message.contains("yI") &&
-                    parsed_message.contains("yD") &&
-                    parsed_message.contains("pitchZero")){
-                    fsm_handle::setControllerCoeffs(parsed_message);
-                }
-                reply_json = {{"success", true},{"message", fsm_handle::getControllerCoeffs()}};
-            } 
+//             if (parsed_message.at("request") == "status") {
+//                 reply_json = status_of_robot();
+//             } else if (parsed_message.at("request") == "request_transition"){
+//                 if (parsed_message.contains("action")){
+//                     reply_json = request_transition(parsed_message.at("action"));
+//                 }
+//             } else if (parsed_message.at("request") == "request_pid_coeffs"){
+//                 reply_json = {{"success", true},{"message", fsm_handle::getControllerCoeffs()}};
+//             } else if (parsed_message.at("request") == "set_pid_coeffs"){
+//                 if (parsed_message.contains("pP") &&
+//                     parsed_message.contains("pI") &&
+//                     parsed_message.contains("pD") &&
+//                     parsed_message.contains("vP") &&
+//                     parsed_message.contains("vI") &&
+//                     parsed_message.contains("vD") &&
+//                     parsed_message.contains("yP") &&
+//                     parsed_message.contains("yI") &&
+//                     parsed_message.contains("yD") &&
+//                     parsed_message.contains("pitchZero")){
+//                     fsm_handle::setControllerCoeffs(parsed_message);
+//                 }
+//                 reply_json = {{"success", true},{"message", fsm_handle::getControllerCoeffs()}};
+//             } 
             
-            // else if (parsed_message.at("request") == "set_pid"){
-            //     if (parsed_message.contains("P") && parsed_message.contains("I") && parsed_message.contains("D")){
-            //         reply_json = set_pid(parsed_message.at("P"), parsed_message.at("I"), parsed_message.at("D"));
-            //     }
-            // } else if (parsed_message.at("request") == "get_pid"){
-            //     reply_json = get_pid();
-            // }
+//             // else if (parsed_message.at("request") == "set_pid"){
+//             //     if (parsed_message.contains("P") && parsed_message.contains("I") && parsed_message.contains("D")){
+//             //         reply_json = set_pid(parsed_message.at("P"), parsed_message.at("I"), parsed_message.at("D"));
+//             //     }
+//             // } else if (parsed_message.at("request") == "get_pid"){
+//             //     reply_json = get_pid();
+//             // }
 
-            std::string out_str = reply_json.dump();
-            std::string msg = "[MAIN] Replying with: " + out_str;
-            logger.pushEvent(msg);
-            zmq::message_t reply(out_str.c_str(), out_str.size());
-            socket_rep.send(reply);
-        }
-    }
-}
+//             std::string out_str = reply_json.dump();
+//             std::string msg = "[MAIN] Replying with: " + out_str;
+//             logger.pushEvent(msg);
+//             zmq::message_t reply(out_str.c_str(), out_str.size());
+//             socket_rep.send(reply);
+//         }
+//     }
+// }
 
 void signal_handler(const int signal)
 {
@@ -235,16 +206,14 @@ int main(int argc, char *argv[])
         signal(SIGUSR1, signal_handler);
         signal(SIGUSR2, signal_handler);
 
-        zmq_sockets_initialize();
-
         logger.startThread();
 
         // Joystick joystick("Joystick", logger);
         // joystick.addDevice("/dev/input/js0");
         // joystick.startThread();
 
-        Cmd joystick("webJoystick", logger);
-        joystick.startThread();
+        // Cmd joystick("webJoystick", logger);
+        // joystick.startThread();
 
         ZEDReader imu("/dev/i2c-1", "IMU", logger);
         imu.startThread();
@@ -269,35 +238,15 @@ int main(int argc, char *argv[])
         auto last_run = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> main_loop(1.0 / 20.0); // 20 Hz
 
-        // create a memory mapped instance of systemState_t
-        // this will be used by the webserver to get the current state of the robot
-        // and by the main loop to update the state
-        // open the mapped memory file descriptor
-        int fd = open(shared_state_file, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-        if (fd == -1) {
-            logger.pushEvent("Error opening/creating memory-mapped file");
-            return 1;
-        }
-        // Truncate the file to the desired size (if it already exists)
-        if (ftruncate(fd, sizeof(sytemState_t)) == -1) {
-            logger.pushEvent("Error truncating file");
-            close(fd);
-            return 1;
-        }
-
-        sytemState_t* shared_state = static_cast<sytemState_t*>(mmap(NULL, sizeof(sytemState_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
-        if (shared_state == MAP_FAILED) {
-            logger.pushEvent("Error mapping memory");
-            close(fd);
-            return 1;
-        } else {
-            logger.pushEvent("Memory mapped successfully");
-        }
+        // shared memory
+        sytemState_t* shared_actual_state;
+        SData<sytemState_t> shared_actual_map("shared_actual_map", logger, shared_actual_file, semaphore_actual_file);
+        shared_actual_map.startThread();
 
         while(!time_to_quit){
                 last_run = std::chrono::high_resolution_clock::now();
                 
-                joystick.getState(js_state);
+                // joystick.getState(js_state);
                 imu_error = imu.getState(imu_state);
                 fsm_handle::updateIMU(imu_state);
 
@@ -327,19 +276,18 @@ int main(int argc, char *argv[])
                 slamState_t slam_state;
                 imu.getState(slam_state);
 
-                // zmq_sockets_poll();
 
                 if ((std::chrono::high_resolution_clock::now() - last_publish) > loop_time){
-                        shared_state->joystick = js_state;
-                        shared_state->actual = actual_state;
-                        shared_state->actual.positionDeadReckoning.x = x;
-                        shared_state->actual.positionDeadReckoning.y = y;
-                        shared_state->actual.positionSlam.x = slam_state.x;
-                        shared_state->actual.positionSlam.y = slam_state.y;
-                        drive_system.getState(shared_state->driveSystem.axis_0, 0);
-                        drive_system.getState(shared_state->driveSystem.axis_1, 1);
-                        // // sync the memory mapped file
-                        // msync(shared_state, sizeof(sytemState_t), MS_SYNC);
+                        shared_actual_state->actual = actual_state;
+                        shared_actual_state->actual.positionDeadReckoning.x = x;
+                        shared_actual_state->actual.positionDeadReckoning.y = y;
+                        shared_actual_state->actual.positionSlam.x = slam_state.x;
+                        shared_actual_state->actual.positionSlam.y = slam_state.y;
+                        drive_system.getState(shared_actual_state->driveSystem.axis_0, 0);
+                        drive_system.getState(shared_actual_state->driveSystem.axis_1, 1);
+                        // sync the memory mapped file
+                        shared_actual_map.setData(*shared_actual_state);
+
 
                         last_publish = std::chrono::high_resolution_clock::now();
                         //system("clear");
@@ -353,8 +301,6 @@ int main(int argc, char *argv[])
                         // std::cout << "imu: yaw=" << imu_state.angles.yaw << std::endl;
                         // std::cout << "joystick: x=" << js_state.x << " , a=" << js_state.y << std::endl;
                         // imu.logCalStatus();
-                        json j = fsm_handle::RequestAxisData(1);
-                        std::string out_j = j.dump();
                         //std::cout << "axis 1 state: " << out_j << std::endl;
                 }
                 if ((std::chrono::high_resolution_clock::now() - last_run) > main_loop){
@@ -373,8 +319,7 @@ int main(int argc, char *argv[])
 	    fsm_handle::dispatch(SHUTDOWN());
         drive_system.stopThread();
         imu.stopThread();
-        joystick.stopThread();
+        // joystick.stopThread();
         logger.stopThread();
-        zmq_sockets_close();
         return 0;
 }

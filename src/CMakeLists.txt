@@ -28,7 +28,6 @@ add_executable(ron_core
     FSM.cpp
     Logging.cpp
     ronThread.cpp
-    cmd.cpp
 )
 
 target_link_libraries(ron_core 
@@ -38,6 +37,5 @@ target_link_libraries(ron_core
     MiniPID
     ${CMAKE_THREAD_LIBS_INIT}
     ${ZED_LIBS}
-    cppzmq
     msgpack11
 )
