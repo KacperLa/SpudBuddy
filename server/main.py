@@ -24,7 +24,7 @@ from flask_socketio import SocketIO
 import cv2
 import mmap
 import struct
-
+import posix_ipc
 
 DEVNULL = open(os.devnull, 'w')
 
@@ -61,6 +61,12 @@ core_socket = zmq_req_rep_socket(context, ("ipc:///tmp/ron" + config['sockets'][
 camera_socket = zmq_req_rep_socket(context, ("tcp://localhost:" + config['sockets']['camera']))
 gps_socket = zmq_req_rep_socket(context, ("tcp://localhost:" + config['sockets']['gps']))
 
+MAP_NAME_ACTUAL  = '/tmp/robot_actual'
+MAP_NAME_DESIRED = '/tmp/robot_desired' 
+
+SEMAPHORE_NAME_ACTUAL  = "/robot_actual_sem"
+SEMAPHORE_NAME_DESIRED = "/robot_desired_sem"
+
 js_socket = context.socket(zmq.PUB)
 try:
     js_socket.bind(("tcp://*:" + config['sockets']['web_js']))
@@ -74,36 +80,64 @@ except zmq.ZMQError as e:
 app = Flask(__name__)
 socketio = SocketIO(app)
 
+# global desired state of the robot
+desried_state = Value('i', 0)
+desired_js_x  = Value('f', 0)
+desired_js_y  = Value('f', 0)
+
 @app.route("/")
 def home():
     return render_template('home.html')
 
 def generate_data():
-    format_string = 'ffffddddddfffiffibffib'
-    memory_size = struct.calcsize(format_string) 
+    # actual
+    format_string_actual = 'ffffddddddfffiffibffib'
+    memory_size_actual   = struct.calcsize(format_string_actual) 
+    semaphore_actual     = posix_ipc.Semaphore(SEMAPHORE_NAME_ACTUAL)
 
-    # Open the file for reading
-    with open('/tmp/robot_actual', 'r+b') as f:
+    # desired
+    format_string_desired = 'dffd' # 4 bytes for int, 4 bytes for float, 4 bytes for int total 12 bytes
+    memory_size_desired   = struct.calcsize(format_string_desired)
+    semaphore_desired     = posix_ipc.Semaphore(SEMAPHORE_NAME_DESIRED)
+
+    # Open the actual file for reading
+    with open(MAP_NAME_ACTUAL , 'r+b') as f:
         # Memory-map the file, size 0 means whole file
-        mmapped_file = mmap.mmap(f.fileno(), 0, mmap.MAP_SHARED)
+        mmapped_file_actual = mmap.mmap(f.fileno(), memory_size_actual, mmap.MAP_SHARED)
     
+    # Open the desired file for writting
+    with open(MAP_NAME_DESIRED , 'w+b') as f:
+         # Pre-allocate file size
+        f.write(b'\0' * memory_size_desired)
+        f.flush()
+        # Memory-map the file, size 0 means whole file
+        mmapped_file_desired = mmap.mmap(f.fileno(), memory_size_desired, mmap.MAP_SHARED)
+
     data_json = config['robotState']
     while True:
-        binary_data = mmapped_file[:]
-        data_json['actual']['positionDeadReckoning']['x'] = struct.unpack('f', mmapped_file[0:4])[0]
-        data_json['actual']['positionDeadReckoning']['y'] = struct.unpack('f', mmapped_file[4:8])[0]
-        data_json['actual']['positionSlam']['x'] = struct.unpack('f', mmapped_file[8:12])[0]
-        data_json['actual']['positionSlam']['y'] = struct.unpack('f', mmapped_file[12:16])[0]
-        data_json['actual']['orientation']['roll'] = struct.unpack('d', mmapped_file[16:24])[0]
-        data_json['actual']['orientation']['pitch'] = struct.unpack('d', mmapped_file[24:32])[0]
-        data_json['actual']['orientation']['yaw'] = struct.unpack('d', mmapped_file[32:40])[0]
-        data_json['actual']['angular_velocity']['roll'] = struct.unpack('d', mmapped_file[40:48])[0]
-        data_json['actual']['angular_velocity']['pitch'] = struct.unpack('d', mmapped_file[48:56])[0]
-        data_json['actual']['angular_velocity']['yaw'] = struct.unpack('d', mmapped_file[56:64])[0]
-        data_json['actual']['state'] = struct.unpack('i', mmapped_file[64:68])[0]
+        semaphore_desired.acquire()
+        mmapped_file_desired.seek(0)
+        mmapped_file_desired.write(struct.pack('dffd', desried_state.value, float(desired_js_x.value), float(desired_js_y.value), time.time()))
+        semaphore_desired.release()
+        semaphore_actual.acquire()
+        binary_data = mmapped_file_actual[:]
+        semaphore_actual.release()
+
+        data_json['actual']['positionDeadReckoning']['x'] = struct.unpack('f', binary_data[0:4])[0]
+        data_json['actual']['positionDeadReckoning']['y'] = struct.unpack('f', binary_data[4:8])[0]
+        data_json['actual']['positionSlam']['x'] = struct.unpack('f', binary_data[8:12])[0]
+        data_json['actual']['positionSlam']['y'] = struct.unpack('f', binary_data[12:16])[0]
+        data_json['actual']['orientation']['roll'] = struct.unpack('d', binary_data[16:24])[0]
+        data_json['actual']['orientation']['pitch'] = struct.unpack('d', binary_data[24:32])[0]
+        data_json['actual']['orientation']['yaw'] = struct.unpack('d', binary_data[32:40])[0]
+        data_json['actual']['angular_velocity']['roll'] = struct.unpack('d', binary_data[40:48])[0]
+        data_json['actual']['angular_velocity']['pitch'] = struct.unpack('d', binary_data[48:56])[0]
+        data_json['actual']['angular_velocity']['yaw'] = struct.unpack('d', binary_data[56:64])[0]
+        data_json['actual']['state'] = struct.unpack('i', binary_data[64:68])[0]
 
         yield f"data: {json.dumps(data_json)}\n\n"
         time.sleep(.1)
+    semaphore.close()
 
 def generate_log_data():
     sock = context.socket(zmq.SUB)
@@ -145,7 +179,19 @@ def ron():
 
 @socketio.on('js')
 def handle_message(message):
-    js_socket.send_string(message)
+    # put x and y in desired state
+    data = json.loads(message)
+    # convert string to floats
+    desired_js_x.value = float(data['x'])
+    desired_js_y.value = float(data['y'])
+
+@app.route('/request_state')
+def request_state():
+    # get state from args and set it to desired state
+    # ensure that the state is an int
+    desried_state.value = int(request.args.get('state'))
+    print(desried_state.value)
+    return {"success": True}
 
 @app.route("/file_list/<path:subpath>", methods=['GET'])
 def file_list(subpath):

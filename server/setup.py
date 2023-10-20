@@ -14,6 +14,7 @@ setup(
         'numpy',
         'flask-socketio',
         'simple-websocket',
-        'opencv-python'
+        'opencv-python',
+        'posix_ipc'
         ]
 )

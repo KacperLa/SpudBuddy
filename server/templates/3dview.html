@@ -143,10 +143,10 @@
                 <ul class="nav mr-auto">
                     <a class="nav-item nav-item active mx-1">
                         <div class="btn-group btn-group-lg" role="group">
-                            <button class="btn btn-success" type="button" onclick="sendAction('core', 'request_transition', 1)">
+                            <button class="btn btn-success" type="button" onclick="requestState(1)">
                                 Start
                             </button> 
-                            <button class="btn btn-secondary" type="button" onclick="sendAction('core', 'request_transition', 2)">
+                            <button class="btn btn-secondary" type="button" onclick="requestState(2)">
                                 Reset
                             </button> 
                         </div>
@@ -169,7 +169,7 @@
                 </ul>
                 <ul class="nav mx-1">
                     <a class="nav-item ml-lg-0">
-                        <button class="btn btn-danger" type="button" onclick="sendAction('core', 'request_transition', 3)">
+                        <button class="btn btn-danger" type="button" onclick="requestState(3)">
                             ESTOP
                         </button>
                     </a>
@@ -558,6 +558,22 @@
                };
                var data = JSON.stringify({"socket": socket, "request": request});
                xhr.send(data);
+            }
+
+            function requestState(state){
+                let xhr = new XMLHttpRequest();
+                let url = "/request_state?state=" + state;
+            
+                xhr.open("GET", url, true);
+            
+                xhr.setRequestHeader("Content-Type", "application/json");
+            
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        console.log(this.responseText);
+                    }
+                };
+                xhr.send();
             }
 
             function sendAction(socket, request, action){

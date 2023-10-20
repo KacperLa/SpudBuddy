@@ -1,17 +1,16 @@
 #include "sdata.h"
+#include <errno.h>
 
 //Template class initialization for the shared memory file and semaphore
 template <typename T>
-SData<T>::SData(const std::string name, Log& logger, const std::string& mapped_file, const std::string& semaphore_file) : 
+SData<T>::SData(const std::string name, Log& logger, const std::string& mapped_file, const std::string& semaphore_file, bool isProducer) : 
     ronThread(name, logger),
     mapped_file(mapped_file),
-    semaphore_file(semaphore_file)
+    semaphore_file(semaphore_file),
+    data_private(T()),
+    isProducer(isProducer)
 {
 }
-
-
-
-
 
 template <typename T>
 bool SData<T>::openMap() {
@@ -42,14 +41,21 @@ bool SData<T>::openMap() {
         logger.pushEvent("Memory mapped successfully");
     }
 
-    // // Create/open semaphore
-    // semaphore = sem_open(semaphore_file.c_str(), O_CREAT, S_IRUSR | S_IWUSR, 1);
-    // if (semaphore == SEM_FAILED) {
-    //     logger.pushEvent("Semaphore creation failed");
-    //     return 1;
-    // } else {
-    //     logger.pushEvent("Semaphore created successfully");
-    // }
+    // Create/open semaphore
+    semaphore = sem_open(semaphore_file.c_str(), O_CREAT, S_IRUSR | S_IWUSR, 1);
+    if (semaphore == SEM_FAILED) {
+        logger.pushEvent("Semaphore creation failed: " + semaphore_file + ". Error: " + std::strerror(errno));
+        return 1;
+    } else {
+        logger.pushEvent("Semaphore created successfully: " + semaphore_file);
+    }
+    // ensure the semaphore is unlocked 
+    if (sem_post(semaphore) == -1) {
+        logger.pushEvent("Error releasing semaphore");
+        return 1;
+    } else {
+        logger.pushEvent("Semaphore released successfully");
+    }
 
     return 0;
 }
@@ -77,7 +83,7 @@ bool SData<T>::getData(T& data) {
 }
 
 template<typename T>
-void SData<T>::setData(T& data) {
+void SData<T>::setData(T data) {
     std::lock_guard<std::mutex> lock(thread_lock);
     newData = true;
     data_private = data;
@@ -96,17 +102,17 @@ void SData<T>::producer() {
     // Check if new data is ready to be written 
     if (dataReady()) {
         // wait for the semaphore to be available
-        // if (sem_wait(semaphore) == -1) {
-        //     log("Error waiting for semaphore");
-        //     return;
-        // }
+        if (sem_wait(semaphore) == -1) {
+            log("Error waiting for semaphore");
+            return;
+        }
         // copy the shared data to the private data
         getData(*shared_data);
-        // release the semaphore
-        // if (sem_post(semaphore) == -1) {
-        //     log("Error releasing semaphore");
-        //     return;
-        // }
+        // // release the semaphore
+        if (sem_post(semaphore) == -1) {
+            log("Error releasing semaphore");
+            return;
+        }
     }
 }
 
@@ -132,12 +138,15 @@ void SData<T>::loop() {
     if (openMap()) {
         log("Error opening mmap");
         return;
+    }   else {
+        log("Memory mapped successfully");
     }
 
     while (running.load(std::memory_order_relaxed)){
         if (isProducer) {
             producer();
         } else {
+            // log("Consumer");
             consumer();
         }
         std::this_thread::sleep_for(time_to_sleep);

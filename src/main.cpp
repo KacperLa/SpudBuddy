@@ -208,15 +208,9 @@ int main(int argc, char *argv[])
 
         logger.startThread();
 
-        // Joystick joystick("Joystick", logger);
-        // joystick.addDevice("/dev/input/js0");
-        // joystick.startThread();
-
-        // Cmd joystick("webJoystick", logger);
-        // joystick.startThread();
-
         ZEDReader imu("/dev/i2c-1", "IMU", logger);
         imu.startThread();
+        
         int nodes[2] = {fsm_handle::leftNode, fsm_handle::rightNode};
         bool nodeRev[2] = {true, false};
         DriveSystem drive_system(nodes, nodeRev, 2, "DriveSystem", logger);
@@ -230,8 +224,11 @@ int main(int argc, char *argv[])
         IMUState imu_state;
         bool imu_error = false;
         bool drive_system_error = false;
-        robot_state_t actual_state;
-        robot_state_t desired_state;
+
+        robot_state_t   actual_state;
+        sytemState_t    shared_actual_state;
+        systemDesired_t shared_desired_state;
+        slamState_t     slam_state;
 
         std::chrono::duration<double> loop_time(1.0 / 20.0); // 20 Hz
         auto last_publish = std::chrono::high_resolution_clock::now();
@@ -239,31 +236,32 @@ int main(int argc, char *argv[])
         std::chrono::duration<double> main_loop(1.0 / 20.0); // 20 Hz
 
         // shared memory
-        sytemState_t* shared_actual_state;
-        SData<sytemState_t> shared_actual_map("shared_actual_map", logger, shared_actual_file, semaphore_actual_file);
+        SData<sytemState_t>    shared_actual_map("shared_actual_map",   logger, shared_actual_file,  semaphore_actual_file,  true);
+        SData<systemDesired_t> shared_desired_map("shared_desired_map", logger, shared_desired_file, semaphore_desired_file, false);
+
         shared_actual_map.startThread();
+        shared_desired_map.startThread();
 
         while(!time_to_quit){
                 last_run = std::chrono::high_resolution_clock::now();
-                
-                // joystick.getState(js_state);
                 imu_error = imu.getState(imu_state);
-                fsm_handle::updateIMU(imu_state);
 
-                drive_system_error = fsm_handle::requestDriveSystemStatus();
                 actual_state  = fsm_handle::get_state();
-                desired_state = fsm_handle::get_desired_state();
-                if ((imu_error || drive_system_error) && (actual_state.state != RobotStates::ERROR && actual_state.state != RobotStates::IDLE)){
+                if ((imu_error || fsm_handle::requestDriveSystemStatus()) &&
+                    (actual_state.state != RobotStates::ERROR && actual_state.state != RobotStates::IDLE)) 
+                    {
                     std::string err_msg = "[MAIN] imu_error = " + std::to_string(imu_error) + " drive stystem error = " + std::to_string(drive_system_error);
                     std::cout << err_msg << std::endl;
                     logger.pushEvent(err_msg);
                     fsm_handle::dispatch(FAIL());
+                } else {
+                    fsm_handle::updateIMU(imu_state);
                 }
                 
-                cmd_data new_cmd;
-                new_cmd.v = (fabs(js_state.y) > 5) ? js_state.y / 100.0f : 0.0f;
-                new_cmd.w = (fabs(js_state.x) > 5) ? js_state.x / -100.0f : 0.0f;
-                fsm_handle::dispatch(new_cmd);
+                // cmd_data new_cmd;
+                // new_cmd.v = (fabs(js_state.y) > 5) ? js_state.y / 100.0f : 0.0f;
+                // new_cmd.w = (fabs(js_state.x) > 5) ? js_state.x / -100.0f : 0.0f;
+                // fsm_handle::dispatch(new_cmd);
 
                 fsm_handle::dispatch(Update());
 
@@ -273,35 +271,23 @@ int main(int argc, char *argv[])
                 actual_state.positionDeadReckoning.x = x;
                 actual_state.positionDeadReckoning.y = y;   
 
-                slamState_t slam_state;
                 imu.getState(slam_state);
-
+                actual_state.positionSlam.x = slam_state.x;
+                actual_state.positionSlam.y = slam_state.y;
 
                 if ((std::chrono::high_resolution_clock::now() - last_publish) > loop_time){
-                        shared_actual_state->actual = actual_state;
-                        shared_actual_state->actual.positionDeadReckoning.x = x;
-                        shared_actual_state->actual.positionDeadReckoning.y = y;
-                        shared_actual_state->actual.positionSlam.x = slam_state.x;
-                        shared_actual_state->actual.positionSlam.y = slam_state.y;
-                        drive_system.getState(shared_actual_state->driveSystem.axis_0, 0);
-                        drive_system.getState(shared_actual_state->driveSystem.axis_1, 1);
-                        // sync the memory mapped file
-                        shared_actual_map.setData(*shared_actual_state);
-
+                        shared_actual_state.actual = actual_state;
+                        drive_system.getState(shared_actual_state.driveSystem.axis_0, 0);
+                        drive_system.getState(shared_actual_state.driveSystem.axis_1, 1);
+                        shared_actual_map.setData(shared_actual_state);
+                        shared_desired_map.getData(shared_desired_state);
+                        std::cout << "x: " << std::to_string(shared_desired_state.joystick.x) << " y: " << std::to_string(shared_desired_state.joystick.y) << std::endl;
+                        // std::cout << "sizeof: " << sizeof(shared_desired_state) << std::endl;
+                        // std::cout << "sizeof js: " << sizeof(shared_desired_state.joystick) << std::endl;
+                        // std::cout << "sizeof state: " << sizeof(shared_desired_state.state) << std::endl;
+                        // std::cout << "sizeof time: " << sizeof(shared_desired_state.joystick.time) << std::endl;
 
                         last_publish = std::chrono::high_resolution_clock::now();
-                        //system("clear");
-                        // std::cout << "\033[2J\033[1;1H";
-                        // std::cout << "Robot: current state: " << robot_state << std::endl;
-                        // std::cout << "IMU: error state: " << imu_error << std::endl;
-                        
-                        // std::cout << "CAN: error state: " << drive_system_error << std::endl;
-                        // std::string msg = "imu: pitch=" + std::to_string(imu_state.angles.pitch);
-                        // logger.pushEvent(msg);
-                        // std::cout << "imu: yaw=" << imu_state.angles.yaw << std::endl;
-                        // std::cout << "joystick: x=" << js_state.x << " , a=" << js_state.y << std::endl;
-                        // imu.logCalStatus();
-                        //std::cout << "axis 1 state: " << out_j << std::endl;
                 }
                 if ((std::chrono::high_resolution_clock::now() - last_run) > main_loop){
                     auto loop_dur = std::chrono::high_resolution_clock::now() - last_run;
@@ -319,7 +305,7 @@ int main(int argc, char *argv[])
 	    fsm_handle::dispatch(SHUTDOWN());
         drive_system.stopThread();
         imu.stopThread();
-        // joystick.stopThread();
+
         logger.stopThread();
         return 0;
 }

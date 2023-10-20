@@ -9,8 +9,8 @@ SET(CMAKE_CXX_STANDARD 17)
 SET(CMAKE_STANDARD_REQUIRES ON)
 
 # Set the Compilation flags.
-#SET(CMAKE_C_FLAGS "-std=gnu14")
-SET(CMAKE_CXX_FLAGS "-std=gnu++14 -pthread")
+#SET(CMAKE_C_FLAGS "-std=gnu14 -g")
+SET(CMAKE_CXX_FLAGS "-std=gnu++14 -pthread -g")
 
 #SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 

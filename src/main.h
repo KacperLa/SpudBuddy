@@ -25,13 +25,18 @@ struct sytemState_t {
     driveSystemState driveSystem;
 };
 
+struct systemDesired_t {
+    int state {0};
+    JoystickState joystick;
+};
+
 // location of shared memory
-const char* shared_actual_file = "/tmp/robot_actual";
+const char* shared_actual_file  = "/tmp/robot_actual";
 const char* shared_desired_file = "/tmp/robot_desired";
 
 // location of semaphore
-const char* semaphore_actual_file = "/tmp/robot_actual_sem";
-const char* semaphore_desired_file = "/tmp/robot_desired_sem";
+const char* semaphore_actual_file  = "/robot_actual_sem";
+const char* semaphore_desired_file = "/robot_desired_sem";
 
 
 Log logger;
