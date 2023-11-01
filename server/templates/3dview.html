@@ -475,7 +475,7 @@
                 }
             }
 
-            function sendCorePIDSet(){
+            function sendCorePIDSet() {
                let pP = document.getElementById('pP');
                let pD = document.getElementById('pD');
                let vP = document.getElementById('vP');
@@ -486,27 +486,28 @@
                let pitch = document.getElementById('pitchZero');
 
               let xhr = new XMLHttpRequest();
-              let url = "/action/set_pid_coeffs";
+              let url = "/request_settings";
           
               xhr.open("POST", url, true);
           
               xhr.setRequestHeader("Content-Type", "application/json");
           
               xhr.onreadystatechange = function () {
-                  if (xhr.readyState === 4 && xhr.status === 200) {
-                       var data = JSON.parse(this.responseText).data;
-                       console.log(data);
-                       pP.value = data.pitch.p;
-                       pD.value = data.pitch.d;
-                       vP.value = data.velocity.p;
-                       vI.value = data.velocity.i;
-                       vD.value = data.velocity.d;
-                       yP.value = data.yaw.p;
-                       yD.value = data.yaw.d;
-                       pitch.value = data.balancePoint.pitch;
-                  }
+                console.log(this.responseText)
+                //   if (xhr.readyState === 4 && xhr.status === 200) {
+                //        var data = JSON.parse(this.responseText).data;
+                //        console.log(data);
+                //        pP.value = data.pitch.p;
+                //        pD.value = data.pitch.d;
+                //        vP.value = data.velocity.p;
+                //        vI.value = data.velocity.i;
+                //        vD.value = data.velocity.d;
+                //        yP.value = data.yaw.p;
+                //        yD.value = data.yaw.d;
+                //        pitch.value = data.balancePoint.pitch;
+                //   }
               };
-              var data = JSON.stringify({"socket": "core", "request": "set_pid_coeffs",
+              var data = JSON.stringify({"settings": {
                                             "pP": pP.value,
                                             "pitchZero": pitch.value,
                                             "pI": "0",
@@ -516,8 +517,8 @@
                                             "vD": vD.value,
                                             "yP": yP.value,
                                             "yI": "0",
-                                            "yD": yD.value,
-                                            
+                                            "yD": yD.value
+                                            }
                                         });
               xhr.send(data);
            }

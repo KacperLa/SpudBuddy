@@ -69,60 +69,12 @@ json Robot::RequestAxisData(int id)
   return j;
 }
 
-json Robot::getControllerCoeffs(){
-    double pP, pI, pD, vP, vI, vD, yP, yI, yD;
-
-    controller.get_pitch_coeffs(pP, pI, pD);
-    controller.get_yaw_rate_coeffs(yP, yI, yD);
-    controller.get_velocity_coeffs(vP, vI, vD);
-    json j = {
-                  {"pitch", 
-                    {
-                      {"p", pP},
-                      {"i", pI},
-                      {"d", pD}
-                    }
-                  },
-                  {"yaw", 
-                    {
-                      {"p", yP},
-                      {"i", yI},
-                      {"d", yD}
-                    }
-                  },
-                  {"velocity", 
-                    {
-                      {"p", vP},
-                      {"i", vI},
-                      {"d", vD}
-                    }
-                  },
-                  {"balancePoint",
-                    {
-                      {"pitch", desired_state.angles.pitch}
-                    }
-                  }
-               };
-  
-  return j;
+void Robot::getControllerSettings(controllerSettings_t & settings){
+  controller.get_settings(settings);
 }
 
-void Robot::setControllerCoeffs(json & coeffs){
-    const double pP = std::stod(static_cast<std::string>(coeffs.at("pP")));
-    const double pI = std::stod(static_cast<std::string>(coeffs.at("pI")));
-    const double pD = std::stod(static_cast<std::string>(coeffs.at("pD")));
-    const double vP = std::stod(static_cast<std::string>(coeffs.at("vP")));
-    const double vI = std::stod(static_cast<std::string>(coeffs.at("vI")));
-    const double vD = std::stod(static_cast<std::string>(coeffs.at("vD")));
-    const double yP = std::stod(static_cast<std::string>(coeffs.at("yP")));
-    const double yI = std::stod(static_cast<std::string>(coeffs.at("yI")));
-    const double yD = std::stod(static_cast<std::string>(coeffs.at("yD")));
-    const double pitch = std::stod(static_cast<std::string>(coeffs.at("pitchZero")));
-
-    controller.set_pitch_coeffs(&pP, &pI, &pD);
-    controller.set_yaw_rate_coeffs(&yP, &yI, &yD);
-    controller.set_velocity_coeffs(&vP, &vI, &vD);
-    desired_state.angles.pitch = pitch;
+void Robot::setControllerSettings(controllerSettings_t & settings){
+  controller.set_settings(settings);
 }
 
 class Idle;

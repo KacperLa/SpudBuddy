@@ -17,7 +17,7 @@ from os.path import exists
 import random
 from subprocess import check_output, Popen, PIPE, STDOUT
 import time
-from zmq_functions import *
+from mmap_functions import *
 from flask import Response
 import io
 from flask_socketio import SocketIO
@@ -25,6 +25,7 @@ import cv2
 import mmap
 import struct
 import posix_ipc
+import threading
 
 DEVNULL = open(os.devnull, 'w')
 
@@ -54,27 +55,13 @@ def shutdown(message=None):
 
 config = import_config(config_file_path)
 
-# Setting up ZeroMQ
-context = zmq.Context()
-wifi_socket = zmq_req_rep_socket(context, ("tcp://localhost:" + config['sockets']['wifi']))
-core_socket = zmq_req_rep_socket(context, ("ipc:///tmp/ron" + config['sockets']['core']))
-camera_socket = zmq_req_rep_socket(context, ("tcp://localhost:" + config['sockets']['camera']))
-gps_socket = zmq_req_rep_socket(context, ("tcp://localhost:" + config['sockets']['gps']))
-
 MAP_NAME_ACTUAL  = '/tmp/robot_actual'
 MAP_NAME_DESIRED = '/tmp/robot_desired' 
+MAP_NAME_SETTINGS = '/tmp/robot_settings'
 
 SEMAPHORE_NAME_ACTUAL  = "/robot_actual_sem"
 SEMAPHORE_NAME_DESIRED = "/robot_desired_sem"
-
-js_socket = context.socket(zmq.PUB)
-try:
-    js_socket.bind(("tcp://*:" + config['sockets']['web_js']))
-except zmq.ZMQError as e:
-    if e.errno == zmq.EINVAL:
-        print('Socket is already bound')
-    else:
-        print('An error occurred:', e)
+SEMAPHORE_NAME_SETTINGS = "/robot_settings_sem"
 
 
 app = Flask(__name__)
@@ -85,6 +72,59 @@ desried_state = Value('i', 0)
 desired_js_x  = Value('f', 0)
 desired_js_y  = Value('f', 0)
 
+class ThreadSafeStruct:
+    def __init__(self, data):
+        self.data = data
+        self.lock = threading.Lock()
+
+    def set(self, key, value):
+        with self.lock:
+            self.data[key] = value
+
+    def get(self, key):
+        with self.lock:
+            return self.data.get(key)
+
+    def get_all(self):
+        with self.lock:
+            return self.data
+
+    def remove(self, key):
+        with self.lock:
+            if key in self.data:
+                del self.data[key]
+
+# settings struct 
+settings_format_mapping = {
+    'f': 'pP',
+    'f': 'pI',
+    'f': 'pD',
+    'f': 'vP',
+    'f': 'vI',
+    'f': 'vD',
+    'f': 'yP',
+    'f': 'yI',
+    'f': 'yD',
+    'f': 'pitchZero'
+}
+
+settings_struct = {
+    'pP': 0.0,
+    'pI': 0.0,
+    'pD': 0.0,
+    'vP': 0.0,
+    'vI': 0.0,
+    'vD': 0.0,
+    'yP': 0.0,
+    'yI': 0.0,
+    'yD': 0.0,
+    'pitchZero': 0.0
+}
+
+settings = ThreadSafeStruct(settings_struct)
+settings_mmap = mmap_writer(SEMAPHORE_NAME_SETTINGS, MAP_NAME_SETTINGS, settings_format_mapping)
+
+
 @app.route("/")
 def home():
     return render_template('home.html')
@@ -93,16 +133,19 @@ def generate_data():
     # actual
     format_string_actual = 'ffffddddddfffiffibffib'
     memory_size_actual   = struct.calcsize(format_string_actual) 
-    semaphore_actual     = posix_ipc.Semaphore(SEMAPHORE_NAME_ACTUAL)
+    semaphore_actual     = posix_ipc.Semaphore(SEMAPHORE_NAME_ACTUAL, posix_ipc.O_CREAT, initial_value=0)   
 
     # desired
     format_string_desired = 'dffd' # 4 bytes for int, 4 bytes for float, 4 bytes for int total 12 bytes
     memory_size_desired   = struct.calcsize(format_string_desired)
-    semaphore_desired     = posix_ipc.Semaphore(SEMAPHORE_NAME_DESIRED)
+    semaphore_desired     = posix_ipc.Semaphore(SEMAPHORE_NAME_DESIRED, posix_ipc.O_CREAT, initial_value=0) 
 
-    # Open the actual file for reading
+    # Open the actual file for reading create the file if it does not exist
+    # check if the file exists
+    if not exists(MAP_NAME_ACTUAL):
+        print("Creating file: %s" %MAP_NAME_ACTUAL)
+
     with open(MAP_NAME_ACTUAL , 'r+b') as f:
-        # Memory-map the file, size 0 means whole file
         mmapped_file_actual = mmap.mmap(f.fileno(), memory_size_actual, mmap.MAP_SHARED)
     
     # Open the desired file for writting
@@ -110,14 +153,13 @@ def generate_data():
          # Pre-allocate file size
         f.write(b'\0' * memory_size_desired)
         f.flush()
-        # Memory-map the file, size 0 means whole file
         mmapped_file_desired = mmap.mmap(f.fileno(), memory_size_desired, mmap.MAP_SHARED)
 
     data_json = config['robotState']
     while True:
         semaphore_desired.acquire()
         mmapped_file_desired.seek(0)
-        mmapped_file_desired.write(struct.pack('dffd', desried_state.value, float(desired_js_x.value), float(desired_js_y.value), time.time()))
+        mmapped_file_desired.write(struct.pack('iiffd', desried_state.value, 0, float(desired_js_x.value), float(desired_js_y.value), time.time()))
         semaphore_desired.release()
         semaphore_actual.acquire()
         binary_data = mmapped_file_actual[:]
@@ -133,28 +175,27 @@ def generate_data():
         data_json['actual']['angular_velocity']['roll'] = struct.unpack('d', binary_data[40:48])[0]
         data_json['actual']['angular_velocity']['pitch'] = struct.unpack('d', binary_data[48:56])[0]
         data_json['actual']['angular_velocity']['yaw'] = struct.unpack('d', binary_data[56:64])[0]
-        data_json['actual']['state'] = struct.unpack('i', binary_data[64:68])[0]
-
+        data_json['actual']['velocity'] = struct.unpack('f', binary_data[64:68])[0]
+        data_json['actual']['leftVelocity'] = struct.unpack('f', binary_data[68:72])[0]
+        data_json['actual']['rightVelocity'] = struct.unpack('f', binary_data[72:76])[0]    
+        data_json['actual']['state'] = struct.unpack('i', binary_data[76:80])[0]
+    
         yield f"data: {json.dumps(data_json)}\n\n"
         time.sleep(.1)
     semaphore.close()
 
 def generate_log_data():
-    sock = context.socket(zmq.SUB)
-    sock.connect(("tcp://localhost:" + config['sockets']['core_logs']))
-    sock.subscribe(b"")
-    poller = zmq.Poller()
-    poller.register(sock, zmq.POLLIN)
     while True:
-        socks = dict(poller.poll(0))
-        if sock in socks and socks[sock] == zmq.POLLIN:
-            message = sock.recv_string(zmq.NOBLOCK)
-            data = json.loads(message)
-            print(message)
-            yield f"data: {json.dumps(data)}\n\n"
-        else:
-            time.sleep(.05)
-            continue
+        pass
+        # socks = dict(poller.poll(0))
+        # if sock in socks and socks[sock] == zmq.POLLIN:
+        #     message = sock.recv_string(zmq.NOBLOCK)
+        #     data = json.loads(message)
+        #     print(message)
+        #     yield f"data: {json.dumps(data)}\n\n"
+        # else:
+        #     time.sleep(.05)
+        #     continue
 
 @app.route('/log_stream')
 def log_data():
@@ -191,6 +232,18 @@ def request_state():
     # ensure that the state is an int
     desried_state.value = int(request.args.get('state'))
     print(desried_state.value)
+    return {"success": True}
+
+@app.route('/request_settings', methods=['POST'])
+def request_settings():
+    # get settings from args and set it to desired
+    req_settings = request.json.get('settings', None)
+    if req_settings is not None:
+        for item in req_settings.keys():
+            if item in settings.data.keys():
+                settings.set(item, float(req_settings[item]))
+        settings_mmap.write(settings.get_all())
+
     return {"success": True}
 
 @app.route("/file_list/<path:subpath>", methods=['GET'])
@@ -449,39 +502,36 @@ def video_feed_1():
 	return Response(generate(), mimetype = "multipart/x-mixed-replace; boundary=frame")
 
 def generate():
-    sock = context.socket(zmq.SUB)
-    sock.connect(("tcp://localhost:5530"))
-    sock.subscribe(b"")
-    poller = zmq.Poller()
-    poller.register(sock, zmq.POLLIN)
     while True:
-        socks = dict(poller.poll(0))
-        if sock in socks and socks[sock] == zmq.POLLIN:
-            data = sock.recv(zmq.NOBLOCK)
-            yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + data + b'\r\n')
-        else:
-            time.sleep(.05)
-            continue
+        pass
+        # socks = dict(poller.poll(0))
+        # if sock in socks and socks[sock] == zmq.POLLIN:
+        #     data = sock.recv(zmq.NOBLOCK)
+        #     yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + data + b'\r\n')
+        # else:
+        #     time.sleep(.05)
+        #     continue
 
 @app.route("/map_stream")
 def map_stream():
     return Response(generate_map(), mimetype='text/event-stream')
 
 def generate_map():
-    sock = context.socket(zmq.SUB)
-    sock.connect(("tcp://localhost:5500"))
-    sock.subscribe(b"")
-    poller = zmq.Poller()
-    poller.register(sock, zmq.POLLIN)
-    while True:
-        socks = dict(poller.poll(0))
-        if sock in socks and socks[sock] == zmq.POLLIN:
-            message = sock.recv(zmq.NOBLOCK)
-            data = json.loads(message)
-            yield f"data: {json.dumps(data)}\n\n"
-        else:
-            time.sleep(.05)
-            continue
+    pass
+    # sock = context.socket(zmq.SUB)
+    # sock.connect(("tcp://localhost:5500"))
+    # sock.subscribe(b"")
+    # poller = zmq.Poller()
+    # poller.register(sock, zmq.POLLIN)
+    # while True:
+    #     socks = dict(poller.poll(0))
+    #     if sock in socks and socks[sock] == zmq.POLLIN:
+    #         message = sock.recv(zmq.NOBLOCK)
+    #         data = json.loads(message)
+    #         yield f"data: {json.dumps(data)}\n\n"
+    #     else:
+    #         time.sleep(.05)
+    #         continue
 
 @app.route("/video_feed_2")
 def video_feed_2():

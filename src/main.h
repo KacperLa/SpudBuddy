@@ -31,13 +31,14 @@ struct systemDesired_t {
 };
 
 // location of shared memory
-const char* shared_actual_file  = "/tmp/robot_actual";
-const char* shared_desired_file = "/tmp/robot_desired";
+const char* shared_actual_file   = "/tmp/robot_actual";
+const char* shared_desired_file  = "/tmp/robot_desired";
+const char* shared_settings_file = "/tmp/robot_settings";
 
 // location of semaphore
-const char* semaphore_actual_file  = "/robot_actual_sem";
-const char* semaphore_desired_file = "/robot_desired_sem";
-
+const char* semaphore_actual_file   = "/robot_actual_sem";
+const char* semaphore_desired_file  = "/robot_desired_sem";
+const char* semaphore_settings_file = "/robot_settings_sem";
 
 Log logger;
 

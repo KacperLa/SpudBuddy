@@ -25,6 +25,21 @@ struct robot_state_t
     int state {0};
 };
 
+struct controllerSettings_t
+{
+    float pitch_p {0.0f};
+    float pitch_i {0.0f};
+    float pitch_d {0.0f};
+    float velocity_p {0.0f};
+    float velocity_i {0.0f};
+    float velocity_d {0.0f};
+    float yaw_rate_p {0.0f};
+    float yaw_rate_i {0.0f};
+    float yaw_rate_d {0.0f};
+    float pitch_zero {0.0f};
+};
+
+
 class Controller {
 public:
     Controller();
@@ -32,21 +47,13 @@ public:
 
     bool calculateOutput(robot_state_t actual_state, robot_state_t desired_state, float& outputLeft, float& outputRight);
 
-    void get_pitch_coeffs(double & P, double & I, double & D);
-    void get_yaw_rate_coeffs(double & P, double & I, double & D);
-    void get_velocity_coeffs(double & P, double & I, double & D);
-    void get_sync_coeffs(double & P, double & I, double & D);
-
-    void set_pitch_coeffs(const double * P, const double * I, const double * D);
-    void set_yaw_rate_coeffs(const double * P, const double * I, const double * D);
-    void set_velocity_coeffs(const double * P, const double * I, const double * D);
-    void set_sync_coeffs(const double * P, const double * I, const double * D);
+    void get_settings(controllerSettings_t & settings);
+    void set_settings(const controllerSettings_t & settings);
 
 private:
     std::mutex mtx;
 
     MiniPID pitch_pid    = MiniPID(0.08, 0.0, 0.015);
     MiniPID velocity_pid = MiniPID(13, 0.3, 0.6);
-    MiniPID sync_pid     = MiniPID(0.0, 0.0, 0.0);
     MiniPID yaw_rate_pid = MiniPID(0.065, 0, 0.0175);
 };

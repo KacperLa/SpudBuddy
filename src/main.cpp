@@ -4,7 +4,7 @@
 
 
 
-json request_transition(int action){
+void request_transition(int action){
     typedef enum {
         REQ_START = 1,
         REQ_RESET = 2,
@@ -24,9 +24,6 @@ json request_transition(int action){
         default:
             break;
     }
-    int current_state = fsm_handle::get_state().state;
-    json j = {{"success", true},{"message", current_state}};
-    return j;
 }
 
 // json set_pid(const double new_P, const double new_I, const double new_D){
@@ -49,14 +46,6 @@ json request_transition(int action){
 //     return j;
 // }
 
-// json zmq_sockets_parse_message(zmq::message_t *message)
-// {
-//     std::string str = std::string(static_cast<char*>(message -> data()), message -> size());
-//     json j = json::parse(str);
-//     std::string msg = "[MAIN] ZMQ req/rep got a request: " + str;
-//     logger.pushEvent(msg);
-//     return j;
-// }
 
 // void zmq_sockets_poll()
 // {
@@ -225,10 +214,13 @@ int main(int argc, char *argv[])
         bool imu_error = false;
         bool drive_system_error = false;
 
-        robot_state_t   actual_state;
-        sytemState_t    shared_actual_state;
-        systemDesired_t shared_desired_state;
-        slamState_t     slam_state;
+        robot_state_t        actual_state;
+        sytemState_t         shared_actual_state;
+        systemDesired_t      shared_desired_state;
+        systemDesired_t      shared_desired_state_prev = shared_desired_state;
+        controllerSettings_t shared_controller_settings;
+        controllerSettings_t shared_controller_settings_prev = shared_controller_settings; 
+        slamState_t          slam_state;
 
         std::chrono::duration<double> loop_time(1.0 / 20.0); // 20 Hz
         auto last_publish = std::chrono::high_resolution_clock::now();
@@ -236,17 +228,36 @@ int main(int argc, char *argv[])
         std::chrono::duration<double> main_loop(1.0 / 20.0); // 20 Hz
 
         // shared memory
-        SData<sytemState_t>    shared_actual_map("shared_actual_map",   logger, shared_actual_file,  semaphore_actual_file,  true);
-        SData<systemDesired_t> shared_desired_map("shared_desired_map", logger, shared_desired_file, semaphore_desired_file, false);
+        SData<sytemState_t>         shared_actual_map("shared_actual_map",     logger, shared_actual_file,   semaphore_actual_file,   true);
+        SData<systemDesired_t>      shared_desired_map("shared_desired_map",   logger, shared_desired_file,  semaphore_desired_file,  false);
+        SData<controllerSettings_t> shared_settings_map("shared_settings_map", logger, shared_settings_file, semaphore_settings_file, false);
 
         shared_actual_map.startThread();
         shared_desired_map.startThread();
+        shared_settings_map.startThread();
 
         while(!time_to_quit){
                 last_run = std::chrono::high_resolution_clock::now();
-                imu_error = imu.getState(imu_state);
-
+    
                 actual_state  = fsm_handle::get_state();
+                // request a transition only if the desired state has changed
+                shared_desired_map.getData(shared_desired_state);
+                if (shared_desired_state.state != shared_desired_state_prev.state){
+                    request_transition(shared_desired_state.state);
+                    shared_desired_state_prev = shared_desired_state;
+                    std::cout << "The desired state has changed to: " << std::to_string(shared_desired_state.state) << std::endl;
+                }
+
+                // update controller settings only if they have changed
+                shared_settings_map.getData(shared_controller_settings);
+                // compare the settings using memcomp
+                if (memcmp(&shared_controller_settings, &shared_controller_settings_prev, sizeof(controllerSettings_t)) != 0){
+                    fsm_handle::setControllerSettings(shared_controller_settings);
+                    shared_controller_settings_prev = shared_controller_settings;
+                    std::cout << "The controller settings have changed." << std::endl;
+                }
+
+                imu_error = imu.getState(imu_state);
                 if ((imu_error || fsm_handle::requestDriveSystemStatus()) &&
                     (actual_state.state != RobotStates::ERROR && actual_state.state != RobotStates::IDLE)) 
                     {
@@ -258,10 +269,10 @@ int main(int argc, char *argv[])
                     fsm_handle::updateIMU(imu_state);
                 }
                 
-                // cmd_data new_cmd;
-                // new_cmd.v = (fabs(js_state.y) > 5) ? js_state.y / 100.0f : 0.0f;
-                // new_cmd.w = (fabs(js_state.x) > 5) ? js_state.x / -100.0f : 0.0f;
-                // fsm_handle::dispatch(new_cmd);
+                cmd_data new_cmd;
+                new_cmd.v = (fabs(shared_desired_state.joystick.y) > 5) ? shared_desired_state.joystick.y / 100.0f : 0.0f;
+                new_cmd.w = (fabs(shared_desired_state.joystick.x) > 5) ? shared_desired_state.joystick.x / -100.0f : 0.0f;
+                fsm_handle::dispatch(new_cmd);
 
                 fsm_handle::dispatch(Update());
 
@@ -280,8 +291,7 @@ int main(int argc, char *argv[])
                         drive_system.getState(shared_actual_state.driveSystem.axis_0, 0);
                         drive_system.getState(shared_actual_state.driveSystem.axis_1, 1);
                         shared_actual_map.setData(shared_actual_state);
-                        shared_desired_map.getData(shared_desired_state);
-                        std::cout << "x: " << std::to_string(shared_desired_state.joystick.x) << " y: " << std::to_string(shared_desired_state.joystick.y) << std::endl;
+                        // std::cout << "x: " << std::to_string(shared_desired_state.joystick.x) << " y: " << std::to_string(shared_desired_state.joystick.y) << std::endl;
                         // std::cout << "sizeof: " << sizeof(shared_desired_state) << std::endl;
                         // std::cout << "sizeof js: " << sizeof(shared_desired_state.joystick) << std::endl;
                         // std::cout << "sizeof state: " << sizeof(shared_desired_state.state) << std::endl;

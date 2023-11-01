@@ -65,8 +65,8 @@ public:
     static bool requestDriveSystemStatus();
     static float getVelocityOfAxis(int axis);
 
-    static json getControllerCoeffs();
-    static void setControllerCoeffs(json & coeff);
+    static void getControllerSettings(controllerSettings_t & settings);
+    static void setControllerSettings(controllerSettings_t & settings);
     static void updateIMU(IMUState & new_imu_state);
 
     static robot_state_t desired_state;
