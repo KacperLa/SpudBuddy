@@ -52,6 +52,7 @@ public:
 
 private:
     std::mutex mtx;
+    controllerSettings_t m_settings;
 
     MiniPID pitch_pid    = MiniPID(0.08, 0.0, 0.015);
     MiniPID velocity_pid = MiniPID(13, 0.3, 0.6);

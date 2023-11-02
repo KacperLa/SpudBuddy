@@ -416,24 +416,16 @@
           "state": null
         },
         "actual": {
-          "positionDeadReckoning": {
-            "x": null,
-            "y": null
-          },
-          "positionSlam": {
-            "x": null,
-            "y": null
-          },
-          "orientation": {
-            "yaw": null,
-            "pitch": null,
-            "roll": null
-          },
-          "angular_velocity": {
-            "yaw": null,
-            "pitch": null,
-            "roll": null
-          },
+          "positionDeadReckoning_x": null,
+          "positionDeadReckoning_y": null,
+          "positionSlam_x": null,
+          "positionSlam_y": null,
+          "orientation_yaw": null,
+          "orientation_pitch": null,
+          "orientation_roll": null,
+          "angular_velocity_yaw": null,
+          "angular_velocity_pitch": null,
+          "angular_velocity_roll": null,
           "velocity": null,
           "omega": null,
           "state": null

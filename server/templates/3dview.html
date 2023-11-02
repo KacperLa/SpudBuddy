@@ -460,8 +460,8 @@
 
            
             var source = new EventSource('/data');
-            var log_source = new EventSource('/log_stream');
-            var map_source = new EventSource('/map_stream');
+            // var log_source = new EventSource('/log_stream');
+            // var map_source = new EventSource('/map_stream');
             var log_data = [];
 
             var paused = false;
@@ -533,32 +533,30 @@
                 let yD = document.getElementById('yD');
                 let pitch = document.getElementById('pitchZero');
 
-
-                // console.log("pid coeffs", pP, pD, vP, vI, yP, yD)
-
-               let xhr = new XMLHttpRequest();
-               let url = "/action/" + request;
+                let xhr = new XMLHttpRequest();
+                let url = "/request_settings";
            
-               xhr.open("POST", url, true);
+                xhr.open("GET", url, true);
            
-               xhr.setRequestHeader("Content-Type", "application/json");
+                xhr.setRequestHeader("Content-Type", "application/json");
            
-               xhr.onreadystatechange = function () {
-                   if (xhr.readyState === 4 && xhr.status === 200) {
-                        var data = JSON.parse(this.responseText).data;
+                xhr.onreadystatechange = function () {
+                    console.log(this.responseText)
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        var data = JSON.parse(this.responseText);
                         console.log(data)
-                        pP.value = data.pitch.p;
-                        pD.value = data.pitch.d;
-                        vP.value = data.velocity.p;
-                        vI.value = data.velocity.i
-                        vD.value = data.velocity.d
-                        yP.value = data.yaw.p;
-                        yD.value = data.yaw.d;
-                        pitch.value = data.balancePoint.pitch;
-                   }
-               };
-               var data = JSON.stringify({"socket": socket, "request": request});
-               xhr.send(data);
+                        console.log("this*")
+                        pP.value = data['settings']['pP'];
+                        pD.value = data['settings']['pD'];
+                        vP.value = data['settings']['vP'];
+                        vI.value = data['settings']['vI'];
+                        vD.value = data['settings']['vD'];
+                        yP.value = data['settings']['yP'];
+                        yD.value = data['settings']['yD'];
+                        pitch.value = data['settings']['pitchZero'];
+                    }
+                };
+                xhr.send();
             }
 
             function requestState(state){
@@ -597,31 +595,31 @@
                xhr.send(data);
             }
 
-            log_source.onmessage = function(event) {
-                var data = JSON.parse(event.data);
-                var d = new Date(0);
-                d.setUTCSeconds(data["timestamp"]);
-                var logStr = "["+d.getHours()+":"+d.getMinutes()+":"+d.getSeconds()+"] "+ data["log"] + "<br>"
+            // log_source.onmessage = function(event) {
+            //     var data = JSON.parse(event.data);
+            //     var d = new Date(0);
+            //     d.setUTCSeconds(data["timestamp"]);
+            //     var logStr = "["+d.getHours()+":"+d.getMinutes()+":"+d.getSeconds()+"] "+ data["log"] + "<br>"
 
-                document.getElementById("logs-from-core").innerHTML += logStr;
-            }
+            //     document.getElementById("logs-from-core").innerHTML += logStr;
+            // }
 
-            map_source.onmessage = function(event) {
-                var data = JSON.parse(event.data);
-                for (var point in data["frame"]) {
-                    //  LineChart.data.datasets[1].labels.shift();
-                    if(LineChart.data.datasets[1].data.length > 600){
-                        LineChart.data.datasets[1].data.shift();
-                    }
-                    if (data["frame"][point][2] != 0){
-                        LineChart.data.datasets[1].data.push({x: data["frame"][point][0], y: data["frame"][point][2]});
-                    }
-                    // console.log(data["frame"][point], (point/100))
-                    // LineChart.data.datasets[1].labels.push(index);
+            // map_source.onmessage = function(event) {
+            //     var data = JSON.parse(event.data);
+            //     for (var point in data["frame"]) {
+            //         //  LineChart.data.datasets[1].labels.shift();
+            //         if(LineChart.data.datasets[1].data.length > 600){
+            //             LineChart.data.datasets[1].data.shift();
+            //         }
+            //         if (data["frame"][point][2] != 0){
+            //             LineChart.data.datasets[1].data.push({x: data["frame"][point][0], y: data["frame"][point][2]});
+            //         }
+            //         // console.log(data["frame"][point], (point/100))
+            //         // LineChart.data.datasets[1].labels.push(index);
                     
-                }
-                LineChart.update();
-            }
+            //     }
+            //     LineChart.update();
+            // }
 
 
             source.onmessage = function(event) {
@@ -640,10 +638,10 @@
                 //     imutable += '<tr><td>' + key + '</td><td style="width: .5rem; text-align: right;">' + str1 + '</td></tr>';
                 // }
 
-                var imuRotStrZ = "rotateZ(" + data["actual"]["orientation"]['yaw'] + "deg) "
-                var imuRotStrZref = "rotateZ(" + data["desired"]["orientation"]['yaw'] + "deg) "
-                var imuRotStrX = "rotateZ(" + data["actual"]["orientation"]['pitch'] + "deg)"
-                var imuRotStrXref = "rotateZ(" + data["desired"]["orientation"]['pitch'] + "deg) "
+                var imuRotStrZ = "rotateZ(" + data["actual"]["orientation_yaw"] + "deg) "
+                var imuRotStrZref = "rotateZ(" + data["desired"]["orientation_yaw"] + "deg) "
+                var imuRotStrX = "rotateZ(" + data["actual"]["orientation_pitch"] + "deg)"
+                var imuRotStrXref = "rotateZ(" + data["desired"]["orientation_pitch"] + "deg) "
 
                 
                 // imutable += '</table>';
@@ -683,8 +681,8 @@
                         LineChart.data.datasets[0].data.shift();
                         LineChart.data.datasets[1].data.shift();
                     }
-                    LineChart.data.datasets[0].data.push({x: data["actual"]["positionDeadReckoning"]["x"], y: data["actual"]["positionDeadReckoning"]["y"]});
-                    LineChart.data.datasets[1].data.push({x: data["actual"]["positionSlam"]["x"], y: data["actual"]["positionSlam"]["y"]});
+                    LineChart.data.datasets[0].data.push({x: data["actual"]["positionDeadReckoning_x"], y: data["actual"]["positionDeadReckoning_y"]});
+                    LineChart.data.datasets[1].data.push({x: data["actual"]["positionSlam_x"], y: data["actual"]["positionSlam_y"]});
                     LineChart.update();
                 }                
             }

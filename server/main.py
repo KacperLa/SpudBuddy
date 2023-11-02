@@ -67,11 +67,6 @@ SEMAPHORE_NAME_SETTINGS = "/robot_settings_sem"
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-# global desired state of the robot
-desried_state = Value('i', 0)
-desired_js_x  = Value('f', 0)
-desired_js_y  = Value('f', 0)
-
 class ThreadSafeStruct:
     def __init__(self, data):
         self.data = data
@@ -96,19 +91,104 @@ class ThreadSafeStruct:
 
 # settings struct 
 settings_format_mapping = {
-    'f': 'pP',
-    'f': 'pI',
-    'f': 'pD',
-    'f': 'vP',
-    'f': 'vI',
-    'f': 'vD',
-    'f': 'yP',
-    'f': 'yI',
-    'f': 'yD',
-    'f': 'pitchZero'
+    'pP': 'f',
+    'pI': 'f',
+    'pD': 'f',
+    'vP': 'f',
+    'vI': 'f',
+    'vD': 'f',
+    'yP': 'f',
+    'yI': 'f',
+    'yD': 'f',
+    'pitchZero': 'f'
 }
 
 settings_struct = {
+    'pP': None,
+    'pI': None,
+    'pD': None,
+    'vP': None,
+    'vI': None,
+    'vD': None,
+    'yP': None,
+    'yI': None,
+    'yD': None,
+    'pitchZero': None
+}
+
+settings = ThreadSafeStruct(settings_struct)
+settings_mmap = mmap_writer(SEMAPHORE_NAME_SETTINGS, MAP_NAME_SETTINGS, settings_format_mapping)
+
+# desired state struct
+desired_state_format_mapping = {
+    'state': 'i',
+    'js_x': 'f',
+    'js_y': 'f',
+    'time': 'i'
+}
+
+desired_state_struct = {
+    'state': 0,
+    'js_x': 0.0,
+    'js_y': 0.0,
+    'time': 0
+}
+
+desired_state = ThreadSafeStruct(desired_state_struct) 
+desired_state_mmap = mmap_writer(SEMAPHORE_NAME_DESIRED, MAP_NAME_DESIRED, desired_state_format_mapping)   
+
+
+# actual state struct
+actual_state_format_mapping = {
+    'positionDeadReckoning_x': 'f',
+    'positionDeadReckoning_y': 'f',
+    'positionSlam_x': 'f',
+    'positionSlam_y': 'f',
+    'orientation_roll': 'd',
+    'orientation_pitch': 'd',
+    'orientation_yaw': 'd',
+    'angular_velocity_roll': 'd',
+    'angular_velocity_pitch': 'd',
+    'angular_velocity_yaw': 'd',
+    'velocity': 'f',
+    'left_velocity': 'f',
+    'right_velocity': 'f',
+    'state': 'i',
+    'velocity_0': 'f',
+    'position_0': 'f',
+    'state_0': 'i',
+    'error_0': 'i',
+    'velocity_1': 'f',
+    'position_1': 'f',
+    'state_1': 'i',
+    'error_1': 'i',
+    'pP': 'f',
+    'pI': 'f',
+    'pD': 'f',
+    'vP': 'f',
+    'vI': 'f',
+    'vD': 'f',
+    'yP': 'f',
+    'yI': 'f',
+    'yD': 'f',
+    'pitchZero': 'f'
+}
+
+actual_state_struct = {
+    'positionDeadReckoning_x': 0.0,
+    'positionDeadReckoning_y': 0.0,
+    'positionSlam_x': 0.0,
+    'positionSlam_y': 0.0,
+    'orientation_roll': 0.0,
+    'orientation_pitch': 0.0,
+    'orientation_yaw': 0.0,
+    'angular_velocity_roll': 0.0,
+    'angular_velocity_pitch': 0.0,
+    'angular_velocity_yaw': 0.0,
+    'velocity': 0.0,
+    'left_velocity': 0.0,
+    'right_velocity': 0.0,
+    'state': 0,
     'pP': 0.0,
     'pI': 0.0,
     'pD': 0.0,
@@ -121,65 +201,21 @@ settings_struct = {
     'pitchZero': 0.0
 }
 
-settings = ThreadSafeStruct(settings_struct)
-settings_mmap = mmap_writer(SEMAPHORE_NAME_SETTINGS, MAP_NAME_SETTINGS, settings_format_mapping)
-
+actual_state = ThreadSafeStruct(actual_state_struct)
+actual_state_mmap = mmap_reader(SEMAPHORE_NAME_ACTUAL, MAP_NAME_ACTUAL, actual_state_format_mapping)
 
 @app.route("/")
 def home():
     return render_template('home.html')
 
 def generate_data():
-    # actual
-    format_string_actual = 'ffffddddddfffiffibffib'
-    memory_size_actual   = struct.calcsize(format_string_actual) 
-    semaphore_actual     = posix_ipc.Semaphore(SEMAPHORE_NAME_ACTUAL, posix_ipc.O_CREAT, initial_value=0)   
-
-    # desired
-    format_string_desired = 'dffd' # 4 bytes for int, 4 bytes for float, 4 bytes for int total 12 bytes
-    memory_size_desired   = struct.calcsize(format_string_desired)
-    semaphore_desired     = posix_ipc.Semaphore(SEMAPHORE_NAME_DESIRED, posix_ipc.O_CREAT, initial_value=0) 
-
-    # Open the actual file for reading create the file if it does not exist
-    # check if the file exists
-    if not exists(MAP_NAME_ACTUAL):
-        print("Creating file: %s" %MAP_NAME_ACTUAL)
-
-    with open(MAP_NAME_ACTUAL , 'r+b') as f:
-        mmapped_file_actual = mmap.mmap(f.fileno(), memory_size_actual, mmap.MAP_SHARED)
-    
-    # Open the desired file for writting
-    with open(MAP_NAME_DESIRED , 'w+b') as f:
-         # Pre-allocate file size
-        f.write(b'\0' * memory_size_desired)
-        f.flush()
-        mmapped_file_desired = mmap.mmap(f.fileno(), memory_size_desired, mmap.MAP_SHARED)
-
     data_json = config['robotState']
     while True:
-        semaphore_desired.acquire()
-        mmapped_file_desired.seek(0)
-        mmapped_file_desired.write(struct.pack('iiffd', desried_state.value, 0, float(desired_js_x.value), float(desired_js_y.value), time.time()))
-        semaphore_desired.release()
-        semaphore_actual.acquire()
-        binary_data = mmapped_file_actual[:]
-        semaphore_actual.release()
-
-        data_json['actual']['positionDeadReckoning']['x'] = struct.unpack('f', binary_data[0:4])[0]
-        data_json['actual']['positionDeadReckoning']['y'] = struct.unpack('f', binary_data[4:8])[0]
-        data_json['actual']['positionSlam']['x'] = struct.unpack('f', binary_data[8:12])[0]
-        data_json['actual']['positionSlam']['y'] = struct.unpack('f', binary_data[12:16])[0]
-        data_json['actual']['orientation']['roll'] = struct.unpack('d', binary_data[16:24])[0]
-        data_json['actual']['orientation']['pitch'] = struct.unpack('d', binary_data[24:32])[0]
-        data_json['actual']['orientation']['yaw'] = struct.unpack('d', binary_data[32:40])[0]
-        data_json['actual']['angular_velocity']['roll'] = struct.unpack('d', binary_data[40:48])[0]
-        data_json['actual']['angular_velocity']['pitch'] = struct.unpack('d', binary_data[48:56])[0]
-        data_json['actual']['angular_velocity']['yaw'] = struct.unpack('d', binary_data[56:64])[0]
-        data_json['actual']['velocity'] = struct.unpack('f', binary_data[64:68])[0]
-        data_json['actual']['leftVelocity'] = struct.unpack('f', binary_data[68:72])[0]
-        data_json['actual']['rightVelocity'] = struct.unpack('f', binary_data[72:76])[0]    
-        data_json['actual']['state'] = struct.unpack('i', binary_data[76:80])[0]
-    
+        desired_state_mmap.write(desired_state.get_all())
+        
+        actual_data = actual_state_mmap.read(actual_state_struct)
+        for key in actual_data.keys():
+            data_json['actual'][key] = actual_data[key] 
         yield f"data: {json.dumps(data_json)}\n\n"
         time.sleep(.1)
     semaphore.close()
@@ -214,6 +250,10 @@ def tunning():
 def threeDView():
     return render_template('3dview.html')
 
+@app.route('/path')
+def path():
+    return render_template('path.html')
+
 @app.route('/ron')
 def ron():
     return render_template('ron.html')
@@ -223,28 +263,35 @@ def handle_message(message):
     # put x and y in desired state
     data = json.loads(message)
     # convert string to floats
-    desired_js_x.value = float(data['x'])
-    desired_js_y.value = float(data['y'])
+    desired_state.set('js_x', float(data['x']))
+    desired_state.set('js_y', float(data['y']))
 
 @app.route('/request_state')
 def request_state():
     # get state from args and set it to desired state
     # ensure that the state is an int
-    desried_state.value = int(request.args.get('state'))
-    print(desried_state.value)
+    desired_state.set('state', int(request.args.get('state')))
+    print(desired_state.get('state'))
     return {"success": True}
 
-@app.route('/request_settings', methods=['POST'])
+@app.route('/request_settings', methods=['GET', 'POST'])
 def request_settings():
-    # get settings from args and set it to desired
-    req_settings = request.json.get('settings', None)
-    if req_settings is not None:
-        for item in req_settings.keys():
-            if item in settings.data.keys():
-                settings.set(item, float(req_settings[item]))
-        settings_mmap.write(settings.get_all())
+    # is the request is a post
+    if request.method == "POST":
+        # get settings from args and set it to desired
+        req_settings = request.json.get('settings', None)
+        if req_settings is not None:
+            for item in req_settings.keys():
+                if item in settings.data.keys():
+                    settings.set(item, float(req_settings[item]))
+            settings_mmap.write(settings.get_all())
+    else:
+        # return settings from actual state
+        for key in settings_struct.keys():
+            settings.set(key, actual_state.get(key))
 
-    return {"success": True}
+    return {"success": True, "settings": settings.get_all()}
+
 
 @app.route("/file_list/<path:subpath>", methods=['GET'])
 def file_list(subpath):

@@ -119,16 +119,15 @@ void SData<T>::producer() {
 // Consumer loop
 template <typename T>
 void SData<T>::consumer() {
-    // wait for the semaphore to be available
     if (sem_wait(semaphore) == -1) {
-        log("Error waiting for semaphore");
+        log("Error waiting for semaphore" + std::string(std::strerror(errno)));
         return;
     }
     // copy the shared_data to the private data
     setData(*shared_data);
     // release the semaphore
     if (sem_post(semaphore) == -1) {
-        log("Error releasing semaphore");
+        log("Error releasing semaphore" + std::string(std::strerror(errno)));
         return;
     }
 }

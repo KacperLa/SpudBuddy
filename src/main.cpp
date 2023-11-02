@@ -221,7 +221,7 @@ int main(int argc, char *argv[])
         controllerSettings_t shared_controller_settings;
         controllerSettings_t shared_controller_settings_prev = shared_controller_settings; 
         slamState_t          slam_state;
-
+        std::cout << "size of desired: " << sizeof(systemDesired_t) << std::endl;
         std::chrono::duration<double> loop_time(1.0 / 20.0); // 20 Hz
         auto last_publish = std::chrono::high_resolution_clock::now();
         auto last_run = std::chrono::high_resolution_clock::now();
@@ -250,13 +250,23 @@ int main(int argc, char *argv[])
 
                 // update controller settings only if they have changed
                 shared_settings_map.getData(shared_controller_settings);
-                // compare the settings using memcomp
                 if (memcmp(&shared_controller_settings, &shared_controller_settings_prev, sizeof(controllerSettings_t)) != 0){
                     fsm_handle::setControllerSettings(shared_controller_settings);
                     shared_controller_settings_prev = shared_controller_settings;
                     std::cout << "The controller settings have changed." << std::endl;
+                    // print the settings
+                    std::cout << "pP: " << std::to_string(shared_controller_settings.pitch_p) << std::endl;
+                    std::cout << "pI: " << std::to_string(shared_controller_settings.pitch_i) << std::endl;
+                    std::cout << "pD: " << std::to_string(shared_controller_settings.pitch_d) << std::endl;
+                    std::cout << "vP: " << std::to_string(shared_controller_settings.velocity_p) << std::endl;
+                    std::cout << "vI: " << std::to_string(shared_controller_settings.velocity_i) << std::endl;
+                    std::cout << "vD: " << std::to_string(shared_controller_settings.velocity_d) << std::endl;
+                    std::cout << "yP: " << std::to_string(shared_controller_settings.yaw_rate_p) << std::endl;
+                    std::cout << "yI: " << std::to_string(shared_controller_settings.yaw_rate_i) << std::endl;
+                    std::cout << "yD: " << std::to_string(shared_controller_settings.yaw_rate_d) << std::endl;
+                    std::cout << "pitchZero: " << std::to_string(shared_controller_settings.pitch_zero) << std::endl;
                 }
-
+                
                 imu_error = imu.getState(imu_state);
                 if ((imu_error || fsm_handle::requestDriveSystemStatus()) &&
                     (actual_state.state != RobotStates::ERROR && actual_state.state != RobotStates::IDLE)) 
@@ -290,13 +300,11 @@ int main(int argc, char *argv[])
                         shared_actual_state.actual = actual_state;
                         drive_system.getState(shared_actual_state.driveSystem.axis_0, 0);
                         drive_system.getState(shared_actual_state.driveSystem.axis_1, 1);
+                        fsm_handle::getControllerSettings(shared_actual_state.controller_settings);
+                      
                         shared_actual_map.setData(shared_actual_state);
                         // std::cout << "x: " << std::to_string(shared_desired_state.joystick.x) << " y: " << std::to_string(shared_desired_state.joystick.y) << std::endl;
-                        // std::cout << "sizeof: " << sizeof(shared_desired_state) << std::endl;
-                        // std::cout << "sizeof js: " << sizeof(shared_desired_state.joystick) << std::endl;
-                        // std::cout << "sizeof state: " << sizeof(shared_desired_state.state) << std::endl;
-                        // std::cout << "sizeof time: " << sizeof(shared_desired_state.joystick.time) << std::endl;
-
+                       
                         last_publish = std::chrono::high_resolution_clock::now();
                 }
                 if ((std::chrono::high_resolution_clock::now() - last_run) > main_loop){

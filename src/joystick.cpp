@@ -72,7 +72,7 @@ void Joystick::loop() {
                 }
 
                 // Add the new values to the queue
-                JoystickState data{x, y, std::chrono::high_resolution_clock::now(), };
+                JoystickState data{x, y, 0};
                 updateState(data);
             }
         }

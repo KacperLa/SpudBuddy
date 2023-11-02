@@ -44,7 +44,7 @@ bool Controller::calculateOutput(robot_state_t actual_state, robot_state_t desir
     double velocity_output = velocity_pid.getOutput(actual_state.velocity, (-1*desired_state.velocity));
 
     double pitch_error = desired_state.angles.pitch - (actual_state.angles.pitch + velocity_output);
-    double pitch_output   =  (pitch_error * pitch_pid.getP()) + (actual_state.rates.gyro_pitch * pitch_pid.getD());
+    double pitch_output   =  (pitch_error * pitch_pid.getP()) - (actual_state.rates.gyro_pitch * pitch_pid.getD());
 
     if (fabs(pitch_output) < 0.001f){
         pitch_output = 0;
@@ -76,6 +76,7 @@ void Controller::get_settings(controllerSettings_t & settings) {
     settings.yaw_rate_p = yaw_rate_pid.getP();
     settings.yaw_rate_i = yaw_rate_pid.getI();
     settings.yaw_rate_d = yaw_rate_pid.getD();
+    settings.pitch_zero = m_settings.pitch_zero;
 }
 
 void Controller::set_settings(const controllerSettings_t & settings) {
@@ -83,4 +84,5 @@ void Controller::set_settings(const controllerSettings_t & settings) {
     pitch_pid.setPID(settings.pitch_p, settings.pitch_i, settings.pitch_d);
     velocity_pid.setPID(settings.velocity_p, settings.velocity_i, settings.velocity_d);
     yaw_rate_pid.setPID(settings.yaw_rate_p, settings.yaw_rate_i, settings.yaw_rate_d);
+    m_settings.pitch_zero = settings.pitch_zero;
 }

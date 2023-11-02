@@ -23,6 +23,7 @@ struct driveSystemState {
 struct sytemState_t {
     robot_state_t actual;
     driveSystemState driveSystem;
+    controllerSettings_t controller_settings;
 };
 
 struct systemDesired_t {
