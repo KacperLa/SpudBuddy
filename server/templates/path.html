@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>three.js webgl - geometry - catmull spline editor</title>
+		<title>Path Editor</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='three.js/examples/main.css') }}">
-		<style>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+        <script src="{{ url_for('static', filename='joy.js') }}"></script>
+
+        <style>
 			body {
 				background-color: #f0f0f0;
 				color: #444;
@@ -13,14 +16,28 @@
 			a {
 				color: #08f;
 			}
+            #joy2Div
+            {
+                position: fixed;
+                bottom: 100px;
+                right: 50px;
+                width:300px;
+                height:300px;
+                margin:50px
+            }
+            #joystick
+            {
+                border: 1px solid #FF0000;
+            }
 		</style>
 	</head>
 	<body>
 
 		<div id="container"></div>
-		<div id="info">
-			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - geometry - catmull spline editor
-		</div>
+
+		<div id="joystickCard" style="display: block">
+            <div id="joy2Div"></div>
+        </div>
 
 		<script type="importmap">
 			{
@@ -53,7 +70,16 @@
 			const onDownPosition = new THREE.Vector2();
 
 			const geometry = new THREE.BoxGeometry( 20, 20, 20 );
-			let transformControl;
+            const ron_geometry = new THREE.CapsuleGeometry( 20, 20, 30, 50); 
+            const ron_material = new THREE.MeshBasicMaterial( {color: 0x111111} ); 
+            const ron_body = new THREE.Mesh( ron_geometry, ron_material );
+            
+            ron_body.position.x = 0;
+            ron_body.position.y = 30;
+            ron_body.position.z = 0;
+
+                
+            let transformControl;
 
 			const ARC_SEGMENTS = 200;
 
@@ -70,6 +96,48 @@
 			};
 
 			init();
+
+            var source = new EventSource('/data');
+            source.onmessage = function(event) {
+                var data = JSON.parse(event.data);
+
+                var imuRotZ = (data["actual"]["orientation_yaw"]/180 )* Math.PI
+                var imuRotX = (data["actual"]["orientation_pitch"]/180) * Math.PI
+                ron_body.rotation.set(imuRotZ, 0, imuRotX);
+				ron_body.position.x = data["actual"]["positionSlam_x"]*100;
+                ron_body.position.z = data["actual"]["positionSlam_y"]*100;
+                renderer.render( scene, camera );
+      
+            }
+
+            function hideJoystick() {
+                var joystickCard = document.getElementById("joystickCard");
+                if (joystickCard.style.display === "none") {
+                    joystickCard.style.display = "block";
+                } else {
+                    joystickCard.style.display = "none";
+                }
+            }
+            var joy2Param = { "title": "joystick", "autoReturnToCenter": true };
+            var joy = new JoyStick('joy2Div', joy2Param);
+            var joystickCard = document.getElementById("joystickCard");
+
+            var joySocket = io();
+            joySocket.on('connect', function() {
+                joySocket.emit('joystick event', {data: 'I\'m connected!'});
+            });
+            setInterval(function() {
+                var joystickCard = document.getElementById("joystickCard");
+                if (joystickCard.style.display === "block"){
+                      var js_data = {
+                        x: joy.GetX(),
+                        y: joy.GetY(),
+                        timestamp: Date.now()
+                    };
+                    // console.log(js_data);
+                    joySocket.emit('js', JSON.stringify(js_data));
+                }
+            }, 100);
 
 			function init() {
 
@@ -100,13 +168,13 @@
 				const planeMaterial = new THREE.ShadowMaterial( { color: 0x000000, opacity: 0.2 } );
 
 				const plane = new THREE.Mesh( planeGeometry, planeMaterial );
-				plane.position.y = - 200;
+				plane.position.y = 0;
 				plane.receiveShadow = true;
 				scene.add( plane );
 
 				const helper = new THREE.GridHelper( 2000, 100 );
-				helper.position.y = - 199;
-				helper.material.opacity = 0.25;
+				helper.position.y = 0;
+				helper.material.opacity = 0.5;
 				helper.material.transparent = true;
 				scene.add( helper );
 
@@ -176,9 +244,14 @@
 
 				}
 
+				ron_body.castShadow = true;
+				ron_body.receiveShadow = true;
+                scene.add( ron_body );
+
+
 				const geometry = new THREE.BufferGeometry();
 				geometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array( ARC_SEGMENTS * 3 ), 3 ) );
-
+                
 				let curve = new THREE.CatmullRomCurve3( positions );
 				curve.curveType = 'catmullrom';
 				curve.mesh = new THREE.Line( geometry.clone(), new THREE.LineBasicMaterial( {
