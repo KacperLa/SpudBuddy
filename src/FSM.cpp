@@ -81,7 +81,7 @@ class Idle;
 class Error;
 class Running;
 
-robot_state_t Robot::desired_state = {{0.0f, 0.0f},{0.0f, 0.0f}, {0.0, 7.0, 90.0}, {0.0, 0.0, 0.0}, 0.0, 0.0, 0.0};
+robot_state_t Robot::desired_state = {{0.0f, 0.0f},{0.0f, 0.0f},{0.0f, 0.0f}, {0.0, 7.0, 90.0}, {0.0, 0.0, 0.0}, 0.0, 0.0, 0.0};
 robot_state_t Robot::actual_state;
 Controller Robot::controller;
 
@@ -114,15 +114,6 @@ class Running : public Robot
       transit<Error>();
     } else {
       if (controller.calculateOutput(actual_state, desired_state, leftWheel_cmd, rightWheel_cmd)){
-        // auto loop_dur = std::chrono::high_resolution_clock::now() - imu_timestamp;
-        // auto loop_dur_in_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(loop_dur);
-
-        // std::ostringstream stream;
-        // stream << loop_dur_in_seconds.count() << "ms";
-        // std::string duration_string = stream.str();
-        // std::string msg = "[FSM] IMU read to set vel: " + duration_string;
-        // logger->pushEvent(msg);
-        
         drive_system->setTorque(leftWheel_cmd, leftNode);
         drive_system->setTorque(rightWheel_cmd, rightNode);
       } else {

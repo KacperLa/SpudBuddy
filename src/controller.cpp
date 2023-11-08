@@ -34,6 +34,20 @@ void calcTheta(float cmd, float actual, float & error)
 
 bool Controller::calculateOutput(robot_state_t actual_state, robot_state_t desired_state, float& outputLeft, float& outputRight)
 {
+    // Calculate positon error
+    float position_error = sqrt(pow(desired_state.position.x - actual_state.position.x, 2) + pow(desired_state.position.y - actual_state.position.y, 2));
+    
+    // Calculate yaw error
+    float yaw_error = atan((desired_state.position.y - actual_state.position.y) / (desired_state.position.x - actual_state.position.x));
+
+    // Calculate yaw pid output
+    float yaw_pos_output = yaw_pid.getOutput(yaw_error);
+    desired_state.rates.gyro_yaw += yaw_pos_output;
+
+    // Calculate position pid output
+    float position_output = position_pid.getOutput(position_error);
+    desired_state.velocity += position_output;
+    
     float yaw_rate_error = (actual_state.leftVelocity - actual_state.rightVelocity) + desired_state.rates.gyro_yaw;
     double yaw_output = yaw_rate_pid.getOutput(yaw_rate_error); //(yaw_error * yaw_rate_pid.getP()) + (actual_state.rates.gyro_yaw * yaw_rate_pid.getD());
     

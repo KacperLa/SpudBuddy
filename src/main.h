@@ -29,6 +29,7 @@ struct sytemState_t {
 struct systemDesired_t {
     int state {0};
     JoystickState joystick;
+    position_t position;
 };
 
 // location of shared memory

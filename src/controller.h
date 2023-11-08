@@ -15,6 +15,7 @@ struct position_t {
 
 struct robot_state_t
 {
+    position_t position;
     position_t positionDeadReckoning;
     position_t positionSlam;
     angles_t angles {0.0, 0.0, 0.0};
@@ -37,6 +38,13 @@ struct controllerSettings_t
     float yaw_rate_i {0.0f};
     float yaw_rate_d {0.0f};
     float pitch_zero {0.0f};
+    float yaw_p {0.0f};
+    float yaw_i {0.0f};
+    float yaw_d {0.0f};
+    float positon_p {0.0f};
+    float positon_i {0.0f};
+    float positon_d {0.0f};
+    float dead_zone {0.0f};
 };
 
 
@@ -57,4 +65,6 @@ private:
     MiniPID pitch_pid    = MiniPID(0.08, 0.0, 0.015);
     MiniPID velocity_pid = MiniPID(13, 0.3, 0.6);
     MiniPID yaw_rate_pid = MiniPID(0.065, 0, 0.0175);
+    MiniPID yaw_pid      = MiniPID(0.0, 0.0, 0.0);
+    MiniPID position_pid = MiniPID(0.0, 0.0, 0.0);
 };

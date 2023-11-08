@@ -100,7 +100,14 @@ settings_format_mapping = {
     'yP': 'f',
     'yI': 'f',
     'yD': 'f',
-    'pitchZero': 'f'
+    'pitchZero': 'f',
+    'yaw_p': 'f',
+    'yaw_i': 'f',
+    'yaw_d': 'f',
+    'positon_p': 'f',
+    'positon_i': 'f',
+    'positon_d': 'f',
+    'dead_zone': 'f'
 }
 
 settings_struct = {
@@ -113,7 +120,14 @@ settings_struct = {
     'yP': None,
     'yI': None,
     'yD': None,
-    'pitchZero': None
+    'pitchZero': None,
+    'yaw_p': None,
+    'yaw_i': None,
+    'yaw_d': None,
+    'positon_p': None,
+    'positon_i': None,
+    'positon_d': None,
+    'dead_zone': None
 }
 
 settings = ThreadSafeStruct(settings_struct)
@@ -124,14 +138,18 @@ desired_state_format_mapping = {
     'state': 'i',
     'js_x': 'f',
     'js_y': 'f',
-    'time': 'i'
+    'time': 'i',
+    'pos_x': 'f',
+    'pos_y': 'f'
 }
 
 desired_state_struct = {
     'state': 0,
     'js_x': 0.0,
     'js_y': 0.0,
-    'time': 0
+    'time': 0,
+    'pos_x': 0.0,
+    'pos_y': 0.0
 }
 
 desired_state = ThreadSafeStruct(desired_state_struct) 
@@ -140,6 +158,8 @@ desired_state_mmap = mmap_writer(SEMAPHORE_NAME_DESIRED, MAP_NAME_DESIRED, desir
 
 # actual state struct
 actual_state_format_mapping = {
+    'position_x': 'f',
+    'position_y': 'f',
     'positionDeadReckoning_x': 'f',
     'positionDeadReckoning_y': 'f',
     'positionSlam_x': 'f',
@@ -175,6 +195,8 @@ actual_state_format_mapping = {
 }
 
 actual_state_struct = {
+    'position_x': 0.0,
+    'position_y': 0.0,
     'positionDeadReckoning_x': 0.0,
     'positionDeadReckoning_y': 0.0,
     'positionSlam_x': 0.0,
@@ -265,6 +287,14 @@ def handle_message(message):
     # convert string to floats
     desired_state.set('js_x', float(data['x']))
     desired_state.set('js_y', float(data['y']))
+
+@app.route('/request_position', methods=['POST'])
+def request_position():
+    # ensure that the position is a float
+    desired_state.set('pos_x', float(request.json.get('pos_x')))
+    desired_state.set('pos_y', float(request.json.get('pos_y')))
+    print("got updated position", desired_state.get('pos_x'), desired_state.get('pos_y'))
+    return {"success": True}
 
 @app.route('/request_state')
 def request_state():

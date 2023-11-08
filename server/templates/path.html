@@ -7,11 +7,15 @@
 		<link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='three.js/examples/main.css') }}">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
         <script src="{{ url_for('static', filename='joy.js') }}"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
         <style>
 			body {
 				background-color: #f0f0f0;
 				color: #444;
+				--cupertino-pane-color: #000000;
+				--cupertino-pane-background: #e9e9e9;
 			}
 			a {
 				color: #08f;
@@ -29,15 +33,176 @@
             {
                 border: 1px solid #FF0000;
             }
+			.pane {
+				max-width: 100% !important;
+			}
+			@media screen and (max-width: 450px) {
+				#neo-grid {
+					left: -370px;
+					width: 290vw;
+				}
+			}
+			cupertine-window {
+				display: block;
+				width: 94%;
+				max-width: 250px;
+				margin-bottom: 25px;
+			}			
 		</style>
 	</head>
 	<body>
-
+		<div class="fixed-top">
+            <nav class="nav my-1">
+                <ul class="nav mr-auto">
+					<a class="nav-item active mx-1">
+                        <button id="status" class="btn btn-dark btn-lg" type="button">
+                            Status: UNKNOWN
+                        </button>
+                    </a>
+                    <a class="nav-item active mx-1">
+                        <button class="btn btn-dark btn-lg" type="button" data-toggle="modal" data-target="#batteryModal">
+							<div class="d-flex flex-row">
+								<i class="fa fa-solid fa-battery-full" style="padding: 5px 0px;"></i>
+								<div style="padding: 0px 10px;">
+									100 %
+								</div>
+							</div>
+						</button>
+                    </a>
+                    <a>
+                        <button id="pauseResumeBtn" class="btn btn-dark btn-lg" type="button" onclick="pauseResume()">
+							
+							<div class="d-flex flex-row">
+								<i class="fa fa-solid fa-location-crosshairs" style="padding: 5px 0px;"></i>
+								<div style="padding: 0px 10px;">
+									SLAM
+								</div>
+							</div>
+						</button>
+                    </a>
+                </ul>
+				
+                <ul class="nav mx-1">
+					<a class="nav-item mx-1">
+						<div class="btn-group btn-group-lg" role="group">
+							<button class="btn btn-success" type="button" onclick="requestState(1)">
+								Start
+							</button> 
+							<button class="btn btn-secondary" type="button" onclick="requestState(2)">
+								Reset
+							</button> 
+						</div>
+					</a>
+                    <a class="nav-item mx-1">
+                        <button class="btn btn-danger btn-lg" type="button" onclick="requestState(3)">
+                            ESTOP
+                        </button>
+                    </a>
+                </ul>
+            </nav>
+        </div>
+		
 		<div id="container"></div>
 
 		<div id="joystickCard" style="display: block">
             <div id="joy2Div"></div>
         </div>
+
+		<div class="cupertino-pane">
+			<div class="modal-dialog modal-lg" role="document">
+				<div class="modal-content">
+				  <div class="modal-header">
+					<h5 class="modal-title" id="optionModalLabel">PID Tunning</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					  <span aria-hidden="true">&times;</span>
+					</button>
+				  </div>
+				  <div class="modal-body">
+					  <form> 
+						  <div class="form-group row">
+							  <div class="form-group mx-1 col-md-2 my-auto">Pitch:</div>
+							  <div class="form-group mx-1 my-auto">P</div>
+							  <div class="form-group mx-1 col-md-2 my-auto">
+								  <input type="text" class="form-control" id="pP" value="0">
+							  </div>
+							  <div class="form-group mx-1 my-auto">D</div>
+							  <div class="form-group mx-1 col-md-2 my-auto">
+								  <input type="text" class="form-control" id="pD" value="0">
+							  </div>
+						  </div>
+						  <div class="form-group row">
+							  <div class="form-group mx-1 col-md-2 my-auto">Velocity:</div>
+							  <div class="form-group mx-1 my-auto">P</div>
+							  <div class="form-group mx-1 col-md-2 my-auto">
+								  <input type="text" class="form-control" id="vP" value="0">
+							  </div>
+							  <div class="form-group mx-1 my-auto">I</div>
+							  <div class="form-group mx-1 col-md-2 my-auto">
+								  <input type="text" class="form-control" id="vI" value="0">
+							  </div>
+							  <div class="form-group mx-1 my-auto">D</div>
+							  <div class="form-group mx-1 col-md-2 my-auto">
+								  <input type="text" class="form-control" id="vD" value="0">
+							  </div>
+						  </div>
+						  <div class="form-group row">
+							  <div class="form-group mx-1 col-md-2 my-auto">Yaw:</div>
+							  <div class="form-group mx-1 my-auto">P</div>
+							  <div class="form-group mx-1 col-md-2 my-auto">
+								  <input type="text" class="form-control" id="yP" value="0">
+							  </div>
+							  <div class="form-group mx-1 my-auto">D</div>
+							  <div class="form-group mx-1 col-md-2 my-auto">
+								  <input type="text" class="form-control" id="yD" value="0">
+							  </div>
+						  </div>
+  
+						  <div class="form-group row">
+							  <div class="form-group mx-1 col-md-4 my-auto">Balance Point:</div>
+							  <div class="form-group mx-1 my-auto">Pitch</div>
+							  <div class="form-group mx-1 col-md-2 my-auto">
+								  <input type="text" class="form-control" id="pitchZero" value="0">
+							  </div>
+						  </div>
+  
+						  <div class="form-group row">
+							  <div class="form-group mx-auto my-auto">     
+								  <button class="btn btn-success" type="button" onclick="sendCoreReq('core', 'request_pid_coeffs')">
+									  GET
+								  </button> 
+								  <button class="btn btn-success" type="button" onclick="sendCorePIDSet()">
+									  SET
+								  </button>
+							  </div>
+						  </div>
+						</form>
+				  </div>
+				  <div class="modal-footer">
+					  <div> 
+						  <button class="btn btn-danger" type="button" onclick="sendAction('core', 'request_transition', 3)">
+							  ESTOP
+						  </button>
+					  </div>
+					  <div>
+  
+					  </div>
+					  
+					  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+					  <button type="button" class="btn btn-primary">Save changes</button>
+				  </div>
+				</div>
+			  </div>  
+		</div>
+
+		<div class="cupertine-container">
+			<div class="floating-window">
+				<div class="controls">
+					<div>
+					HELLO
+					</div>
+				</div>
+			</div>
+		</div>
 
 		<script type="importmap">
 			{
@@ -56,6 +221,9 @@
 
             import { OrbitControls } from "{{ url_for('static', filename='three.js/examples/jsm/controls/OrbitControls.js') }}";
 			import { TransformControls } from "{{ url_for('static', filename='three.js/examples/jsm/controls/TransformControls.js') }}";
+			import { STLLoader } from "{{ url_for('static', filename='three.js/examples/jsm/loaders/STLLoader.js') }}";
+			import { OBJLoader } from "{{ url_for('static', filename='three.js/examples/jsm/loaders/OBJLoader.js') }}";
+			import { CupertinoPane } from "{{ url_for('static', filename='panes/dist/cupertino-pane.esm.min.js') }}";
 
 			let container;
 			let camera, scene, renderer;
@@ -71,15 +239,17 @@
 
 			const geometry = new THREE.BoxGeometry( 20, 20, 20 );
             const ron_geometry = new THREE.CapsuleGeometry( 20, 20, 30, 50); 
-            const ron_material = new THREE.MeshBasicMaterial( {color: 0x111111} ); 
+            const ron_material = new THREE.MeshLambertMaterial( {color: 0x5555AA} ); 
             const ron_body = new THREE.Mesh( ron_geometry, ron_material );
-            
+						
             ron_body.position.x = 0;
             ron_body.position.y = 30;
             ron_body.position.z = 0;
 
                 
             let transformControl;
+			let controls;
+			let goToPoint = null;
 
 			const ARC_SEGMENTS = 200;
 
@@ -96,6 +266,64 @@
 			};
 
 			init();
+			const planeGeometry = new THREE.PlaneGeometry( 2000, 2000 );
+			planeGeometry.rotateX( - Math.PI / 2 );
+			const planeMaterial = new THREE.ShadowMaterial( { color: 0x000000, opacity: 0.2 } );
+
+			const plane = new THREE.Mesh( planeGeometry, planeMaterial );
+			plane.position.y = 0;
+			plane.receiveShadow = true;
+			scene.add( plane );
+
+			// var objects = {};
+
+			const textureLoader = new THREE.TextureLoader();
+			const texture = textureLoader.load("{{ url_for('static', filename='mesh_tex.png') }}");
+
+			// Create a material using the texture
+			const material = new THREE.MeshStandardMaterial({ map: texture });
+
+
+			const loader = new OBJLoader();
+			loader.load(
+				"{{ url_for('static', filename='mesh_gen.obj') }}",
+				function ( object ) {
+					object.traverse(function (child) {
+					if (child instanceof THREE.Mesh) {
+							child.material = material; // Apply the material to each mesh part of the object
+						}
+					});
+					object.scale.set(100, 100, 100)
+					// set matial to the object 
+					scene.add( object );
+				},
+				function ( xhr ) {
+					console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+				},
+				function ( error ) {
+					console.log( 'An error happened' );
+				}
+			);
+
+			// const loader = new STLLoader()
+			// loader.load(
+			// 	"{{ url_for('static', filename='ron.stl') }}",
+			// 	function (geometry) {
+			// 		const ronMesh = new THREE.Mesh(geometry, ron_material)
+			// 		scene.add(ronMesh)
+			// 		objects['ron'] = ronMesh
+			// 		objects['ron'].position.x = 0;
+			// 		objects['ron'].position.z = 0;
+			// 		objects['ron'].position.y = 0;
+			// 		objects['ron'].rotation.x = -Math.PI / 2;
+			// 	},
+			// 	(xhr) => {
+			// 		console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+			// 	},
+			// 	(error) => {
+			// 		console.log(error)
+			// 	}
+			// )
 
             var source = new EventSource('/data');
             source.onmessage = function(event) {
@@ -139,12 +367,37 @@
                 }
             }, 100);
 
+			const drawer = new CupertinoPane('.cupertino-pane', { buttonDestroy: false });
+			drawer.present({ animated: true });
+
+			var settings = {
+				horizontalOffset: 10,
+				horizontal: true,
+				initialBreak: 'bottom',
+				clickBottomOpen: false,
+				breaks: {
+				top: { enabled: true, height: window.innerHeight - 10 },
+				bottom: { enabled: true, height: 170 },
+				middle: { enabled: false }
+				},
+				// fitHeight:true,
+				topperOverflow: false,
+				buttonDestroy: false,
+				showDraggable: false,
+				upperThanTop: true
+			};
+
+			const floating_window = new CupertinoPane('.cupertine-window', settings);
+			await new Promise((resolve) => setTimeout(resolve, 200));
+			await floating_window.present({animate: true});
+			
+
 			function init() {
 
 				container = document.getElementById( 'container' );
 
 				scene = new THREE.Scene();
-				scene.background = new THREE.Color( 0xf0f0f0 );
+				scene.background = new THREE.Color( 0x000000 );
 
 				camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
 				camera.position.set( 0, 250, 1000 );
@@ -172,9 +425,9 @@
 				plane.receiveShadow = true;
 				scene.add( plane );
 
-				const helper = new THREE.GridHelper( 2000, 100 );
+				const helper = new THREE.GridHelper( 2000, 200 );
 				helper.position.y = 0;
-				helper.material.opacity = 0.5;
+				helper.material.opacity = 1;
 				helper.material.transparent = true;
 				scene.add( helper );
 
@@ -202,8 +455,13 @@
 				gui.open();
 
 				// Controls
-				const controls = new OrbitControls( camera, renderer.domElement );
+				controls = new OrbitControls( camera, renderer.domElement );
 				controls.damping = 0.2;
+				controls.mouseButtons = {
+					LEFT: null,
+					MIDDLE: THREE.MOUSE.ROTATE,
+					RIGHT: THREE.MOUSE.PAN
+				}				
 				controls.addEventListener( 'change', render );
 
 				transformControl = new TransformControls( camera, renderer.domElement );
@@ -225,6 +483,7 @@
 				document.addEventListener( 'pointerup', onPointerUp );
 				document.addEventListener( 'pointermove', onPointerMove );
 				window.addEventListener( 'resize', onWindowResize );
+				renderer.domElement.addEventListener('click', onPointerClick, false);
 
 				/*******
 				 * Curves
@@ -446,6 +705,77 @@
 				}
 
 			}
+
+			function onPointerClick(event) {
+				// event.preventDefault();
+				if ( event.button !== 0 ) return; // Only respond to left-click
+
+				if ( transformControl.dragging ) return; // Ignore clicks that occur while using the TransformControls
+				console.log(controls)
+				if ( controls.enabled.dragging ) return;
+
+				// Calculate mouse position in normalized device coordinates (-1 to +1) for both components.
+				pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+				pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+				// Update the raycaster with the camera and mouse position.
+				raycaster.setFromCamera(pointer, camera);
+
+				// Calculate objects intersecting the picking ray. Assuming `plane` is your ground plane.
+				const intersects = raycaster.intersectObject(plane);
+
+				// If there's an intersection, add a sphere there.
+				if (intersects.length > 0) {
+					const intersectPoint = intersects[0].point;
+					// if goToSphere is null create a shpere else move the sphere
+					if (goToPoint == null) {
+						goToPoint = addSphere(intersectPoint);
+						scene.add(goToPoint);
+					} else {
+						moveSphere(intersectPoint);
+					}
+				}
+				if (goToPoint != null) {
+					sendDesiredPositon(goToPoint.position);
+				}
+				render()
+			}
+
+			function moveSphere(position){
+				goToPoint.position.copy(position);
+			}
+
+			function addSphere(position) {
+				// Define the sphere geometry and material.
+				const sphereGeometry = new THREE.SphereGeometry(5, 32, 32);
+				const sphereMaterial = new THREE.MeshBasicMaterial({color: 0xff0000});
+
+				// Create a new sphere mesh.
+				const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+
+				// Set the position of the sphere to the intersection point.
+				sphere.position.copy(position);
+				return sphere;
+			}
+
+			function sendDesiredPositon(position) {
+				let xhr = new XMLHttpRequest();
+                let url = "/request_position";
+            
+                xhr.open("POST", url, true);
+            
+                xhr.setRequestHeader("Content-Type", "application/json");
+            
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        console.log(this.responseText);
+                    }
+                };
+
+				var data = JSON.stringify({"pos_x": position.x, "pos_y": position.z});
+
+                xhr.send(data);
+            }
 
 			function onPointerMove( event ) {
 

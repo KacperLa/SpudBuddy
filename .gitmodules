@@ -20,3 +20,6 @@
 [submodule "src/libraries/msgpack11"]
 	path = src/libraries/msgpack11
 	url = git@github.com:ar90n/msgpack11.git
+[submodule "server/static/panes"]
+	path = server/static/panes
+	url = git@github.com:tech-systems/panes.git
