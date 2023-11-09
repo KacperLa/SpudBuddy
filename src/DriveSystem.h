@@ -19,6 +19,7 @@
 struct DriveState {
     float velocity {0};
     float position {0};
+    float vBusVoltage {0};
     int state {0};
     bool error {0};
 };
@@ -38,6 +39,7 @@ public:
     void setTorque(float& t, const int axis_id);
     void getVelocity(float& vel, const int axis_id);
     void getPosition(float& pos, const int axis_id);
+    void requestVbusVoltage();
 
     bool getState(DriveState& data, int axid_id);
     bool getStatus();

@@ -63,8 +63,8 @@
                         <button class="btn btn-dark btn-lg" type="button" data-toggle="modal" data-target="#batteryModal">
 							<div class="d-flex flex-row">
 								<i class="fa fa-solid fa-battery-full" style="padding: 5px 0px;"></i>
-								<div style="padding: 0px 10px;">
-									100 %
+								<div id="ron-battery" style="padding: 0px 10px;">
+									000 V
 								</div>
 							</div>
 						</button>
@@ -326,6 +326,8 @@
 			// )
 
             var source = new EventSource('/data');
+
+			
             source.onmessage = function(event) {
                 var data = JSON.parse(event.data);
 
@@ -334,6 +336,7 @@
                 ron_body.rotation.set(imuRotZ, 0, imuRotX);
 				ron_body.position.x = data["actual"]["positionSlam_x"]*100;
                 ron_body.position.z = data["actual"]["positionSlam_y"]*100;
+				document.getElementById('ron-battery').innerHTML = data["actual"]["voltage_0"].toFixed(2) + " V";
                 renderer.render( scene, camera );
       
             }

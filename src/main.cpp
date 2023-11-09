@@ -298,6 +298,7 @@ int main(int argc, char *argv[])
 
                 if ((std::chrono::high_resolution_clock::now() - last_publish) > loop_time){
                         shared_actual_state.actual = actual_state;
+                        drive_system.requestVbusVoltage();
                         drive_system.getState(shared_actual_state.driveSystem.axis_0, 0);
                         drive_system.getState(shared_actual_state.driveSystem.axis_1, 1);
                         fsm_handle::getControllerSettings(shared_actual_state.controller_settings);

@@ -68,6 +68,10 @@ void DriveSystem::setTorque(float& t, const int axis_id){
     odriveCAN.SetTorque(axis_id, t*(isReversed(axis_id) ? -1 : 1));
 }
 
+void DriveSystem::requestVbusVoltage(){
+    odriveCAN.GetVbusVoltage(0);
+}
+
 void DriveSystem::getVelocity(float& vel, const int axis_id){
     DriveState cur_state;
     getState(cur_state, axis_id);
@@ -85,6 +89,7 @@ bool DriveSystem::getState(DriveState& data, int axis_id) {
     // check if index if out of range
     int axis_index = findIndex(nodeIDs, axis_id, numberOfNodes);
     data = state[axis_index];
+    data.vBusVoltage = vBusVoltage;
     return data.error;
 }
 
@@ -110,7 +115,6 @@ void DriveSystem::updateState(const DriveState& data, int axis_id) {
     int axis_index = findIndex(nodeIDs, axis_id, numberOfNodes);
     state[axis_index] = data;
 }
-
 
 void DriveSystem::runState(int axisState){
     for (int index = 0; index < numberOfNodes; index++)
@@ -198,8 +202,7 @@ void DriveSystem::loop() {
                     break;
                     }
                 case (ODriveCAN::CMD_ID_GET_VBUS_VOLTAGE): {
-                    float vbusVoltage = odriveCAN.GetVbusVoltageResponse(frame);
-                    vBusVoltage = vbusVoltage;
+                    vbusVoltage = odriveCAN.GetVbusVoltageResponse(frame);
                     break;
                     }
                 default: {

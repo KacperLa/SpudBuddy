@@ -428,6 +428,7 @@
           "angular_velocity_roll": null,
           "velocity": null,
           "omega": null,
+          "voltage_0": null,
           "state": null
         },
         "timestamp": null
