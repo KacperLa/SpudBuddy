@@ -11,6 +11,7 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
         <style>
+			overflow: hidden;
 			body {
 				background-color: #f0f0f0;
 				color: #444;
@@ -34,20 +35,11 @@
                 border: 1px solid #FF0000;
             }
 			.pane {
-				max-width: 100% !important;
+				max-width: 95% !important;
 			}
-			@media screen and (max-width: 450px) {
-				#neo-grid {
-					left: -370px;
-					width: 290vw;
-				}
+			.list-group-item {
+				cursor: default;
 			}
-			cupertine-window {
-				display: block;
-				width: 94%;
-				max-width: 250px;
-				margin-bottom: 25px;
-			}			
 		</style>
 	</head>
 	<body>
@@ -109,101 +101,162 @@
         </div>
 
 		<div class="cupertino-pane">
-			<div class="modal-dialog modal-lg" role="document">
-				<div class="modal-content">
-				  <div class="modal-header">
-					<h5 class="modal-title" id="optionModalLabel">PID Tunning</h5>
-					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-					  <span aria-hidden="true">&times;</span>
-					</button>
+			<div class="row">
+				<div class="col-2">
+				  <div class="list-group" id="myList" role="tablist">
+					<a class="list-group-item list-group-item-action active" id="list-status"   data-toggle="list" role="tab" aria-controls="Status">Status</a>
+					<a class="list-group-item list-group-item-action"        id="list-pid"      data-toggle="list" role="tab" aria-controls="PID">PID</a>
+					<a class="list-group-item list-group-item-action"        id="list-logs"     data-toggle="list" role="tab" aria-controls="Logs">Logs</a>
+					<a class="list-group-item list-group-item-action"        id="list-settings" data-toggle="list" role="tab" aria-controls="settings">Settings</a>
 				  </div>
-				  <div class="modal-body">
-					  <form> 
-						  <div class="form-group row">
-							  <div class="form-group mx-1 col-md-2 my-auto">Pitch:</div>
-							  <div class="form-group mx-1 my-auto">P</div>
-							  <div class="form-group mx-1 col-md-2 my-auto">
-								  <input type="text" class="form-control" id="pP" value="0">
-							  </div>
-							  <div class="form-group mx-1 my-auto">D</div>
-							  <div class="form-group mx-1 col-md-2 my-auto">
-								  <input type="text" class="form-control" id="pD" value="0">
-							  </div>
-						  </div>
-						  <div class="form-group row">
-							  <div class="form-group mx-1 col-md-2 my-auto">Velocity:</div>
-							  <div class="form-group mx-1 my-auto">P</div>
-							  <div class="form-group mx-1 col-md-2 my-auto">
-								  <input type="text" class="form-control" id="vP" value="0">
-							  </div>
-							  <div class="form-group mx-1 my-auto">I</div>
-							  <div class="form-group mx-1 col-md-2 my-auto">
-								  <input type="text" class="form-control" id="vI" value="0">
-							  </div>
-							  <div class="form-group mx-1 my-auto">D</div>
-							  <div class="form-group mx-1 col-md-2 my-auto">
-								  <input type="text" class="form-control" id="vD" value="0">
-							  </div>
-						  </div>
-						  <div class="form-group row">
-							  <div class="form-group mx-1 col-md-2 my-auto">Yaw:</div>
-							  <div class="form-group mx-1 my-auto">P</div>
-							  <div class="form-group mx-1 col-md-2 my-auto">
-								  <input type="text" class="form-control" id="yP" value="0">
-							  </div>
-							  <div class="form-group mx-1 my-auto">D</div>
-							  <div class="form-group mx-1 col-md-2 my-auto">
-								  <input type="text" class="form-control" id="yD" value="0">
-							  </div>
-						  </div>
-  
-						  <div class="form-group row">
-							  <div class="form-group mx-1 col-md-4 my-auto">Balance Point:</div>
-							  <div class="form-group mx-1 my-auto">Pitch</div>
-							  <div class="form-group mx-1 col-md-2 my-auto">
-								  <input type="text" class="form-control" id="pitchZero" value="0">
-							  </div>
-						  </div>
-  
-						  <div class="form-group row">
-							  <div class="form-group mx-auto my-auto">     
-								  <button class="btn btn-success" type="button" onclick="sendCoreReq('core', 'request_pid_coeffs')">
-									  GET
-								  </button> 
-								  <button class="btn btn-success" type="button" onclick="sendCorePIDSet()">
-									  SET
-								  </button>
-							  </div>
-						  </div>
+				</div>
+				<div class="col-10">
+				  <div class="tab-content" id="nav-tabContent">
+					<div class="tab-pane fade show active" id="list-status-info" role="tabpanel" aria-labelledby="list-status">status stuff</div>
+					<div class="tab-pane fade" id="list-pid-info" role="tabpanel" aria-labelledby="list-pid">
+						<form> 
+							<div class="form-group row">
+								<div class="form-group mx-1 col-md-2 my-auto">Pitch:</div>
+								<div class="form-group mx-1 my-auto">P</div>
+								<div class="form-group mx-1 col-md-2 my-auto">
+									<input type="text" class="form-control" id="pP" value="0">
+								</div>
+								<div class="form-group mx-1 my-auto">D</div>
+								<div class="form-group mx-1 col-md-2 my-auto">
+									<input type="text" class="form-control" id="pD" value="0">
+								</div>
+							</div>
+							<div class="form-group row">
+								<div class="form-group mx-1 col-md-2 my-auto">Velocity:</div>
+								<div class="form-group mx-1 my-auto">P</div>
+								<div class="form-group mx-1 col-md-2 my-auto">
+									<input type="text" class="form-control" id="vP" value="0">
+								</div>
+								<div class="form-group mx-1 my-auto">I</div>
+								<div class="form-group mx-1 col-md-2 my-auto">
+									<input type="text" class="form-control" id="vI" value="0">
+								</div>
+								<div class="form-group mx-1 my-auto">D</div>
+								<div class="form-group mx-1 col-md-2 my-auto">
+									<input type="text" class="form-control" id="vD" value="0">
+								</div>
+							</div>
+							<div class="form-group row">
+								<div class="form-group mx-1 col-md-2 my-auto">Yaw:</div>
+								<div class="form-group mx-1 my-auto">P</div>
+								<div class="form-group mx-1 col-md-2 my-auto">
+									<input type="text" class="form-control" id="yP" value="0">
+								</div>
+								<div class="form-group mx-1 my-auto">D</div>
+								<div class="form-group mx-1 col-md-2 my-auto">
+									<input type="text" class="form-control" id="yD" value="0">
+								</div>
+							</div>
+		
+							<div class="form-group row">
+								<div class="form-group mx-1 col-md-4 my-auto">Balance Point:</div>
+								<div class="form-group mx-1 my-auto">Pitch</div>
+								<div class="form-group mx-1 col-md-2 my-auto">
+									<input type="text" class="form-control" id="pitchZero" value="0">
+								</div>
+							</div>
+		
+							<div class="form-group row">
+								<div class="form-group mx-1 col-md-2 my-auto">Position:</div>
+								<div class="form-group mx-1 my-auto">P</div>
+								<div class="form-group mx-1 col-md-2 my-auto">
+									<input type="text" class="form-control" id="dP" value="0">
+								</div>
+								<div class="form-group mx-1 my-auto">I</div>
+								<div class="form-group mx-1 col-md-2 my-auto">
+									<input type="text" class="form-control" id="dI" value="0">
+								</div>
+								<div class="form-group mx-1 my-auto">D</div>
+								<div class="form-group mx-1 col-md-2 my-auto">
+									<input type="text" class="form-control" id="dD" value="0">
+								</div>
+							</div>
+							<div class="form-group row">
+								<div class="form-group mx-1 col-md-2 my-auto">Orientation:</div>
+								<div class="form-group mx-1 my-auto">P</div>
+								<div class="form-group mx-1 col-md-2 my-auto">
+									<input type="text" class="form-control" id="oP" value="0">
+								</div>
+								<div class="form-group mx-1 my-auto">I</div>
+								<div class="form-group mx-1 col-md-2 my-auto">
+									<input type="text" class="form-control" id="oI" value="0">
+								</div>
+								<div class="form-group mx-1 my-auto">D</div>
+								<div class="form-group mx-1 col-md-2 my-auto">
+									<input type="text" class="form-control" id="oD" value="0">
+								</div>
+							</div>
+
+							<div class="form-group row">
+								<div class="form-group mx-1 col-md-4 my-auto">Position Dead Zone:</div>
+								<div class="form-group mx-1 my-auto">m</div>
+								<div class="form-group mx-1 col-md-2 my-auto">
+									<input type="text" class="form-control" id="deadZone" value="0">
+								</div>
+							</div>
+
+							<div class="form-group row">
+								<div class="form-group mx-auto my-auto">     
+									<button class="btn btn-success" type="button" onclick="sendCoreReq('core', 'request_pid_coeffs')">
+										GET
+									</button> 
+									<button class="btn btn-success" type="button" onclick="sendCorePIDSet()">
+										SET
+									</button>
+								</div>
+							</div>
 						</form>
-				  </div>
-				  <div class="modal-footer">
-					  <div> 
-						  <button class="btn btn-danger" type="button" onclick="sendAction('core', 'request_transition', 3)">
-							  ESTOP
-						  </button>
-					  </div>
-					  <div>
-  
-					  </div>
-					  
-					  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-					  <button type="button" class="btn btn-primary">Save changes</button>
-				  </div>
-				</div>
-			  </div>  
-		</div>
-
-		<div class="cupertine-container">
-			<div class="floating-window">
-				<div class="controls">
-					<div>
-					HELLO
 					</div>
+					<div class="tab-pane fade" id="list-logs-info" role="tabpanel" aria-labelledby="list-log">log stuff</div>
+					<div class="tab-pane fade" id="list-settings-info" role="tabpanel" aria-labelledby="list-settings">setting stuff</div>
+				  </div>
 				</div>
-			</div>
+			  </div>
 		</div>
 
+		<script>
+			function sendCorePIDSet() {
+				console.log("hello");
+              	let xhr = new XMLHttpRequest();
+              	let url = "/request_settings";
+          
+              	xhr.open("POST", url, true);
+          
+              	xhr.setRequestHeader("Content-Type", "application/json");
+          
+				xhr.onreadystatechange = function () {
+					console.log(this.responseText)
+				};
+
+				var data = JSON.stringify({"settings": {
+												"pP": document.getElementById('pP').value,
+												"pitchZero": document.getElementById('pitchZero').value,
+												"pI": "0",
+												"pD": document.getElementById('pD').value,
+												"vP": document.getElementById('vP').value,
+												"vI": document.getElementById('vI').value,
+												"vD": document.getElementById('vD').value,
+												"yP": document.getElementById('yP').value,
+												"yI": "0",
+												"yD": document.getElementById('yD').value,
+												"oP": document.getElementById('oP').value,
+												"oI": document.getElementById('oI').value,
+												"oD": document.getElementById('oD').value,	
+												"dP": document.getElementById('dP').value,
+												"dI": document.getElementById('dI').value,
+												"dD": document.getElementById('dD').value,
+												"deadZone": document.getElementById('deadZone').value
+												}
+											});
+            	xhr.send(data);
+           	}
+		</script>
+		
 		<script type="importmap">
 			{
 				"imports": {
@@ -326,8 +379,6 @@
 			// )
 
             var source = new EventSource('/data');
-
-			
             source.onmessage = function(event) {
                 var data = JSON.parse(event.data);
 
@@ -337,7 +388,24 @@
 				ron_body.position.x = data["actual"]["positionSlam_x"]*100;
                 ron_body.position.z = data["actual"]["positionSlam_y"]*100;
 				document.getElementById('ron-battery').innerHTML = data["actual"]["voltage_0"].toFixed(2) + " V";
-                renderer.render( scene, camera );
+				
+				let statusText = "Status: UNKNOWN";
+                switch(data["actual"]['state']) {
+                    case 1:
+                        statusText = "Status:  IDLE  ";
+                        break;
+                    case 2:
+                        statusText = "Status: RUNNING";
+                        break;
+                    case 3:
+                        statusText = "Status:  ERROR ";
+                        break;
+                    default:
+                        statusText = "Status: UNKNOWN";
+                }
+                document.getElementById("status").innerHTML = statusText;
+                
+				renderer.render( scene, camera );
       
             }
 
@@ -370,32 +438,49 @@
                 }
             }, 100);
 
-			const drawer = new CupertinoPane('.cupertino-pane', { buttonDestroy: false });
-			drawer.present({ animated: true });
-
 			var settings = {
-				horizontalOffset: 10,
-				horizontal: true,
 				initialBreak: 'bottom',
 				clickBottomOpen: false,
 				breaks: {
-				top: { enabled: true, height: window.innerHeight - 10 },
-				bottom: { enabled: true, height: 170 },
-				middle: { enabled: false }
+					top: { enabled: true, height: window.innerHeight - 10 },
+					bottom: { enabled: true, height: 100 },
+					middle: { enabled: true, height: 500, bounce: true }
 				},
 				// fitHeight:true,
-				topperOverflow: false,
-				buttonDestroy: false,
+				draggableOver: false,
 				showDraggable: false,
-				upperThanTop: true
+				topperOverflow: false,
+ 				upperThanTop: true,
+				buttonDestroy: false
 			};
 
-			const floating_window = new CupertinoPane('.cupertine-window', settings);
-			await new Promise((resolve) => setTimeout(resolve, 200));
-			await floating_window.present({animate: true});
-			
+			const drawer = new CupertinoPane('.cupertino-pane', settings);
+			drawer.present({ animated: true });
 
-			function init() {
+
+
+			const tabs = document.querySelectorAll('#myList a');
+
+			tabs.forEach(tab => {
+				tab.addEventListener('click', event => {
+					event.preventDefault();
+					tabs.forEach(tab => {
+						if (tab.classList.contains('active')){
+							tab.classList.remove('active');
+							const oldID = tab.getAttribute('id');
+							let oldElement = document.getElementById(oldID+"-info");
+							oldElement.classList.remove('show', 'active');
+						}
+					})
+					event.target.classList.add('active');
+					const tabId = event.target.getAttribute('id');
+
+					document.getElementById(tabId+"-info").classList.add('show', 'active');
+				});
+			});
+
+
+          	function init() {
 
 				container = document.getElementById( 'container' );
 
@@ -534,10 +619,12 @@
 
 				curve = new THREE.CatmullRomCurve3( positions );
 				curve.curveType = 'chordal';
+
 				curve.mesh = new THREE.Line( geometry.clone(), new THREE.LineBasicMaterial( {
 					color: 0x0000ff,
 					opacity: 0.35
 				} ) );
+				
 				curve.mesh.castShadow = true;
 				splines.chordal = curve;
 
@@ -563,15 +650,11 @@
 				const object = new THREE.Mesh( geometry, material );
 
 				if ( position ) {
-
 					object.position.copy( position );
-
 				} else {
-
 					object.position.x = Math.random() * 1000 - 500;
 					object.position.y = Math.random() * 600;
 					object.position.z = Math.random() * 800 - 400;
-
 				}
 
 				object.castShadow = true;

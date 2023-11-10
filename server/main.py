@@ -101,13 +101,13 @@ settings_format_mapping = {
     'yI': 'f',
     'yD': 'f',
     'pitchZero': 'f',
-    'yaw_p': 'f',
-    'yaw_i': 'f',
-    'yaw_d': 'f',
-    'positon_p': 'f',
-    'positon_i': 'f',
-    'positon_d': 'f',
-    'dead_zone': 'f'
+    'oP': 'f',
+    'oI': 'f',
+    'oD': 'f',
+    'dP': 'f',
+    'dI': 'f',
+    'dD': 'f',
+    'deadZone': 'f'
 }
 
 settings_struct = {
@@ -121,13 +121,13 @@ settings_struct = {
     'yI': None,
     'yD': None,
     'pitchZero': None,
-    'yaw_p': None,
-    'yaw_i': None,
-    'yaw_d': None,
-    'positon_p': None,
-    'positon_i': None,
-    'positon_d': None,
-    'dead_zone': None
+    'oP': None,
+    'oI': None,
+    'oD': None,
+    'dP': None,
+    'dI': None,
+    'dD': None,
+    'deadZone': None
 }
 
 settings = ThreadSafeStruct(settings_struct)
