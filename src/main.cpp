@@ -288,13 +288,29 @@ int main(int argc, char *argv[])
 
                 // calc position guess
                 float x, y;
-                drive_system.calcDeadRec(x, y, imu_state.angles.yaw);
+                drive_system.calcDeadRec(imu_state.angles.yaw);
+                drive_system.getDRAbsolute(x, y);
                 actual_state.positionDeadReckoning.x = x;
                 actual_state.positionDeadReckoning.y = y;   
 
                 imu.getState(slam_state);
                 actual_state.positionSlam.x = slam_state.x;
                 actual_state.positionSlam.y = slam_state.y;
+                
+                actual_state.position.x = slam_state.x;
+                actual_state.position.y = slam_state.y;
+
+                // determine which position to use
+                if (slam_state.tracking_state){
+                    actual_state.positionStatus = (int)PositionState::SLAM;
+                    drive_system.requestDRReset();
+                } else {
+                    actual_state.positionStatus = (int)PositionState::DEAD_RECKONING;
+                    float rel_x, rel_y;
+                    drive_system.getDRReletive(rel_x, rel_y);
+                    actual_state.position.x += rel_x;
+                    actual_state.position.y += rel_y;
+                } 
 
                 if ((std::chrono::high_resolution_clock::now() - last_publish) > loop_time){
                         shared_actual_state.actual = actual_state;

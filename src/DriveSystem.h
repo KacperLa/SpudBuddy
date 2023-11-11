@@ -39,11 +39,16 @@ public:
     void setTorque(float& t, const int axis_id);
     void getVelocity(float& vel, const int axis_id);
     void getPosition(float& pos, const int axis_id);
+
+    void getDRAbsolute(float& x, float& y);
+    void getDRReletive(float& x, float& y);
+
     void requestVbusVoltage();
+    void requestDRReset();
 
     bool getState(DriveState& data, int axid_id);
     bool getStatus();
-    void calcDeadRec(float & x, float & y, double imu_angle);
+    void calcDeadRec(double imu_angle);
 
     bool enable(); // ODriveCAN::AxisState_t::AXIS_STATE_CLOSED_LOOP_CONTROL
     bool disable(); // ODriveCAN::AxisState_t::AXIS_STATE_IDLE
@@ -68,6 +73,8 @@ protected:
     int numberOfNodes {2};
 
     double deadRecPos[3] {0.0f, 0.0f, 0.0f};
+    double deadRecPosSinceStart[3] {0.0f, 0.0f, 0.0f};
+
     float lastWheelPos[2] {0.0f, 0.0f};
 
     float vBusVoltage;

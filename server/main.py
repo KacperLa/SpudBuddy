@@ -107,7 +107,7 @@ settings_format_mapping = {
     'dP': 'f',
     'dI': 'f',
     'dD': 'f',
-    'deadZone': 'f'
+    'deadone': 'f'
 }
 
 settings_struct = {
@@ -164,6 +164,7 @@ actual_state_format_mapping = {
     'positionDeadReckoning_y': 'f',
     'positionSlam_x': 'f',
     'positionSlam_y': 'f',
+    'positionStatus': 'i',
     'orientation_roll': 'd',
     'orientation_pitch': 'd',
     'orientation_yaw': 'd',
@@ -203,6 +204,7 @@ actual_state_struct = {
     'positionDeadReckoning_y': 0.0,
     'positionSlam_x': 0.0,
     'positionSlam_y': 0.0,
+    'positionStatus': 0,
     'orientation_roll': 0.0,
     'orientation_pitch': 0.0,
     'orientation_yaw': 0.0,

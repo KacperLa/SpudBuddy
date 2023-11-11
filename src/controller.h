@@ -18,6 +18,7 @@ struct robot_state_t
     position_t position;
     position_t positionDeadReckoning;
     position_t positionSlam;
+    int positionStatus {0};
     angles_t angles {0.0, 0.0, 0.0};
     rates_t rates {0.0, 0.0, 0.0};
     float velocity {0.0f};

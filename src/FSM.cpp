@@ -81,7 +81,7 @@ class Idle;
 class Error;
 class Running;
 
-robot_state_t Robot::desired_state = {{0.0f, 0.0f},{0.0f, 0.0f},{0.0f, 0.0f}, {0.0, 7.0, 90.0}, {0.0, 0.0, 0.0}, 0.0, 0.0, 0.0};
+robot_state_t Robot::desired_state = {{0.0f, 0.0f},{0.0f, 0.0f},{0.0f, 0.0f}, 0,{0.0, 7.0, 90.0}, {0.0, 0.0, 0.0}, 0.0, 0.0, 0.0};
 robot_state_t Robot::actual_state;
 Controller Robot::controller;
 

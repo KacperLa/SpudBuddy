@@ -11,7 +11,7 @@ DriveSystem::DriveSystem(const int id[], const bool dir[], const int size, const
 
 DriveSystem::~DriveSystem() {}
 
-void DriveSystem::calcDeadRec(float & x, float & y, double imu_angle)
+void DriveSystem::calcDeadRec(double imu_angle)
 {
     static double inter_tire_distance = 0.240; // 240 mm
     static double tire_radius = 0.189/2.0; //80mm
@@ -32,21 +32,40 @@ void DriveSystem::calcDeadRec(float & x, float & y, double imu_angle)
         double local_x = (radius - (cos(angle) * radius));
         double local_y = radius * sin(angle);
 
-        deadRecPos[0] += (sin(deadRecPos[2]) * local_y) + (cos(deadRecPos[2]) * local_x);
-        deadRecPos[1] += (cos(deadRecPos[2]) * local_y) + (sin(deadRecPos[2]) * local_x);
-         
-        deadRecPos[2] = (imu_angle/180)*PI;
+        double global_x = (sin(deadRecPos[2]) * local_y) + (cos(deadRecPos[2]) * local_x);
+        double global_y = (cos(deadRecPos[2]) * local_y) + (sin(deadRecPos[2]) * local_x);
+
+        deadRecPos[0] += global_x;
+        deadRecPos[1] += global_y;
+        
+        deadRecPosSinceStart[0] += global_x;
+        deadRecPosSinceStart[1] += global_y;
+
+        // update heading angle
+        deadRecPos[2]           = (imu_angle/180)*PI;
+        deadRecPosSinceStart[2] = deadRecPos[2];
 
     } else {
-        deadRecPos[0] += (sin(deadRecPos[2]) * (arcR+arcL)/2.0);
-        deadRecPos[1] += (cos(deadRecPos[2]) * (arcR+arcL)/2.0);        
+        double global_x = (sin(deadRecPos[2]) * (arcR+arcL)/2.0);
+        double global_y = (cos(deadRecPos[2]) * (arcR+arcL)/2.0);
+        
+        deadRecPos[0] += global_x;
+        deadRecPos[1] += global_y;
+        deadRecPosSinceStart[0] += global_x;    
+        deadRecPosSinceStart[1] += global_y;
     }
 
+    std::memcpy(lastWheelPos, currentWheelPos, sizeof(currentWheelPos));
+}
 
+void DriveSystem::getDRReletive(float& x, float& y){
     x = deadRecPos[0];
     y = deadRecPos[1];
+}
 
-    std::memcpy(lastWheelPos, currentWheelPos, sizeof(currentWheelPos));
+void DriveSystem::getDRAbsolute(float& x, float& y){
+    x = deadRecPosSinceStart[0];
+    y = deadRecPosSinceStart[1];
 }
 
 bool DriveSystem::open() {
@@ -70,6 +89,11 @@ void DriveSystem::setTorque(float& t, const int axis_id){
 
 void DriveSystem::requestVbusVoltage(){
     odriveCAN.GetVbusVoltage(0);
+}
+
+void DriveSystem::requestDRReset(){
+    deadRecPos[0] = 0.0;
+    deadRecPos[1] = 0.0;
 }
 
 void DriveSystem::getVelocity(float& vel, const int axis_id){
@@ -202,7 +226,7 @@ void DriveSystem::loop() {
                     break;
                     }
                 case (ODriveCAN::CMD_ID_GET_VBUS_VOLTAGE): {
-                    vbusVoltage = odriveCAN.GetVbusVoltageResponse(frame);
+                    vBusVoltage = odriveCAN.GetVbusVoltageResponse(frame);
                     break;
                     }
                 default: {

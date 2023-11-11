@@ -14,6 +14,14 @@ bool time_to_quit = false;
 
 using fsm_handle = Robot;
 
+// Enum of positional tracking states
+enum class PositionState {
+    NONE,
+    DEAD_RECKONING,
+    SLAM,
+    GPS
+};
+
 // DriveSystem specific
 struct driveSystemState {
     DriveState axis_0;
