@@ -420,6 +420,7 @@
           "positionDeadReckoning_y": null,
           "positionSlam_x": null,
           "positionSlam_y": null,
+          "positionStatus": null,
           "orientation_yaw": null,
           "orientation_pitch": null,
           "orientation_roll": null,

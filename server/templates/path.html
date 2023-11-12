@@ -66,8 +66,8 @@
 							
 							<div class="d-flex flex-row">
 								<i class="fa fa-solid fa-location-crosshairs" style="padding: 5px 0px;"></i>
-								<div style="padding: 0px 10px;">
-									SLAM
+								<div id="localization" style="padding: 0px 10px;">
+									UNKNOWN
 								</div>
 							</div>
 						</button>
@@ -405,6 +405,25 @@
                 }
                 document.getElementById("status").innerHTML = statusText;
                 
+
+				localization
+				let localizationText     = "Status: UNKNOWN       ";
+                switch(data["actual"]['positionStatus']) {
+                    case 1:
+						localizationText = "Status: DEAD RECKONING";
+                        break;
+                    case 2:
+						localizationText = "Status: SLAM          ";
+                        break;
+                    case 3:
+						localizationText = "Status: GPS           ";
+                        break;
+                    default:
+						localizationText = "Status: UNKNOWN       ";
+                }
+                document.getElementById("localization").innerHTML = localizationText;
+                
+
 				renderer.render( scene, camera );
       
             }
