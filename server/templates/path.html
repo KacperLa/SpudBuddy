@@ -202,7 +202,7 @@
 
 							<div class="form-group row">
 								<div class="form-group mx-auto my-auto">     
-									<button class="btn btn-success" type="button" onclick="sendCoreReq('core', 'request_pid_coeffs')">
+									<button class="btn btn-success" type="button" onclick="sendCoreReq()">
 										GET
 									</button> 
 									<button class="btn btn-success" type="button" onclick="sendCorePIDSet()">
@@ -255,6 +255,55 @@
 											});
             	xhr.send(data);
            	}
+
+			function sendCoreReq(){
+            	let xhr = new XMLHttpRequest();
+                let url = "/request_settings";
+           
+                xhr.open("GET", url, true);
+           
+                xhr.setRequestHeader("Content-Type", "application/json");
+           
+                xhr.onreadystatechange = function () {
+                    console.log(this.responseText)
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        var data = JSON.parse(this.responseText);
+                        console.log(data)
+                        document.getElementById('pP').value = data['settings']['pP'];
+                        document.getElementById('pD').value = data['settings']['pD'];
+                        document.getElementById('vP').value = data['settings']['vP'];
+						document.getElementById('vI').value = data['settings']['vI'];
+						document.getElementById('vD').value = data['settings']['vD'];
+						document.getElementById('yP').value = data['settings']['yP'];
+						document.getElementById('yD').value = data['settings']['yD'];
+						document.getElementById('pitchZero').value = data['settings']['pitchZero'];
+						document.getElementById('dP').value = data['settings']['dP'];
+						document.getElementById('dI').value = data['settings']['dI'];
+						document.getElementById('dD').value = data['settings']['dD'];
+						document.getElementById('oP').value = data['settings']['oP'];
+						document.getElementById('oI').value = data['settings']['oI'];
+						document.getElementById('oD').value = data['settings']['oD'];
+						document.getElementById('deadZone').value = data['settings']['deadZone'];
+                    }
+                };
+                xhr.send();
+            }
+			
+			function requestState(state){
+                let xhr = new XMLHttpRequest();
+                let url = "/request_state?state=" + state;
+            
+                xhr.open("GET", url, true);
+            
+                xhr.setRequestHeader("Content-Type", "application/json");
+            
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        console.log(this.responseText);
+                    }
+                };
+                xhr.send();
+            }
 		</script>
 		
 		<script type="importmap">
@@ -276,6 +325,7 @@
 			import { TransformControls } from "{{ url_for('static', filename='three.js/examples/jsm/controls/TransformControls.js') }}";
 			import { STLLoader } from "{{ url_for('static', filename='three.js/examples/jsm/loaders/STLLoader.js') }}";
 			import { OBJLoader } from "{{ url_for('static', filename='three.js/examples/jsm/loaders/OBJLoader.js') }}";
+			import { SVGLoader } from "{{ url_for('static', filename='three.js/examples/jsm/loaders/SVGLoader.js') }}";
 			import { CupertinoPane } from "{{ url_for('static', filename='panes/dist/cupertino-pane.esm.min.js') }}";
 
 			let container;
@@ -298,6 +348,7 @@
             ron_body.position.x = 0;
             ron_body.position.y = 30;
             ron_body.position.z = 0;
+
 
                 
             let transformControl;
@@ -336,6 +387,48 @@
 			// Create a material using the texture
 			const material = new THREE.MeshStandardMaterial({ map: texture });
 
+			let ronPointer = new THREE.Group();
+			ronPointer.add( ron_body );
+
+			const RON_Pointer_loader = new SVGLoader();
+
+			RON_Pointer_loader.load(
+				"{{ url_for('static', filename='ronTop.svg') }}",
+				function ( data ) {
+					const paths = data.paths;
+
+					for ( let i = 0; i < paths.length; i ++ ) {
+						const path = paths[ i ];
+
+						const material = new THREE.MeshBasicMaterial( {
+							color: path.color,
+							side: THREE.DoubleSide,
+							depthWrite: false
+						} );
+
+						const shapes = SVGLoader.createShapes( path );
+
+						for ( let j = 0; j < shapes.length; j ++ ) {
+							const shape = shapes[ j ];
+							const geometry = new THREE.ShapeGeometry( shape );
+							const mesh = new THREE.Mesh( geometry, material );
+							mesh.scale.set( 0.5, 0.5, 0.5 );
+							mesh.rotation.set( - Math.PI / 2, 0,  Math.PI / 2);
+							mesh.position.set( 25, 0, 25);
+							ronPointer.add( mesh );
+						}
+					}
+					scene.add( ronPointer );
+				},
+				// called when loading is in progresses
+				function ( xhr ) {
+					console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+				},
+				// called when loading has errors
+				function ( error ) {
+					console.log( 'An error happened' );
+				}
+			);
 
 			const loader = new OBJLoader();
 			loader.load(
@@ -383,10 +476,11 @@
                 var data = JSON.parse(event.data);
 
                 var imuRotZ = (data["actual"]["orientation_yaw"]/180 )* Math.PI
-                var imuRotX = (data["actual"]["orientation_pitch"]/180) * Math.PI
-                ron_body.rotation.set(imuRotZ, 0, imuRotX);
-				ron_body.position.x = data["actual"]["positionSlam_x"]*100;
-                ron_body.position.z = data["actual"]["positionSlam_y"]*100;
+            	var imuRotX = (data["actual"]["orientation_pitch"]/180) * Math.PI
+                ron_body.rotation.set( 0, 0, -imuRotX);	
+				ronPointer.rotation.set( 0, imuRotZ, 0);
+				ronPointer.position.z = data["actual"]["positionSlam_y"]*100;
+                ronPointer.position.x = data["actual"]["positionSlam_x"]*100;
 				document.getElementById('ron-battery').innerHTML = data["actual"]["voltage_0"].toFixed(2) + " V";
 				
 				let statusText = "Status: UNKNOWN";
@@ -472,11 +566,8 @@
  				upperThanTop: true,
 				buttonDestroy: false
 			};
-
 			const drawer = new CupertinoPane('.cupertino-pane', settings);
 			drawer.present({ animated: true });
-
-
 
 			const tabs = document.querySelectorAll('#myList a');
 
@@ -497,7 +588,6 @@
 					document.getElementById(tabId+"-info").classList.add('show', 'active');
 				});
 			});
-
 
           	function init() {
 
@@ -612,7 +702,9 @@
 
 				ron_body.castShadow = true;
 				ron_body.receiveShadow = true;
-                scene.add( ron_body );
+				// ronPointer.add( ron_body );
+
+                // scene.add( ron_body );
 
 
 				const geometry = new THREE.BufferGeometry();
@@ -877,7 +969,7 @@
                     }
                 };
 
-				var data = JSON.stringify({"pos_x": position.x, "pos_y": position.z});
+				var data = JSON.stringify({"pos_x": position.x/100.0, "pos_y": position.z/100.0});
 
                 xhr.send(data);
             }

@@ -79,6 +79,10 @@ void ZEDReader::loop() {
     Pose camera_path;
     POSITIONAL_TRACKING_STATE tracking_state;
 
+    // set error to true untill camera is open
+    data.error = true;
+    updateState(data);
+
     // Open the ZED device
     if (open() != 1) {
         std::cerr << "Error opening ZED." << std::endl;
@@ -96,8 +100,8 @@ void ZEDReader::loop() {
             {   
                 auto zedAngles = sensors_data.imu.pose.getEulerAngles(false);
                 auto zedRates = sensors_data.imu.angular_velocity;
-                angles_t angles = {zedAngles[3], -1*zedAngles[0], -1* zedAngles[1]};
-                rates_t rates = {zedRates[3], -1*zedRates[0], -1*zedRates[1]};
+                angles_t angles = {zedAngles[3], -1*zedAngles[0], zedAngles[1]};
+                rates_t rates = {zedRates[3], -1*zedRates[0], zedRates[1]};
                 data = {angles,
                         rates,
                         std::chrono::high_resolution_clock::now(), 1, 0};
@@ -106,8 +110,8 @@ void ZEDReader::loop() {
 
             if (tracking_state == POSITIONAL_TRACKING_STATE::OK)
             {
-                slam_data = {camera_path.getTranslation().tx*-1, 
-                            camera_path.getTranslation().tz, 
+                slam_data = {camera_path.getTranslation().tz*-1.0f, 
+                            camera_path.getTranslation().tx, 
                             camera_path.getTranslation().ty, 
                             true};
             } else {
@@ -120,9 +124,10 @@ void ZEDReader::loop() {
         {
             // watch dog set error is no new readingin a while
             // std::cerr << "Error getting ZED data." << std::endl;
-            // data.error = true;
+            data.error = true;
+            std::cout << "Error getting ZED data." << std::endl;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     zed.disablePositionalTracking();
     zed.close();

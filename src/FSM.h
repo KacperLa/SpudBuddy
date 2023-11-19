@@ -6,6 +6,7 @@
 #include "IMUReader.h"
 #include "controller.h"
 #include "DriveSystem.h"
+#include "ZEDReader.h"
 
 #include<Logging.h>
 
@@ -47,7 +48,12 @@ public:
     static robot_state_t get_desired_state() { return desired_state; }
     static void set_logger(Log* new_logger) { logger = new_logger;};
     static void setDriveSystem(DriveSystem* new_drive_system) { drive_system = new_drive_system;};
+    static void setIMUReader(ZEDReader* new_zed_reader) { zed_reader = new_zed_reader;};
     static void setGoToPosition(position_t new_position) { desired_state.positionSlam = new_position; };     
+    static void setDRPosition(position_t new_position) { actual_state.positionDeadReckoning = new_position; };
+    static void setSlamPosition(position_t new_position) { actual_state.positionSlam = new_position; };
+    static void setPosition(position_t new_position) { actual_state.position = new_position; };
+    static void setDesiredPosition(position_t new_position) { desired_state.position = new_position; }; 
     //void process_odrive_heartbeat(uint32_t id, HeartbeatMsg_t heartbeat);
 
     virtual void entry(void);  /* entry actions in some states */
@@ -80,6 +86,7 @@ public:
     
     static Log* logger;
     static DriveSystem* drive_system;
+    static ZEDReader* zed_reader;
 
     static const int leftNode       {0};
     static const int rightNode      {1};

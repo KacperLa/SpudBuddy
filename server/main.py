@@ -107,7 +107,7 @@ settings_format_mapping = {
     'dP': 'f',
     'dI': 'f',
     'dD': 'f',
-    'deadone': 'f'
+    'deadZone': 'f'
 }
 
 settings_struct = {
@@ -194,7 +194,14 @@ actual_state_format_mapping = {
     'yP': 'f',
     'yI': 'f',
     'yD': 'f',
-    'pitchZero': 'f'
+    'pitchZero': 'f',
+    'oP': 'f',
+    'oI': 'f',
+    'oD': 'f',
+    'dP': 'f',
+    'dI': 'f',
+    'dD': 'f',
+    'deadZone': 'f'
 }
 
 actual_state_struct = {
@@ -224,7 +231,14 @@ actual_state_struct = {
     'yP': 0.0,
     'yI': 0.0,
     'yD': 0.0,
-    'pitchZero': 0.0
+    'pitchZero': 0.0,
+    'oP': 0.0,
+    'oI': 0.0,
+    'oD': 0.0,
+    'dP': 0.0,
+    'dI': 0.0,
+    'dD': 0.0,
+    'deadZone': 0.0
 }
 
 actual_state = ThreadSafeStruct(actual_state_struct)
@@ -237,6 +251,9 @@ def home():
 def generate_data():
     data_json = config['robotState']
     while True:
+        #check if ron_core is running
+        if not check_if_running("ron_core"):
+            desired_state.set('state', 0)
         desired_state_mmap.write(desired_state.get_all())
         
         actual_data = actual_state_mmap.read(actual_state_struct)

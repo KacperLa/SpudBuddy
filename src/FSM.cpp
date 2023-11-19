@@ -104,6 +104,8 @@ class Running : public Robot
   void react(Update const &) override {
     float leftWheel_cmd;
     float rightWheel_cmd;
+    
+
     drive_system->getVelocity(actual_state.leftVelocity, leftNode);
     drive_system->getVelocity(actual_state.rightVelocity, rightNode);
     actual_state.velocity = (actual_state.leftVelocity+actual_state.rightVelocity) / 2.0f;

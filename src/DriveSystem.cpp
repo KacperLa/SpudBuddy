@@ -29,16 +29,16 @@ void DriveSystem::calcDeadRec(double imu_angle)
     if (angle != 0.0f){
         radius = (arcL/angle) + (inter_tire_distance/2.0);
         
-        double local_x = (radius - (cos(angle) * radius));
-        double local_y = radius * sin(angle);
+        double local_y = (radius - (cos(angle) * radius));
+        double local_x = radius * sin(angle);
 
-        double global_x = (sin(deadRecPos[2]) * local_y) + (cos(deadRecPos[2]) * local_x);
-        double global_y = (cos(deadRecPos[2]) * local_y) + (sin(deadRecPos[2]) * local_x);
+        double global_x = ((sin(deadRecPos[2]) * local_y) + (cos(deadRecPos[2]) * local_x));
+        double global_y = ((cos(deadRecPos[2]) * local_y) + (sin(deadRecPos[2]) * local_x));
 
-        deadRecPos[0] += global_x;
+        deadRecPos[0] -= global_x;
         deadRecPos[1] += global_y;
         
-        deadRecPosSinceStart[0] += global_x;
+        deadRecPosSinceStart[0] -= global_x;
         deadRecPosSinceStart[1] += global_y;
 
         // update heading angle
@@ -49,9 +49,9 @@ void DriveSystem::calcDeadRec(double imu_angle)
         double global_x = (sin(deadRecPos[2]) * (arcR+arcL)/2.0);
         double global_y = (cos(deadRecPos[2]) * (arcR+arcL)/2.0);
         
-        deadRecPos[0] += global_x;
+        deadRecPos[0] -= global_x;
         deadRecPos[1] += global_y;
-        deadRecPosSinceStart[0] += global_x;    
+        deadRecPosSinceStart[0] -= global_x;    
         deadRecPosSinceStart[1] += global_y;
     }
 

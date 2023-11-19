@@ -1,6 +1,6 @@
 #include "controller.h"
 #include <iostream>
-
+#include <iomanip>
 
 Controller::Controller() {
     pitch_pid.setOutputLimits(-1.0, 1.0);
@@ -34,23 +34,48 @@ void calcTheta(float cmd, float actual, float & error)
 
 bool Controller::calculateOutput(robot_state_t actual_state, robot_state_t desired_state, float& outputLeft, float& outputRight)
 {
-    // Calculate positon error
-    float position_error = sqrt(pow(desired_state.position.x - actual_state.position.x, 2) + pow(desired_state.position.y - actual_state.position.y, 2));
-    
+    // // Calculate positon error
+    // float position_error = sqrt(pow(desired_state.position.x - actual_state.position.x, 2) + pow(desired_state.position.y - actual_state.position.y, 2));
+        
+    float d_x = (desired_state.position.x - actual_state.position.x);
+    float d_y = (desired_state.position.y - actual_state.position.y);
+
     // Calculate yaw error
-    float yaw_error = atan((desired_state.position.y - actual_state.position.y) / (desired_state.position.x - actual_state.position.x));
+    float yaw_error = 0.0f;
+    float desired_yaw = (atan(d_y / d_x)/M_PI) * 180.0f;
+
+    if (d_x < 0 && d_y < 0)
+    {
+        desired_yaw = -1.0f * (180.0f - desired_yaw);
+    } 
+    else if (d_x < 0 && d_y > 0)
+    {
+        desired_yaw = (180.0f + desired_yaw);
+    } 
+    
+    desired_yaw = -1.0f * desired_yaw;
+
+    calcTheta(desired_yaw, actual_state.angles.yaw, yaw_error);
+    if (fabs(yaw_error) < 2){
+        yaw_error = 0;
+    }
+    std::cout << std::fixed << std::setprecision(2) << "yaw_e: " << yaw_error << " d_yaw: " << desired_yaw << " a_yaw: " << actual_state.angles.yaw << " d_x: " << d_x << " d_y" << d_y << std::endl;
 
     // Calculate yaw pid output
     float yaw_pos_output = yaw_pid.getOutput(yaw_error);
-    desired_state.rates.gyro_yaw += yaw_pos_output;
+    desired_state.rates.gyro_yaw = -1.0f * yaw_pos_output;
 
-    // Calculate position pid output
-    float position_output = position_pid.getOutput(position_error);
-    desired_state.velocity += position_output;
-    
+    // // if position error is with iin the dead zome dont move
+    // if (fabs(position_error) > m_settings.dead_zone) {
+    //     // Calculate position pid output
+    //     float position_output = position_pid.getOutput(position_error);
+    //     desired_state.velocity += position_output;
+    // }
+        
     float yaw_rate_error = (actual_state.leftVelocity - actual_state.rightVelocity) + desired_state.rates.gyro_yaw;
     double yaw_output = yaw_rate_pid.getOutput(yaw_rate_error); //(yaw_error * yaw_rate_pid.getP()) + (actual_state.rates.gyro_yaw * yaw_rate_pid.getD());
-    
+        
+
     if (fabs(yaw_output) < 0.001f){
         yaw_output = 0;
     }
@@ -91,6 +116,13 @@ void Controller::get_settings(controllerSettings_t & settings) {
     settings.yaw_rate_i = yaw_rate_pid.getI();
     settings.yaw_rate_d = yaw_rate_pid.getD();
     settings.pitch_zero = m_settings.pitch_zero;
+    settings.yaw_p = yaw_pid.getP();
+    settings.yaw_i = yaw_pid.getI();
+    settings.yaw_d = yaw_pid.getD();
+    settings.positon_p = position_pid.getP();
+    settings.positon_i = position_pid.getI();
+    settings.positon_d = position_pid.getD();
+    settings.dead_zone = m_settings.dead_zone;
 }
 
 void Controller::set_settings(const controllerSettings_t & settings) {
@@ -99,4 +131,7 @@ void Controller::set_settings(const controllerSettings_t & settings) {
     velocity_pid.setPID(settings.velocity_p, settings.velocity_i, settings.velocity_d);
     yaw_rate_pid.setPID(settings.yaw_rate_p, settings.yaw_rate_i, settings.yaw_rate_d);
     m_settings.pitch_zero = settings.pitch_zero;
+    yaw_pid.setPID(settings.yaw_p, settings.yaw_i, settings.yaw_d);
+    position_pid.setPID(settings.positon_p, settings.positon_i, settings.positon_d);
+    m_settings.dead_zone = settings.dead_zone;
 }

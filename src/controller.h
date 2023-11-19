@@ -63,9 +63,11 @@ private:
     std::mutex mtx;
     controllerSettings_t m_settings;
 
+    float max_distance = 0.5f;
+
     MiniPID pitch_pid    = MiniPID(0.08, 0.0, 0.015);
-    MiniPID velocity_pid = MiniPID(13, 0.3, 0.6);
-    MiniPID yaw_rate_pid = MiniPID(0.065, 0, 0.0175);
+    MiniPID velocity_pid = MiniPID(13, 0.0, 0.8);
+    MiniPID yaw_rate_pid = MiniPID(1.0, 0, 0.0175);
     MiniPID yaw_pid      = MiniPID(0.0, 0.0, 0.0);
     MiniPID position_pid = MiniPID(0.0, 0.0, 0.0);
 };
