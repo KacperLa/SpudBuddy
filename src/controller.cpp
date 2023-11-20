@@ -34,12 +34,14 @@ void calcTheta(float cmd, float actual, float & error)
 
 bool Controller::calculateOutput(robot_state_t actual_state, robot_state_t desired_state, float& outputLeft, float& outputRight)
 {
-    // // Calculate positon error
-    // float position_error = sqrt(pow(desired_state.position.x - actual_state.position.x, 2) + pow(desired_state.position.y - actual_state.position.y, 2));
-        
     float d_x = (desired_state.position.x - actual_state.position.x);
     float d_y = (desired_state.position.y - actual_state.position.y);
 
+    
+    // Calculate positon error
+    float position_error = sqrt(pow(d_x, 2) + pow(d_y, 2));
+        
+   
     // Calculate yaw error
     float yaw_error = 0.0f;
     float desired_yaw = (atan(d_y / d_x)/M_PI) * 180.0f;
@@ -59,18 +61,19 @@ bool Controller::calculateOutput(robot_state_t actual_state, robot_state_t desir
     if (fabs(yaw_error) < 2){
         yaw_error = 0;
     }
-    std::cout << std::fixed << std::setprecision(2) << "yaw_e: " << yaw_error << " d_yaw: " << desired_yaw << " a_yaw: " << actual_state.angles.yaw << " d_x: " << d_x << " d_y" << d_y << std::endl;
-
+    // std::cout << std::fixed << std::setprecision(2) << "yaw_e: " << yaw_error << " d_yaw: " << desired_yaw << " a_yaw: " << actual_state.angles.yaw << " d_x: " << d_x << " d_y" << d_y << std::endl;
+    std::cout << std::fixed << std::setprecision(2) << "distance: " << position_error << std::endl;
+    
     // Calculate yaw pid output
     float yaw_pos_output = yaw_pid.getOutput(yaw_error);
     desired_state.rates.gyro_yaw = -1.0f * yaw_pos_output;
 
-    // // if position error is with iin the dead zome dont move
-    // if (fabs(position_error) > m_settings.dead_zone) {
-    //     // Calculate position pid output
-    //     float position_output = position_pid.getOutput(position_error);
-    //     desired_state.velocity += position_output;
-    // }
+    // if position error is with iin the dead zome dont move
+    if (fabs(position_error) > m_settings.dead_zone) {
+        // Calculate position pid output
+        float position_output = position_pid.getOutput(position_error);
+        desired_state.velocity = -1.0f * position_output;
+    }
         
     float yaw_rate_error = (actual_state.leftVelocity - actual_state.rightVelocity) + desired_state.rates.gyro_yaw;
     double yaw_output = yaw_rate_pid.getOutput(yaw_rate_error); //(yaw_error * yaw_rate_pid.getP()) + (actual_state.rates.gyro_yaw * yaw_rate_pid.getD());
