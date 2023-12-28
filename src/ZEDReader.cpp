@@ -104,7 +104,7 @@ void ZEDReader::loop() {
                 rates_t rates = {zedRates[3], -1*zedRates[0], zedRates[1]};
                 data = {angles,
                         rates,
-                        std::chrono::high_resolution_clock::now(), 1, 0};
+                        static_cast<int>(std::chrono::high_resolution_clock::now()), 1, 0};
             }
             updateState(data);
 

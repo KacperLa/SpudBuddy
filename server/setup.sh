@@ -23,12 +23,12 @@ then
     echo "./venv/ found skipping creation."
 else
     echo "./venv/ not found creating python virtual environment."
-    python3.8 -m venv venv
+    python3.10 -m venv venv
 fi
 
 source "venv/bin/activate"
 pip3 install --upgrade pip
-python3.8 setup.py install
+python3.10 setup.py install
 
 
 echo "=== Copying .service to /etc/systemd/system/"

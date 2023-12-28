@@ -3,6 +3,7 @@
 #include <cmath>
 #include <iostream>
 #include <sstream>
+#include "common.h"
 
 IMUReader::IMUReader(const std::string& new_bus, const std::string name, Log& logger) :
   ronThread(name, logger)
@@ -134,9 +135,9 @@ void IMUReader::loop() {
 
       getState(last_state);
      
-      if ((std::chrono::high_resolution_clock::now() - last_state.timestamp) > forget_time)
+      if ((get_time_ms() - last_state.timestamp) > forget_time)
       {
-        data = {angles, rates, std::chrono::high_resolution_clock::now(), 1, 0};
+        data = {angles, rates, get_time_ms(), 1, 0};
         updateState(data);
         std::cout << "[IMU] Updating the IMU to replace old data." << std::endl;    
       } else {
@@ -162,7 +163,7 @@ void IMUReader::loop() {
           rates.gyro_pitch = 0;
         }
            
-        data = {angles, rates, std::chrono::high_resolution_clock::now(), 1, 0};
+        data = {angles, rates, get_time_ms(), 1, 0};
         updateState(data);
         // } else {
         //   //std::cout << "[IMU] Difference between consecative pitch reading was greater than 10 degrees, ignorring reading." << std::endl;    

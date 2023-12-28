@@ -1,9 +1,8 @@
-#!venv/bin/python
+#!venv/bin/python3.10
 
 import copy
 from email import message
 import click
-from db_functions import *
 from git_commands import *
 from flask import Flask, send_file, request,render_template, current_app, g, abort
 from flask.cli import with_appcontext
@@ -138,7 +137,7 @@ desired_state_format_mapping = {
     'state': 'i',
     'js_x': 'f',
     'js_y': 'f',
-    'time': 'i',
+    'time': 'q',
     'pos_x': 'f',
     'pos_y': 'f'
 }

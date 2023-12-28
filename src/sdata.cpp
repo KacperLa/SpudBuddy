@@ -148,7 +148,7 @@ void SData<T>::loop() {
             // log("Consumer");
             consumer();
         }
-        std::this_thread::sleep_for(time_to_sleep);
+        std::this_thread::sleep_for(std::chrono::milliseconds(time_to_sleep));
     }
     closeMap();
 }

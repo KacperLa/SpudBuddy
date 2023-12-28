@@ -10,7 +10,6 @@ setup(
     zip_safe=False,
     install_requires=[
         'Flask==2.1.3',
-        'pyzmq',
         'numpy',
         'flask-socketio',
         'simple-websocket',

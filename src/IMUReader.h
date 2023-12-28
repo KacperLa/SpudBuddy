@@ -1,7 +1,6 @@
 #ifndef IMUREADER_H
 #define IMUREADER_H
 
-#include <chrono>
 #include <string>
 #include <mutex>
 #include <iostream>
@@ -36,7 +35,7 @@ typedef enum {
 struct IMUState {
   angles_t angles {0.0, 0.0, 0.0};
   rates_t rates   {0.0, 0.0, 0.0};
-  std::chrono::high_resolution_clock::time_point timestamp;
+  std::int64_t timestamp;
   bool quality {false};
   bool error {false};
 };
@@ -66,8 +65,8 @@ protected:
   BNO055 bno055{};
   std::string bus{"0"};
 
-  std::chrono::duration<double> time_limit{1.0 / 10.0}; // 20 Hz
-  std::chrono::duration<double> forget_time{1.0 / 1.0}; // 1 Hz
+  std::int64_t time_limit  {1000 / 10}; // 20 Hz
+  std::int64_t forget_time {1}; // 1 Hz
 
   IMUState imu_state;
 

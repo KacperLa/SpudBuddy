@@ -1,4 +1,5 @@
 #include <Logging.h>
+#include "common.h"
 
 Log::Log()
 {
@@ -49,13 +50,10 @@ void Log::pushEvent(std::string  data){
 
 bool Log::publishMessage(const std::string& message) {
     // Serialize the message using MessagePack
-    auto now = std::chrono::high_resolution_clock::now();
-    auto duration = now.time_since_epoch();
-    auto timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(duration).count();
     
     MsgPack message_out = MsgPack::object {
         { "data", message },
-        { "timestamp", timestamp }
+        { "timestamp", get_time_ms() }
     };
 
     //serialize

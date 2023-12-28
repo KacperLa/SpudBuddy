@@ -54,7 +54,7 @@ protected:
     // newData flag
     bool newData = false;
 
-    const std::chrono::milliseconds time_to_sleep{10};
+    const std::int64_t time_to_sleep{10};
 };
 
 #include "sdata.cpp"

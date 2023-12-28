@@ -21,15 +21,15 @@ installpackage "libgpiod-dev"
 
 git submodule update --init --recursive
 
-cd "$parent_path"/src/libraries/libzmq
-mkdir build
-cd build
-cmake .. -DCPPZMQ_BUILD_TESTS=OFF
-sudo make -j4 install
+# cd "$parent_path"/src/libraries/libzmq
+# mkdir build
+# cd build
+# cmake .. -DCPPZMQ_BUILD_TESTS=OFF
+# sudo make -j4 install
 
-cd "$parent_path"/src/libraries/cppzmq
-rm -fr build
-mkdir build
-cd build
-cmake .. -DCPPZMQ_BUILD_TESTS=OFF
-sudo make -j4 install
+# cd "$parent_path"/src/libraries/cppzmq
+# rm -fr build
+# mkdir build
+# cd build
+# cmake .. -DCPPZMQ_BUILD_TESTS=OFF
+# sudo make -j4 install

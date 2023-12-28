@@ -1,7 +1,7 @@
 #include<main.h>
 #include "iostream"
 #include <sys/resource.h>
-
+#include "common.h"
 
 
 void request_transition(int action){
@@ -25,85 +25,6 @@ void request_transition(int action){
             break;
     }
 }
-
-// json set_pid(const double new_P, const double new_I, const double new_D){
-//     //int state = fsm_handle::
-    
-//     double P, I, D = 0.0;
-//     P = fsm_handle::get_kp();
-//     I = fsm_handle::get_ki();
-//     D = fsm_handle::get_kd();
-//     json j = {{"success", true},{"message", {{"P", P}, {"I", I}, {"D", D}}}};
-//     return j;
-// }
-
-// json get_pid(){
-//     double P, I, D = 0.0;
-//     P = fsm_handle::get_kp();
-//     I = fsm_handle::get_ki();
-//     D = fsm_handle::get_kd();
-//     json j = {{"success", true},{"message", {{"P", P}, {"I", I}, {"D", D}}}};
-//     return j;
-// }
-
-
-// void zmq_sockets_poll()
-// {
-//     std::vector<zmq::poller_event<zmq::socket_t>> rep_events(1);
-//     zmq::message_t message;
-//     auto n = rep_poller.wait_all(rep_events, timeout);
-//     if (n) {
-//         printf("GOT ZMQ poller event.");
-//         if (zmq::event_flags::pollin == rep_events[0].events) {
-//             printf("recv.");
-//             socket_rep.recv(&message);
-//             printf("recv done.");
-
-//             //zmq_sockets_log_message(&message);
-//             //default response
-//             json reply_json = default_response;
-//             json parsed_message = zmq_sockets_parse_message(&message);
-
-//             if (parsed_message.at("request") == "status") {
-//                 reply_json = status_of_robot();
-//             } else if (parsed_message.at("request") == "request_transition"){
-//                 if (parsed_message.contains("action")){
-//                     reply_json = request_transition(parsed_message.at("action"));
-//                 }
-//             } else if (parsed_message.at("request") == "request_pid_coeffs"){
-//                 reply_json = {{"success", true},{"message", fsm_handle::getControllerCoeffs()}};
-//             } else if (parsed_message.at("request") == "set_pid_coeffs"){
-//                 if (parsed_message.contains("pP") &&
-//                     parsed_message.contains("pI") &&
-//                     parsed_message.contains("pD") &&
-//                     parsed_message.contains("vP") &&
-//                     parsed_message.contains("vI") &&
-//                     parsed_message.contains("vD") &&
-//                     parsed_message.contains("yP") &&
-//                     parsed_message.contains("yI") &&
-//                     parsed_message.contains("yD") &&
-//                     parsed_message.contains("pitchZero")){
-//                     fsm_handle::setControllerCoeffs(parsed_message);
-//                 }
-//                 reply_json = {{"success", true},{"message", fsm_handle::getControllerCoeffs()}};
-//             } 
-            
-//             // else if (parsed_message.at("request") == "set_pid"){
-//             //     if (parsed_message.contains("P") && parsed_message.contains("I") && parsed_message.contains("D")){
-//             //         reply_json = set_pid(parsed_message.at("P"), parsed_message.at("I"), parsed_message.at("D"));
-//             //     }
-//             // } else if (parsed_message.at("request") == "get_pid"){
-//             //     reply_json = get_pid();
-//             // }
-
-//             std::string out_str = reply_json.dump();
-//             std::string msg = "[MAIN] Replying with: " + out_str;
-//             logger.pushEvent(msg);
-//             zmq::message_t reply(out_str.c_str(), out_str.size());
-//             socket_rep.send(reply);
-//         }
-//     }
-// }
 
 void signal_handler(const int signal)
 {
@@ -197,7 +118,7 @@ int main(int argc, char *argv[])
 
         logger.startThread();
 
-        ZEDReader imu("/dev/i2c-1", "IMU", logger);
+        StateReader imu("/dev/i2c-1", "IMU", logger);
         imu.startThread();
         
         int nodes[2] = {fsm_handle::leftNode, fsm_handle::rightNode};
@@ -222,10 +143,10 @@ int main(int argc, char *argv[])
         controllerSettings_t shared_controller_settings_prev = shared_controller_settings; 
         slamState_t          slam_state;
         std::cout << "size of desired: " << sizeof(systemDesired_t) << std::endl;
-        std::chrono::duration<double> loop_time(1.0 / 20.0); // 20 Hz
-        auto last_publish = std::chrono::high_resolution_clock::now();
-        auto last_run = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> main_loop(1.0 / 20.0); // 20 Hz
+        std::int64_t loop_time(1.0 / 20.0); // 20 Hz
+        auto last_publish = get_time_ms();
+        auto last_run = get_time_ms();
+        std::int64_t main_loop(1.0 / 20.0); // 20 Hz
 
         // shared memory
         SData<sytemState_t>         shared_actual_map("shared_actual_map",     logger, shared_actual_file,   semaphore_actual_file,   true);
@@ -237,7 +158,7 @@ int main(int argc, char *argv[])
         shared_settings_map.startThread();
 
         while(!time_to_quit){
-                last_run = std::chrono::high_resolution_clock::now();
+                last_run = get_time_ms();
     
                 actual_state  = fsm_handle::get_state();
                 imu_error     = imu.getState(imu_state);
@@ -328,7 +249,7 @@ int main(int argc, char *argv[])
 
                 fsm_handle::setPosition(slam_pos);
 
-                if ((std::chrono::high_resolution_clock::now() - last_publish) > loop_time){
+                if ((get_time_ms() - last_publish) > loop_time){
                     shared_actual_state.actual = actual_state;
                     drive_system.requestVbusVoltage();
                     drive_system.getState(shared_actual_state.driveSystem.axis_0, 0);
@@ -340,17 +261,14 @@ int main(int argc, char *argv[])
                     shared_actual_map.setData(shared_actual_state);
                     // std::cout << "x: " << std::to_string(shared_desired_state.joystick.x) << " y: " << std::to_string(shared_desired_state.joystick.y) << std::endl;
                     
-                    last_publish = std::chrono::high_resolution_clock::now();
+                    last_publish = get_time_ms();
                 }
 
-                if ((std::chrono::high_resolution_clock::now() - last_run) > main_loop){
-                    auto loop_dur = std::chrono::high_resolution_clock::now() - last_run;
-                    auto loop_dur_in_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(loop_dur);
+                if ((get_time_ms() - last_run) > main_loop){
+                    auto loop_dur = get_time_ms() - last_run;
+                    auto loop_dur_in_seconds = loop_dur / 1000.0;
 
-                    std::ostringstream stream;
-                    stream << loop_dur_in_seconds.count() << "s";
-                    std::string duration_string = stream.str();
-                    std::string msg = "[MAIN] Main loop over time. actual: " + duration_string;
+                    std::string msg = "[MAIN] Main loop over time. actual: " + std::to_string(loop_dur_in_seconds) + " s";
                     logger.pushEvent(msg);
                 }
 

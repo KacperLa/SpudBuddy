@@ -6,4 +6,4 @@ mkdir -p build
 cd build
 cmake ..
 cd ..
-make -j4 -C build
+make -j4 -C build 

@@ -196,7 +196,6 @@ void DriveSystem::loop() {
 
     while (running.load(std::memory_order_relaxed)) { 
         if (readEvent(frame)) {
-            // auto message_time = std::chrono::high_resolution_clock::now();
             uint32_t axis_id = frame.can_id >> 5;
             uint8_t cmd_id = frame.can_id & 0x01F;
             getState(cur_state, axis_id);

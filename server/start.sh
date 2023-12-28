@@ -28,13 +28,5 @@ source "venv/bin/activate"
 export FLASK_APP=main
 export CONFIG_JSON_FILE=$config_json_file
 
-if [ -e db/production.sqlite3 ]
-then
-    echo "Database exists..."
-else
-    echo "No database found creating..."
-    flask init-db
-fi
-
 python main.py $f
 #flask $f

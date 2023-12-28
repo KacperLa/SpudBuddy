@@ -30,7 +30,7 @@ void Robot::react(cmd_data const &e)
 
 void Robot::updateIMU(IMUState & new_imu_state)
 {
-  if (std::chrono::high_resolution_clock::now() - new_imu_state.timestamp > error_time){
+  if ((get_time_ms() - new_imu_state.timestamp) > error_time){
     // logger->pushEvent("[FSM] IMU is too old.");
   }
   actual_state.angles = new_imu_state.angles;
@@ -52,7 +52,6 @@ json Robot::RequestAxisData(int id)
 {
     DriveState a_s;
     drive_system->getState(a_s, id);
-    double timeInSeconds = 0; //a_s.timestamp.time_since_epoch().count() * std::chrono::high_resolution_clock::period::num / static_cast<double>(std::chrono::high_resolution_clock::period::den);
     json j = {
                   {"axis", id}, 
                   {"state", 
@@ -61,7 +60,7 @@ json Robot::RequestAxisData(int id)
                       {"velocity", a_s.velocity},
                       {"error", a_s.error},
                       {"state", a_s.state},
-                      {"timestamp", timeInSeconds}
+                      {"timestamp", get_time_ms()}
                     }
                   }
                };
@@ -87,7 +86,9 @@ Controller Robot::controller;
 
 DriveSystem* Robot::drive_system = {nullptr};
 Log* Robot::logger = {nullptr};
-std::chrono::high_resolution_clock::time_point Robot::imu_timestamp;
+std::int64_t  Robot::imu_timestamp;
+std::int64_t  Robot::error_time = (1.0 / 50.0); // 50 Hz
+
 IMUState Robot::imu_state;
 
 class Running : public Robot

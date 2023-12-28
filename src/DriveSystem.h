@@ -11,6 +11,7 @@
 #include "unistd.h"
 #include <iterator>
 #include "math.h"
+#include "common.h"
 
 #include "drivers/ODriveCAN/ODriveCAN.h"
 #include<ronThread.h>

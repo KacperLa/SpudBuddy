@@ -8,7 +8,12 @@
 #include<sdata.h>
 #include<Logging.h>
 #include "DriveSystem.h"
-#include "ZEDReader.h"
+
+#ifdef BUILD_FOR_SIM
+    #include "ZEDReader.h"
+#else
+    #include "DrakeReader.h"
+#endif
 
 bool time_to_quit = false;
 
@@ -52,4 +57,4 @@ const char* semaphore_settings_file = "/robot_settings_sem";
 
 Log logger;
 
-const std::chrono::milliseconds timeout{10};
+const std::int64_t timeout{10};
