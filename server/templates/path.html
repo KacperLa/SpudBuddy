@@ -310,7 +310,8 @@
 			{
 				"imports": {
 					"three": "{{ url_for('static', filename='three.js/build/three.module.js') }}",
-					"three/addons/": "./jsm/"
+					"three/addons/": "./jsm/",
+					"urdf-loaders": "{{ url_for('static', filename='urdf-loaders/javascript/src/URDFLoader.js') }}"
 				}
 			}
 		</script>
@@ -318,15 +319,34 @@
 		<script type="module">
 
 			import * as THREE from 'three';
+			import * as URDF from 'urdf-loaders';
 
 			import { GUI } from "{{ url_for('static', filename='three.js/examples/jsm/libs/lil-gui.module.min.js') }}";
 
             import { OrbitControls } from "{{ url_for('static', filename='three.js/examples/jsm/controls/OrbitControls.js') }}";
 			import { TransformControls } from "{{ url_for('static', filename='three.js/examples/jsm/controls/TransformControls.js') }}";
-			import { STLLoader } from "{{ url_for('static', filename='three.js/examples/jsm/loaders/STLLoader.js') }}";
-			import { OBJLoader } from "{{ url_for('static', filename='three.js/examples/jsm/loaders/OBJLoader.js') }}";
+			// import { STLLoader } from "{{ url_for('static', filename='three.js/examples/jsm/loaders/STLLoader.js') }}";
+			import { LoadingManager } from "{{ url_for('static', filename='three.js/src/loaders/LoadingManager.js') }}";
+
+			import URDFLoader from "{{ url_for('static', filename='urdf-loaders/javascript/src/URDFLoader.js') }}";
+			// import { OBJLoader } from "{{ url_for('static', filename='three.js/examples/jsm/loaders/OBJLoader.js') }}";
 			import { SVGLoader } from "{{ url_for('static', filename='three.js/examples/jsm/loaders/SVGLoader.js') }}";
 			import { CupertinoPane } from "{{ url_for('static', filename='panes/dist/cupertino-pane.esm.min.js') }}";
+
+			import {
+				WebGLRenderer,
+				PerspectiveCamera,
+				Scene,
+				Mesh,
+				ShadowMaterial,
+				DirectionalLight,
+				PCFSoftShadowMap,
+				sRGBEncoding,
+				Color,
+				AmbientLight,
+				Box3,
+				MathUtils,
+			} from 'three';
 
 			let container;
 			let camera, scene, renderer;
@@ -339,6 +359,17 @@
 			const pointer = new THREE.Vector2();
 			const onUpPosition = new THREE.Vector2();
 			const onDownPosition = new THREE.Vector2();
+
+			// Load robot
+			let robot;
+
+			const manager = new LoadingManager();
+			const robot_urdf_loader = new URDFLoader(manager);
+			robot_urdf_loader.load("{{ url_for('static', filename='RON/urdf/RON.urdf') }}", result => {
+
+				robot = result;
+
+			});
 
 			const geometry = new THREE.BoxGeometry( 20, 20, 20 );
             const ron_geometry = new THREE.CapsuleGeometry( 20, 20, 30, 50); 
@@ -388,7 +419,39 @@
 			const material = new THREE.MeshStandardMaterial({ map: texture });
 
 			let ronPointer = new THREE.Group();
-			ronPointer.add( ron_body );
+			// ronPointer.add( ron_body );
+
+			// wait until all the geometry has loaded to add the model to the scene
+			manager.onLoad = () => {
+				console.log("robot loaded");
+				robot.rotation.x = -Math.PI / 2;
+				robot.rotation.z = Math.PI;
+				robot.traverse(c => {
+					c.castShadow = true;
+				});
+				// for (let i = 1; i <= 6; i++) {
+
+				// 	robot.joints[`HP${ i }`].setJointValue(MathUtils.degToRad(30));
+				// 	robot.joints[`KP${ i }`].setJointValue(MathUtils.degToRad(120));
+				// 	robot.joints[`AP${ i }`].setJointValue(MathUtils.degToRad(-60));
+
+				// }
+				robot.updateMatrixWorld(true);
+
+				//scale the robot to 100x its original size
+				robot.scale.set(100, 100, 100)
+
+				const bb = new Box3();
+				bb.setFromObject(robot);
+
+				robot.position.y -= bb.min.y;
+				
+				// scene.add(robot);
+				ronPointer.add( robot );
+				scene.add( ronPointer );
+			};
+
+
 
 			const RON_Pointer_loader = new SVGLoader();
 
@@ -413,8 +476,8 @@
 							const geometry = new THREE.ShapeGeometry( shape );
 							const mesh = new THREE.Mesh( geometry, material );
 							mesh.scale.set( 0.5, 0.5, 0.5 );
-							mesh.rotation.set( - Math.PI / 2, 0,  Math.PI / 2);
-							mesh.position.set( 25, 0, 25);
+							mesh.rotation.set( - Math.PI / 2, 0, Math.PI);
+							mesh.position.set( 25, 0, -25);
 							ronPointer.add( mesh );
 						}
 					}
@@ -430,54 +493,35 @@
 				}
 			);
 
-			const loader = new OBJLoader();
-			loader.load(
-				"{{ url_for('static', filename='mesh_gen.obj') }}",
-				function ( object ) {
-					object.traverse(function (child) {
-					if (child instanceof THREE.Mesh) {
-							child.material = material; // Apply the material to each mesh part of the object
-						}
-					});
-					object.scale.set(100, 100, 100)
-					// set matial to the object 
-					scene.add( object );
-				},
-				function ( xhr ) {
-					console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-				},
-				function ( error ) {
-					console.log( 'An error happened' );
-				}
-			);
-
-			// const loader = new STLLoader()
+			// const loader = new OBJLoader();
 			// loader.load(
-			// 	"{{ url_for('static', filename='ron.stl') }}",
-			// 	function (geometry) {
-			// 		const ronMesh = new THREE.Mesh(geometry, ron_material)
-			// 		scene.add(ronMesh)
-			// 		objects['ron'] = ronMesh
-			// 		objects['ron'].position.x = 0;
-			// 		objects['ron'].position.z = 0;
-			// 		objects['ron'].position.y = 0;
-			// 		objects['ron'].rotation.x = -Math.PI / 2;
+			// 	"{{ url_for('static', filename='mesh_gen.obj') }}",
+			// 	function ( object ) {
+			// 		object.traverse(function (child) {
+			// 		if (child instanceof THREE.Mesh) {
+			// 				child.material = material; // Apply the material to each mesh part of the object
+			// 			}
+			// 		});
+			// 		object.scale.set(100, 100, 100)
+			// 		// set matial to the object 
+			// 		scene.add( object );
 			// 	},
-			// 	(xhr) => {
-			// 		console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+			// 	function ( xhr ) {
+			// 		console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
 			// 	},
-			// 	(error) => {
-			// 		console.log(error)
+			// 	function ( error ) {
+			// 		console.log( 'An error happened' );
 			// 	}
-			// )
+			// );
 
-            var source = new EventSource('/data');
+			
+			var source = new EventSource('/data');
             source.onmessage = function(event) {
                 var data = JSON.parse(event.data);
 
                 var imuRotZ = (data["actual"]["orientation_yaw"]/180 )* Math.PI
             	var imuRotX = (data["actual"]["orientation_pitch"]/180) * Math.PI
-                ron_body.rotation.set( 0, 0, -imuRotX);	
+                ron_body.rotation.set( 0, 0, imuRotX);	
 				ronPointer.rotation.set( 0, imuRotZ, 0);
 				ronPointer.position.z = data["actual"]["positionSlam_y"]*100;
                 ronPointer.position.x = data["actual"]["positionSlam_x"]*100;
@@ -633,6 +677,43 @@
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.shadowMap.enabled = true;
 				container.appendChild( renderer.domElement );
+
+				// console.log(container);
+
+				// container.addEventListener('joint-mouseover', e => {
+				// 	console.log(e.detail)
+				// 	console.log("mouse over")
+				// 	const j = document.querySelector(`li[joint-name="${ e.detail }"]`);
+				// 	if (j) j.setAttribute('robot-hovered', true);
+
+				// });
+
+				// container.addEventListener('joint-mouseout', e => {
+
+				// 	const j = document.querySelector(`li[joint-name="${ e.detail }"]`);
+				// 	if (j) j.removeAttribute('robot-hovered');
+
+				// });
+
+				// let originalNoAutoRecenter;
+				// container.addEventListener('manipulate-start', e => {
+
+				// const j = document.querySelector(`li[joint-name="${ e.detail }"]`);
+				// 	if (j) {
+				// 		j.scrollIntoView({ block: 'nearest' });
+				// 		window.scrollTo(0, 0);
+				// 	}
+
+				// 	originalNoAutoRecenter = container.noAutoRecenter;
+				// 	container.noAutoRecenter = true;
+
+				// });
+
+				// container.addEventListener('manipulate-end', e => {
+
+				// 	container.noAutoRecenter = originalNoAutoRecenter;
+
+				// });
 
 				const gui = new GUI();
 

@@ -15,3 +15,5 @@
 [submodule "server/static/panes"]
 	path = server/static/panes
 	url = git@github.com:tech-systems/panes.git
+[submodule "server/static/urdf-loaders"]
+	path = server/static/urdf-loaders
