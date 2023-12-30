@@ -418,8 +418,10 @@
         "actual": {
           "positionDeadReckoning_x": null,
           "positionDeadReckoning_y": null,
+          "positionDeadReckoning_z": null,
           "positionSlam_x": null,
           "positionSlam_y": null,
+          "positionSlam_z": null,
           "positionStatus": null,
           "orientation_yaw": null,
           "orientation_pitch": null,

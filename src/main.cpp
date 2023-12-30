@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
 
                 imu.getState(slam_state);
                 position_t slam_pos;
-                slam_pos = {slam_state.x, slam_state.y};
+                slam_pos = {slam_state.x, slam_state.y, slam_state.z};
                 fsm_handle::setSlamPosition(slam_pos);
                 
                 // determine which position to use

@@ -76,7 +76,8 @@ void StateReader::loop() {
            
       updateState(slam_data);
       
-      log("x: " + std::to_string(slam_data.x) + ", y: " + std::to_string(slam_data.y) + ", z: " + std::to_string(slam_data.z) + ", tracking: " + std::to_string(slam_data.tracking_state));
+      // log("roll: " + std::to_string(data.angles.roll) + ", pitch: " + std::to_string(data.angles.pitch) + ", yaw: " + std::to_string(data.angles.yaw) + ", x: " + std::to_string(slam_data.x) + ", y: " + std::to_string(slam_data.y) + ", z: " + std::to_string(slam_data.z) + ", tracking: " + std::to_string(slam_data.tracking_state));
+      // log("x: " + std::to_string(slam_data.x) + ", y: " + std::to_string(slam_data.y) + ", z: " + std::to_string(slam_data.z) + ", tracking: " + std::to_string(slam_data.tracking_state));
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }

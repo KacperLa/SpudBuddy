@@ -361,28 +361,20 @@
 			const onDownPosition = new THREE.Vector2();
 
 			// Load robot
-			let robot;
+			let robot_model;
+			let robot = new THREE.Group();
 
 			const manager = new LoadingManager();
 			const robot_urdf_loader = new URDFLoader(manager);
 			robot_urdf_loader.load("{{ url_for('static', filename='RON/urdf/RON.urdf') }}", result => {
 
-				robot = result;
+				robot_model = result;
 
 			});
 
-			const geometry = new THREE.BoxGeometry( 20, 20, 20 );
-            const ron_geometry = new THREE.CapsuleGeometry( 20, 20, 30, 50); 
-            const ron_material = new THREE.MeshLambertMaterial( {color: 0x5555AA} ); 
-            const ron_body = new THREE.Mesh( ron_geometry, ron_material );
-						
-            ron_body.position.x = 0;
-            ron_body.position.y = 30;
-            ron_body.position.z = 0;
-
-
-                
-            let transformControl;
+            const geometry = new THREE.BoxGeometry( 20, 20, 20 );
+			
+			let transformControl;
 			let controls;
 			let goToPoint = null;
 
@@ -424,29 +416,30 @@
 			// wait until all the geometry has loaded to add the model to the scene
 			manager.onLoad = () => {
 				console.log("robot loaded");
-				robot.rotation.x = -Math.PI / 2;
-				robot.rotation.z = Math.PI;
-				robot.traverse(c => {
+				robot_model.rotation.x = -Math.PI / 2;
+				robot_model.rotation.z = Math.PI;
+				robot_model.traverse(c => {
 					c.castShadow = true;
 				});
 				// for (let i = 1; i <= 6; i++) {
 
-				// 	robot.joints[`HP${ i }`].setJointValue(MathUtils.degToRad(30));
-				// 	robot.joints[`KP${ i }`].setJointValue(MathUtils.degToRad(120));
-				// 	robot.joints[`AP${ i }`].setJointValue(MathUtils.degToRad(-60));
+				// 	robot_model.joints[`HP${ i }`].setJointValue(MathUtils.degToRad(30));
+				// 	robot_model.joints[`KP${ i }`].setJointValue(MathUtils.degToRad(120));
+				// 	robot_model.joints[`AP${ i }`].setJointValue(MathUtils.degToRad(-60));
 
 				// }
-				robot.updateMatrixWorld(true);
+				robot_model.updateMatrixWorld(true);
 
-				//scale the robot to 100x its original size
-				robot.scale.set(100, 100, 100)
+				//scale the robot_model to 100x its original size
+				robot_model.scale.set(100, 100, 100)
 
 				const bb = new Box3();
-				bb.setFromObject(robot);
+				bb.setFromObject(robot_model);
 
-				robot.position.y -= bb.min.y;
+				robot_model.position.y -= bb.min.y;
 				
-				// scene.add(robot);
+				// scene.add(robot_model);
+				robot.add( robot_model );
 				ronPointer.add( robot );
 				scene.add( ronPointer );
 			};
@@ -519,14 +512,18 @@
             source.onmessage = function(event) {
                 var data = JSON.parse(event.data);
 
-                var imuRotZ = (data["actual"]["orientation_yaw"]/180 )* Math.PI
-            	var imuRotX = (data["actual"]["orientation_pitch"]/180) * Math.PI
-                ron_body.rotation.set( 0, 0, imuRotX);	
-				ronPointer.rotation.set( 0, imuRotZ, 0);
-				ronPointer.position.z = data["actual"]["positionSlam_y"]*100;
+                robot.rotation.set( data["actual"]["orientation_pitch"],
+									0,
+									data["actual"]["orientation_roll"]);
+		
+				ronPointer.rotation.set( 0,
+										 data["actual"]["orientation_yaw"],
+										 0);
+				ronPointer.position.z = data["actual"]["positionSlam_z"]*100;
                 ronPointer.position.x = data["actual"]["positionSlam_x"]*100;
+				ronPointer.position.y = data["actual"]["positionSlam_y"]*100;
 				document.getElementById('ron-battery').innerHTML = data["actual"]["voltage_0"].toFixed(2) + " V";
-				
+				console.log(data["actual"]["orientation_yaw"], data["actual"]["orientation_pitch"], data["actual"]["orientation_roll"])
 				let statusText = "Status: UNKNOWN";
                 switch(data["actual"]['state']) {
                     case 1:
@@ -780,12 +777,6 @@
 					positions.push( splineHelperObjects[ i ].position );
 
 				}
-
-				ron_body.castShadow = true;
-				ron_body.receiveShadow = true;
-				// ronPointer.add( ron_body );
-
-                // scene.add( ron_body );
 
 
 				const geometry = new THREE.BufferGeometry();

@@ -36,6 +36,7 @@ void Robot::updateIMU(IMUState & new_imu_state)
   actual_state.angles = new_imu_state.angles;
   actual_state.rates = new_imu_state.rates;
   imu_timestamp = new_imu_state.timestamp;
+  // logger->pushEvent("roll: " + std::to_string(actual_state.angles.roll) + ", pitch: " + std::to_string(actual_state.angles.pitch) + ", yaw: " + std::to_string(actual_state.angles.yaw) + ", x: " + std::to_string(actual_state.position.x) + ", y: " + std::to_string(actual_state.position.y) + ", z: " + std::to_string(actual_state.position.z) + ", tracking: " + std::to_string(actual_state.positionStatus));    
 }
 
 bool Robot::requestDriveSystemStatus(){ 

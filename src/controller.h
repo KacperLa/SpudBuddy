@@ -11,6 +11,7 @@ typedef BNO055::gyro rates_t;
 struct position_t {
         float x {0.0f};
         float y {0.0f};
+        float z {0.0f};
     };
 
 struct robot_state_t
