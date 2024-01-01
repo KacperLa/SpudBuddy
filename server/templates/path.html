@@ -416,8 +416,8 @@
 			// wait until all the geometry has loaded to add the model to the scene
 			manager.onLoad = () => {
 				console.log("robot loaded");
-				robot_model.rotation.x = -Math.PI / 2;
-				robot_model.rotation.z = Math.PI;
+				// robot_model.rotation.x = -Math.PI / 2;
+				// robot_model.rotation.z = Math.PI;
 				robot_model.traverse(c => {
 					c.castShadow = true;
 				});
@@ -433,15 +433,14 @@
 				//scale the robot_model to 100x its original size
 				robot_model.scale.set(100, 100, 100)
 
-				const bb = new Box3();
-				bb.setFromObject(robot_model);
+				// const bb = new Box3();
+				// bb.setFromObject(robot_model);
 
-				robot_model.position.y -= bb.min.y;
+				// robot_model.position.y -= bb.min.y;
 				
-				// scene.add(robot_model);
-				robot.add( robot_model );
-				ronPointer.add( robot );
-				scene.add( ronPointer );
+				scene.add(robot_model);
+				// robot.add( robot_model );
+				// ronPointer.add( robot );
 			};
 
 
@@ -469,8 +468,8 @@
 							const geometry = new THREE.ShapeGeometry( shape );
 							const mesh = new THREE.Mesh( geometry, material );
 							mesh.scale.set( 0.5, 0.5, 0.5 );
-							mesh.rotation.set( - Math.PI / 2, 0, Math.PI);
-							mesh.position.set( 25, 0, -25);
+							mesh.rotation.set( - Math.PI / 2, 0, 0);
+							mesh.position.set( -25, 0, 25);
 							ronPointer.add( mesh );
 						}
 					}
@@ -512,18 +511,42 @@
             source.onmessage = function(event) {
                 var data = JSON.parse(event.data);
 
-                robot.rotation.set( data["actual"]["orientation_pitch"],
-									0,
-									data["actual"]["orientation_roll"]);
-		
+				// matrix x up to y up
+				let transformationMatrix = new THREE.Matrix4();
+				transformationMatrix.set(
+				   -1, 0, 0, 0,
+					0, 0, 1, 0,
+					0, 1, 0, 0,
+					0, 0, 0, 1
+				);
+
+				// multiply the rotation matrix by the robot's position
+				let new_pos = new THREE.Vector3(data["actual"]["positionSlam_x"], data["actual"]["positionSlam_y"], data["actual"]["positionSlam_z"]);
+				new_pos.applyMatrix4(transformationMatrix);
+
+
+				// Create an Euler object and convert to a Quaternion
+				const euler = new THREE.Euler(data["actual"]["orientation_roll"], data["actual"]["orientation_pitch"], data["actual"]["orientation_yaw"], 'ZYX');
+				const quaternion = new THREE.Quaternion().setFromEuler(euler);
+				const rotationMatrix = new THREE.Matrix4().makeRotationFromQuaternion(quaternion);
+				rotationMatrix.premultiply(transformationMatrix);
+				const transformedQuaternion = new THREE.Quaternion().setFromRotationMatrix(rotationMatrix);
+				const transformedEuler = new THREE.Euler().setFromQuaternion(transformedQuaternion, 'XYZ');
+
+				// set the base_link position and rotation to the new position and rotation
+				robot_model.links["base_link"].position.set(new_pos.x*100, new_pos.y*100, new_pos.z*100);
+				robot_model.links["base_link"].rotation.set(transformedEuler.x, transformedEuler.y, transformedEuler.z);
+
+              
 				ronPointer.rotation.set( 0,
-										 data["actual"]["orientation_yaw"],
+										 transformedEuler.z,
 										 0);
-				ronPointer.position.z = data["actual"]["positionSlam_z"]*100;
-                ronPointer.position.x = data["actual"]["positionSlam_x"]*100;
-				ronPointer.position.y = data["actual"]["positionSlam_y"]*100;
+				ronPointer.position.set(new_pos.x*100,
+										0,
+										new_pos.z*100);
+	
 				document.getElementById('ron-battery').innerHTML = data["actual"]["voltage_0"].toFixed(2) + " V";
-				console.log(data["actual"]["orientation_yaw"], data["actual"]["orientation_pitch"], data["actual"]["orientation_roll"])
+				// console.log(data["actual"]["orientation_yaw"], data["actual"]["orientation_pitch"], data["actual"]["orientation_roll"])
 				let statusText = "Status: UNKNOWN";
                 switch(data["actual"]['state']) {
                     case 1:
