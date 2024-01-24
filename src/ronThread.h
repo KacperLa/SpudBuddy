@@ -10,15 +10,13 @@
 #include "fcntl.h"
 #include "unistd.h"
 
-#include<Logging.h>
-
+#include <logger.h>
 
 class ronThread {
 public:
-    explicit ronThread(const std::string name, Log & logger);
+    explicit ronThread(const std::string name, Log* logger);
     virtual ~ronThread();
     
-
     void startThread();
     void stopThread();
 protected:
@@ -30,7 +28,7 @@ protected:
 
     std::mutex thread_lock;
 
-    Log& logger;
+    Log* logger;
 
     std::atomic<bool> running {false};
     std::thread object_thread;

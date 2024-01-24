@@ -11,7 +11,7 @@ SET(CMAKE_STANDARD_REQUIRES ON)
 # Set the Compilation flags.
 SET(CMAKE_CXX_FLAGS "-std=gnu++14 -pthread -g")
 
-option(BUILD_FOR_SIM "An option for custom build" ON)
+option(BUILD_FOR_SIM "An option for custom build" OFF)
 
 # Create compile_commands.json file so that it may be used by various
 # editors/plugins/IDEs that support it.

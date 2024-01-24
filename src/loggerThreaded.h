@@ -33,6 +33,8 @@ using json = nlohmann::json;
 #include <libraries/readerwriterqueue/readerwriterqueue.h>
 #include <libraries/readerwriterqueue/atomicops.h>
 
+#include <logger.h>
+
 using namespace moodycamel;
 using namespace msgpack11;
 
@@ -41,15 +43,15 @@ struct LogMessage {
     double timestamp;
 };
 
-class Log
+class LogThreaded : public Log
 {
 public:
-    Log();
-    ~Log();
+    LogThreaded();
+    ~LogThreaded();
 
     bool open();
 
-    void pushEvent(std::string  data);
+    virtual void pushEvent(std::string  data) override;
 
     void startThread();
     void stopThread();

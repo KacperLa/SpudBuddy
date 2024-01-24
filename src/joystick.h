@@ -13,17 +13,12 @@
 #include <poll.h>
 
 #include<ronThread.h>
-
-struct JoystickState {
-    float x {0.0f};
-    float y {0.0f};
-    int time;
-};
+#include <shared_structs.h>
 
 class Joystick : public ronThread
 {
 public:
-    Joystick(const std::string name, Log& logger);
+    Joystick(const std::string name, Log* logger);
 
     void addDevice(const std::string new_device);
     void getState(JoystickState& data);

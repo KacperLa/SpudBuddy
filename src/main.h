@@ -6,14 +6,16 @@
 #include<IMUReader.h>
 #include<FSM.h>
 #include<sdata.h>
-#include<Logging.h>
 #include "DriveSystem.h"
+#include "shared_structs.h"
+#include<loggerThreaded.h>
+#include<logger.h>
 
-#ifdef BUILD_FOR_SIM
+// #ifdef BUILD_FOR_SIM
     #include "ZEDReader.h"
-#else
-    #include "DrakeReader.h"
-#endif
+// #else
+//     #include "DrakeReader.h"
+// #endif
 
 bool time_to_quit = false;
 
@@ -27,23 +29,6 @@ enum class PositionState {
     GPS
 };
 
-// DriveSystem specific
-struct driveSystemState {
-    DriveState axis_0;
-    DriveState axis_1;
-};
-
-struct sytemState_t {
-    robot_state_t actual;
-    driveSystemState driveSystem;
-    controllerSettings_t controller_settings;
-};
-
-struct systemDesired_t {
-    int state {0};
-    JoystickState joystick;
-    position_t position;
-};
 
 // location of shared memory
 const char* shared_actual_file   = "/tmp/robot_actual";
@@ -55,6 +40,6 @@ const char* semaphore_actual_file   = "/robot_actual_sem";
 const char* semaphore_desired_file  = "/robot_desired_sem";
 const char* semaphore_settings_file = "/robot_settings_sem";
 
-Log logger;
+LogThreaded* logger_threaded;
 
 const std::int64_t timeout{10};

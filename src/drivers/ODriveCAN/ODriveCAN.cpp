@@ -108,34 +108,34 @@ void ODriveCAN::Heartbeat(HeartbeatMsg_t &returnVals, struct can_frame &inMsg) {
 // 	sendMessage(axis_id, CMD_ID_SET_CONTROLLER_MODES, false, 8, msg_data);
 // }
 
-// void ODriveCAN::SetPosition(int axis_id, float position) {
-//     SetPosition(axis_id, position, 0.0f, 0.0f);
-// }
+void ODriveCAN::SetPosition(int axis_id, float position) {
+    SetPosition(axis_id, position, 0.0f, 0.0f);
+}
 
-// void ODriveCAN::SetPosition(int axis_id, float position, float velocity_feedforward) {
-//     SetPosition(axis_id, position, velocity_feedforward, 0.0f);
-// }
+void ODriveCAN::SetPosition(int axis_id, float position, float velocity_feedforward) {
+    SetPosition(axis_id, position, velocity_feedforward, 0.0f);
+}
 
-// void ODriveCAN::SetPosition(int axis_id, float position, float velocity_feedforward, float current_feedforward) {
-//     int16_t vel_ff = (int16_t) (feedforwardFactor * velocity_feedforward);
-//     int16_t curr_ff = (int16_t) (feedforwardFactor * current_feedforward);
+void ODriveCAN::SetPosition(int axis_id, float position, float velocity_feedforward, float current_feedforward) {
+    int16_t vel_ff = (int16_t) (feedforwardFactor * velocity_feedforward);
+    int16_t curr_ff = (int16_t) (feedforwardFactor * current_feedforward);
 
-//     byte* position_b = (byte*) &position;
-//     byte* velocity_feedforward_b = (byte*) &vel_ff;
-//     byte* current_feedforward_b = (byte*) &curr_ff;
-//     byte msg_data[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    uint8_t* position_b = (uint8_t*) &position;
+    uint8_t* velocity_feedforward_b = (uint8_t*) &vel_ff;
+    uint8_t* current_feedforward_b = (uint8_t*) &curr_ff;
+    uint8_t msg_data[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
-//     msg_data[0] = position_b[0];
-//     msg_data[1] = position_b[1];
-//     msg_data[2] = position_b[2];
-//     msg_data[3] = position_b[3];
-//     msg_data[4] = velocity_feedforward_b[0];
-//     msg_data[5] = velocity_feedforward_b[1];
-//     msg_data[6] = current_feedforward_b[0];
-//     msg_data[7] = current_feedforward_b[1];
+    msg_data[0] = position_b[0];
+    msg_data[1] = position_b[1];
+    msg_data[2] = position_b[2];
+    msg_data[3] = position_b[3];
+    msg_data[4] = velocity_feedforward_b[0];
+    msg_data[5] = velocity_feedforward_b[1];
+    msg_data[6] = current_feedforward_b[0];
+    msg_data[7] = current_feedforward_b[1];
 
-//     sendMessage(axis_id, CMD_ID_SET_INPUT_POS, false, 8, msg_data);
-// }
+    sendMessage(axis_id, CMD_ID_SET_INPUT_POS, false, 8, msg_data);
+}
 
 void ODriveCAN::SetVelocity(int axis_id, float velocity) {
     SetVelocity(axis_id, velocity, 0.0f);

@@ -1,6 +1,6 @@
 #include "joystick.h"
 
-ronThread::ronThread(const std::string name, Log& logger) : 
+ronThread::ronThread(const std::string name, Log* logger) : 
     threadName(name),
     logger(logger)
     {}

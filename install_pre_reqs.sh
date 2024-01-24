@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P)
 cd "$parent_path"
 
@@ -18,18 +18,17 @@ installpackage () {
 
 installpackage "gpiod"
 installpackage "libgpiod-dev"
+installpackage "cmake"
+installpackage "build-essential"
+installpackage "libgtest-dev"
+
+sudo pip3 install -U jetson-stats
 
 git submodule update --init --recursive
 
-# cd "$parent_path"/src/libraries/libzmq
-# mkdir build
-# cd build
-# cmake .. -DCPPZMQ_BUILD_TESTS=OFF
-# sudo make -j4 install
-
-# cd "$parent_path"/src/libraries/cppzmq
-# rm -fr build
-# mkdir build
-# cd build
-# cmake .. -DCPPZMQ_BUILD_TESTS=OFF
-# sudo make -j4 install
+cd "$parent_path"/src/libraries/msgpack11
+mkdir build
+cd build
+cmake ../
+make
+sudo make install

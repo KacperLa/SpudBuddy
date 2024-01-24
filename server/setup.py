@@ -9,7 +9,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'Flask==2.1.3',
+        'Flask',
         'numpy',
         'flask-socketio',
         'simple-websocket',

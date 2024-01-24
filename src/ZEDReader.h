@@ -28,7 +28,7 @@ using namespace sl;
 class ZEDReader : public ronThread
 {
 public:
-  ZEDReader(const std::string& areaFile, const std::string name, Log& logger);
+  ZEDReader(const std::string& areaFile, const std::string name, Log* logger);
   virtual ~ZEDReader();
 
   bool getState(IMUState& data);
@@ -49,8 +49,8 @@ protected:
     Camera zed;
     std::string m_areaFile{""};
 
-    std::int64_t time_limit{1.0 / 10.0}; // 20 Hz
-    std::int64_t forget_time{1.0 / 1.0}; // 1 Hz
+    float time_limit{0.10f}; // 20 Hz
+    float forget_time{1.0f}; // 1 Hz
 
     slamState_t slam_state;
     IMUState imu_state;

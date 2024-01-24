@@ -67,7 +67,7 @@ void StateReader::loop() {
       rates_t rates = shared_state.imu_state.rates;
       data = {angles,
               rates,
-              get_time_ms(),
+              get_time_micro(),
               1, 0};
       updateState(data);
 

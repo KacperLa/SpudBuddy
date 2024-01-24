@@ -1,6 +1,6 @@
 #include "joystick.h"
 
-Joystick::Joystick(const std::string name, Log& logger) : ronThread(name, logger) {
+Joystick::Joystick(const std::string name, Log* logger) : ronThread(name, logger) {
 }
 
 void Joystick::addDevice(const std::string new_device)

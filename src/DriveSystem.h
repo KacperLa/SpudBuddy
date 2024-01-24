@@ -12,23 +12,15 @@
 #include <iterator>
 #include "math.h"
 #include "common.h"
+#include "shared_structs.h"
 
 #include "drivers/ODriveCAN/ODriveCAN.h"
 #include<ronThread.h>
 
-
-struct DriveState {
-    float velocity {0};
-    float position {0};
-    float vBusVoltage {0};
-    int state {0};
-    bool error {0};
-};
-
 class DriveSystem : public ronThread
 {
 public:
-    DriveSystem(const int id[], const bool dir[], const int size, const std::string name, Log& logger);
+    DriveSystem(const int id[], const bool dir[], const int size, const std::string name, Log* logger);
     virtual ~DriveSystem();
 
     virtual bool open();

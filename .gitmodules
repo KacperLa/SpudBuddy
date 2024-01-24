@@ -17,3 +17,7 @@
 	url = git@github.com:tech-systems/panes.git
 [submodule "server/static/urdf-loaders"]
 	path = server/static/urdf-loaders
+	url = git@github.com:gkjohnson/urdf-loaders.git
+[submodule "src/libraries/pybind11"]
+	path = src/libraries/pybind11
+	url = git@github.com:pybind/pybind11.git

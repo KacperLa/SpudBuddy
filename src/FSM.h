@@ -8,7 +8,7 @@
 #include "DriveSystem.h"
 
 
-#include<Logging.h>
+#include<logger.h>
 
 #include <iostream>
 #include <cmath>
@@ -76,7 +76,7 @@ public:
     static robot_state_t desired_state;
     static robot_state_t actual_state;
 
-    static std::int64_t error_time; // 50 Hz
+    static std::int64_t error_time; // 1000 Hz
 
     static IMUState imu_state;
 

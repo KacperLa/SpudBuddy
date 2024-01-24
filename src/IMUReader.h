@@ -14,6 +14,8 @@
 #include "drivers/bno055/BNO055.h"
 #include<ronThread.h>
 
+#include <shared_structs.h>
+
 typedef BNO055::euler_angles angles_t;
 typedef BNO055::gyro rates_t;
 typedef BNO055::bno_cal imu_cal_info_t;
@@ -32,18 +34,10 @@ typedef enum {
   SENSOR_SYSTEM_ERROR
 } IMU_ERROR;
 
-struct IMUState {
-  angles_t angles {0.0, 0.0, 0.0};
-  rates_t rates   {0.0, 0.0, 0.0};
-  std::int64_t timestamp;
-  bool quality {false};
-  bool error {false};
-};
-
 class IMUReader : public ronThread
 {
 public:
-  IMUReader(const std::string& bus, const std::string name, Log& logger);
+  IMUReader(const std::string& bus, const std::string name, Log* logger);
   virtual ~IMUReader();
 
   bool getState(IMUState& data);
@@ -65,8 +59,8 @@ protected:
   BNO055 bno055{};
   std::string bus{"0"};
 
-  std::int64_t time_limit  {1000 / 10}; // 20 Hz
-  std::int64_t forget_time {1}; // 1 Hz
+  std::uint64_t time_limit  {1000000 / 10}; // 10 Hz
+  std::uint64_t forget_time {1000000 / 1};  // 1 Hz
 
   IMUState imu_state;
 

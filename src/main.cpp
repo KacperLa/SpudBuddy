@@ -76,7 +76,7 @@ void signal_handler(const int signal)
      */
 
     std::string msg = "[MAIN] System signal: (" + std::to_string(signal) + ")";
-    logger.pushEvent(msg);
+    logger_threaded->pushEvent(msg);
     switch (signal) {
 
     case SIGINT:
@@ -116,9 +116,11 @@ int main(int argc, char *argv[])
         signal(SIGUSR1, signal_handler);
         signal(SIGUSR2, signal_handler);
 
-        logger.startThread();
+        logger_threaded = new LogThreaded();
 
-        StateReader imu("/dev/i2c-1", "IMU", logger);
+        Log* logger = static_cast<Log*>(logger_threaded);
+
+        ZEDReader imu("/dev/i2c-1", "IMU", logger);
         imu.startThread();
         
         int nodes[2] = {fsm_handle::leftNode, fsm_handle::rightNode};
@@ -126,7 +128,7 @@ int main(int argc, char *argv[])
         DriveSystem drive_system(nodes, nodeRev, 2, "DriveSystem", logger);
         drive_system.startThread();
 
-        fsm_handle::set_logger(&logger);
+        fsm_handle::set_logger(logger);
         fsm_handle::setDriveSystem(&drive_system);
         fsm_handle::start();
 
@@ -143,22 +145,19 @@ int main(int argc, char *argv[])
         controllerSettings_t shared_controller_settings_prev = shared_controller_settings; 
         slamState_t          slam_state;
         std::cout << "size of desired: " << sizeof(systemDesired_t) << std::endl;
-        std::int64_t loop_time(1.0 / 20.0); // 20 Hz
-        auto last_publish = get_time_ms();
-        auto last_run = get_time_ms();
-        std::int64_t main_loop(1.0 / 20.0); // 20 Hz
+        std::int64_t publish_loop(1000000.0 / 20.0); // 20 Hz
+        auto last_publish = get_time_micro();
+        auto last_run = get_time_micro();
+        std::int64_t main_loop(1000000.0 / 1000.0); // 20 Hz
+
 
         // shared memory
-        SData<sytemState_t>         shared_actual_map("shared_actual_map",     logger, shared_actual_file,   semaphore_actual_file,   true);
-        SData<systemDesired_t>      shared_desired_map("shared_desired_map",   logger, shared_desired_file,  semaphore_desired_file,  false);
-        SData<controllerSettings_t> shared_settings_map("shared_settings_map", logger, shared_settings_file, semaphore_settings_file, false);
-
-        shared_actual_map.startThread();
-        shared_desired_map.startThread();
-        shared_settings_map.startThread();
+        SData<sytemState_t>         shared_actual_map("shared_actual_map",     logger, shared_actual_file,   true);
+        SData<systemDesired_t>      shared_desired_map("shared_desired_map",   logger, shared_desired_file,  false);
+        SData<controllerSettings_t> shared_settings_map("shared_settings_map", logger, shared_settings_file, false);
 
         while(!time_to_quit){
-                last_run = get_time_ms();
+                last_run = get_time_micro();
     
                 actual_state  = fsm_handle::get_state();
                 imu_error     = imu.getState(imu_state);
@@ -171,7 +170,7 @@ int main(int argc, char *argv[])
                     {
                     std::string err_msg = "[MAIN] imu_error = " + std::to_string(imu_error) + " drive stystem error = " + std::to_string(drive_system_error);
                     std::cout << err_msg << std::endl;
-                    logger.pushEvent(err_msg);
+                    logger->pushEvent(err_msg);
                     fsm_handle::dispatch(FAIL());
                 } else {
                     fsm_handle::updateIMU(imu_state);
@@ -249,7 +248,7 @@ int main(int argc, char *argv[])
 
                 fsm_handle::setPosition(slam_pos);
 
-                if ((get_time_ms() - last_publish) > loop_time){
+                if ((get_time_micro() - last_publish) > publish_loop){
                     shared_actual_state.actual = actual_state;
                     drive_system.requestVbusVoltage();
                     drive_system.getState(shared_actual_state.driveSystem.axis_0, 0);
@@ -261,24 +260,27 @@ int main(int argc, char *argv[])
                     shared_actual_map.setData(shared_actual_state);
                     // std::cout << "x: " << std::to_string(shared_desired_state.joystick.x) << " y: " << std::to_string(shared_desired_state.joystick.y) << std::endl;
                     
-                    last_publish = get_time_ms();
+                    last_publish = get_time_micro();
+                }
+                
+                auto loop_dur = get_time_micro() - last_run;
+                if (loop_dur > main_loop)
+                {
+                    auto loop_dur_in_seconds = loop_dur / 1000000.0;
+                    logger->pushEvent("[MAIN] Main loop over time. actual: " + std::to_string(loop_dur_in_seconds) + " s");
+                } 
+                else
+                {
+                    std::this_thread::sleep_for(std::chrono::microseconds(main_loop-loop_dur));
                 }
 
-                if ((get_time_ms() - last_run) > main_loop){
-                    auto loop_dur = get_time_ms() - last_run;
-                    auto loop_dur_in_seconds = loop_dur / 1000.0;
-
-                    std::string msg = "[MAIN] Main loop over time. actual: " + std::to_string(loop_dur_in_seconds) + " s";
-                    logger.pushEvent(msg);
-                }
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                // log real loop time
+                // logger->pushEvent("Loop time: " + std::to_string(get_time_micro() - last_run) + " micro seconds");
         }
 
 	    fsm_handle::dispatch(SHUTDOWN());
         drive_system.stopThread();
         imu.stopThread();
 
-        logger.stopThread();
         return 0;
 }

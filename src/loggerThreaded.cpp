@@ -1,15 +1,20 @@
-#include <Logging.h>
+
+#include <loggerThreaded.h>
 #include "common.h"
 
-Log::Log()
+LogThreaded::LogThreaded() : 
+    Log()
 {
+    this->startThread();
+    std::cout << "[log] thread has been started." << std::endl; 
 }
 
-Log::~Log()
+LogThreaded::~LogThreaded()
 {
+    this->stopThread();
 }
 
-bool Log::open() {
+bool LogThreaded::open() {
     socket_pub = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_pub == -1) {
         std::cerr << "[log} Error connecting to server" << std::endl;
@@ -31,7 +36,7 @@ bool Log::open() {
     return true;
 }
 
-void Log::closeSocket() {
+void LogThreaded::closeSocket() {
     std::cout << "[LOG] closing socket..." << std::endl;
     if (socket_pub != -1) {
         close(socket_pub);
@@ -39,21 +44,22 @@ void Log::closeSocket() {
     }
 }
 
-bool Log::pullEvent(std::string& data){
+bool LogThreaded::pullEvent(std::string& data){
     return log_queue.wait_dequeue_timed(data, std::chrono::milliseconds(1000));
 }
 
-void Log::pushEvent(std::string  data){
+void LogThreaded::pushEvent(std::string  data){
+    std::cout << "[log] pushing event to queue..." << std::endl;
     log_queue.enqueue(data); 
     std::cout << data << std::endl;
 }
 
-bool Log::publishMessage(const std::string& message) {
+bool LogThreaded::publishMessage(const std::string& message) {
     // Serialize the message using MessagePack
     
     MsgPack message_out = MsgPack::object {
         { "data", message },
-        { "timestamp", get_time_ms() }
+        { "timestamp", get_time_micro() }
     };
 
     //serialize
@@ -77,7 +83,7 @@ bool Log::publishMessage(const std::string& message) {
     return true;
 }
 
-void Log::loop(){
+void LogThreaded::loop(){
     sigset_t set;
     sigfillset(&set);
     pthread_sigmask(SIG_BLOCK, &set, nullptr);
@@ -100,7 +106,7 @@ void Log::loop(){
     closeSocket();
 }
 
-void Log::startThread() {
+void LogThreaded::startThread() {
     // Set the running flag to true
     running.store(true, std::memory_order_relaxed);
     // Create a new thread
@@ -108,7 +114,7 @@ void Log::startThread() {
     std::cout << "[log] thread has started." << std::endl;
 }
 
-void Log::stopThread() {
+void LogThreaded::stopThread() {
     // Set the running flag to false
     running.store(false, std::memory_order_relaxed);
     std::cout << "[Log] joining thread..." << std::endl;

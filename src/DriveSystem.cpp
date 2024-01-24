@@ -1,7 +1,7 @@
 #include "DriveSystem.h"
 #define PI 3.1415926535897932384626433832795
 
-DriveSystem::DriveSystem(const int id[], const bool dir[], const int size, const std::string name, Log& logger) :
+DriveSystem::DriveSystem(const int id[], const bool dir[], const int size, const std::string name, Log* logger) :
     ronThread(name, logger),
     numberOfNodes(size),
     nodeIDs(id),
