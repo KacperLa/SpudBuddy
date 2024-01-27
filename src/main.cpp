@@ -145,10 +145,8 @@ int main(int argc, char *argv[])
         controllerSettings_t shared_controller_settings_prev = shared_controller_settings; 
         slamState_t          slam_state;
         std::cout << "size of desired: " << sizeof(systemDesired_t) << std::endl;
-        std::int64_t publish_loop(1000000.0 / 20.0); // 20 Hz
         auto last_publish = get_time_micro();
         auto last_run = get_time_micro();
-        std::int64_t main_loop(1000000.0 / 1000.0); // 20 Hz
 
 
         // shared memory

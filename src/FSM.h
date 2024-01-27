@@ -3,10 +3,9 @@
 #include <chrono>
 #include <string>
 #include <libraries/tinyfsm/include/tinyfsm.hpp>
-#include "IMUReader.h"
 #include "controller.h"
 #include "DriveSystem.h"
-
+#include <shared_structs.h>
 
 #include<logger.h>
 

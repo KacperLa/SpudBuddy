@@ -13,7 +13,7 @@
 #include <cmath>
 
 #include<ronThread.h>
-#include<IMUReader.h>
+#include <shared_structs.h>
 
 #include <sl/Camera.hpp>
 

@@ -56,8 +56,7 @@ void Joystick::loop() {
 
     // Read the joystick events
     js_event event;
-    float x = 0;
-    float y = 0;
+    JoystickState js_state;
     while (running.load(std::memory_order_relaxed)){
         if (readEvent(event)) {
             // Check the type of the event
@@ -65,15 +64,13 @@ void Joystick::loop() {
                 // Check the axis of the event
                 if (event.number == 0) {
                     // X axis
-                    x = event.value / 32767.0f;
+                    js_state.x = event.value / 32767.0f;
                 } else if (event.number == 1) {
                     // Y axis
-                    y = event.value / 32767.0f;
+                    js_state.y = event.value / 32767.0f;
                 }
 
-                // Add the new values to the queue
-                JoystickState data{x, y, 0};
-                updateState(data);
+                updateState(js_state);
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(5));

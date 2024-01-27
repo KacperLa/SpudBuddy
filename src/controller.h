@@ -6,9 +6,6 @@
 #include "drivers/bno055/BNO055.h"
 #include <shared_structs.h>
 
-typedef BNO055::euler_angles angles_t;
-typedef BNO055::gyro rates_t;
-
 
 class Controller {
 public:

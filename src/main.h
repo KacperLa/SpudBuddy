@@ -3,7 +3,6 @@
 #include <sys/mman.h>
 
 #include<joystick.h>
-#include<IMUReader.h>
 #include<FSM.h>
 #include<sdata.h>
 #include "DriveSystem.h"
@@ -43,3 +42,5 @@ const char* semaphore_settings_file = "/robot_settings_sem";
 LogThreaded* logger_threaded;
 
 const std::int64_t timeout{10};
+const std::int64_t publish_loop (1000000.0 / 1000.0); // 1000 Hz
+const std::int64_t main_loop    (1000000.0 / 4000.0); // 4000 Hz

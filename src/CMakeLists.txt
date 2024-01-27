@@ -35,7 +35,6 @@ if(BUILD_FOR_SIM)
     add_executable(ron_core 
         main.cpp
         joystick.cpp
-        IMUReader.cpp
         controller.cpp
         DriveSystem.cpp
         FSM.cpp
@@ -59,7 +58,6 @@ else()
     add_executable(ron_core 
         main.cpp
         joystick.cpp
-        IMUReader.cpp
         controller.cpp
         DriveSystem.cpp
         FSM.cpp

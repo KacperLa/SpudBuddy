@@ -13,7 +13,6 @@
 #include <cmath>
 
 #include<ronThread.h>
-#include<IMUReader.h>
 
 struct slamState_t {
   float x{0.0f};

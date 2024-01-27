@@ -15,10 +15,14 @@
 #include <shared_mutex>
 #include <condition_variable>
 
+#include <linux/futex.h>
+#include <sys/syscall.h>
+
 #include <boost/interprocess/sync/interprocess_condition.hpp>
-#include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/interprocess/sync/interprocess_sharable_mutex.hpp>
-#include <boost/interprocess/sync/interprocess_mutex.hpp>
+#include <boost/interprocess/sync/sharable_lock.hpp>
+
+
 // import boost chrone
 #include <boost/chrono.hpp>
 
@@ -53,15 +57,16 @@ protected:
     void producer();
     void consumer();
 
+    bool futexWait(int* addr, int val, int timeoutSeconds);
+    void futexWakeAll(int* addr);
+
     // struct of shared data
     struct shared_data_t {
-        // Double buffer atomic index
         std::atomic<int> index{0};
+        int futex = 0;
         T data[2];
         // shared mutex
-        boost::interprocess::interprocess_mutex mutex;
-        // shared condition variable
-        boost::interprocess::interprocess_condition cv;  
+        boost::interprocess::interprocess_sharable_mutex mutex;
     };
 
     // shared memory
@@ -92,7 +97,7 @@ protected:
     // local index
     int index{0};
 
-    const std::int64_t time_to_sleep{100};
+    const std::int64_t time_to_sleep_ms {100};
 };
 
 #include "sdata.cpp"

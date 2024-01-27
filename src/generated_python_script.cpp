@@ -14,18 +14,6 @@ PYBIND11_MODULE(SDataLib, m) {
         .def("getData", &SData<sytemState_t>::getData)
         .def("setData", &SData<sytemState_t>::setData);
     
-    py::class_<angles_t>(m, "angles_t")
-        .def(py::init<>())
-        .def_readwrite("roll", &angles_t::roll)
-        .def_readwrite("pitch", &angles_t::pitch)
-        .def_readwrite("yaw", &angles_t::yaw);
-
-    py::class_<rates_t>(m, "rates_t")
-        .def(py::init<>())
-        .def_readwrite("gyro_roll", &rates_t::gyro_roll)
-        .def_readwrite("gyro_pitch", &rates_t::gyro_pitch)
-        .def_readwrite("gyro_yaw", &rates_t::gyro_yaw);
-
     py::class_<IMUState>(m, "IMUState")
         .def(py::init<>())
         .def_readwrite("angles", &IMUState::angles)

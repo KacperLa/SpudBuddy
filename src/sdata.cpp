@@ -3,6 +3,43 @@
 
 namespace bip = boost::interprocess;
 
+template <typename T>
+bool SData<T>::futexWait(int* addr, int val, int timeoutMiliseconds) {
+    bool returnVal = false;
+    struct timespec timeout;
+    clock_gettime(CLOCK_MONOTONIC, &timeout);
+
+    // set time to be only 100 nano seconds
+    timeout.tv_sec = 1;
+
+    int ret;
+    do {
+        ret = syscall(SYS_futex, addr, FUTEX_WAIT, val, &timeout, NULL, 0);
+        if (ret == -1 && errno == ETIMEDOUT) {
+            std::cout << "Timeout occurred." << std::endl;
+            break;
+        } 
+        // else
+        // {
+        //     std::cout << "Wait ended returning." << std::endl;
+        //     returnVal = true;
+        // }
+    } while (ret == -1 && errno == EINTR);
+    // print the errno
+    if (ret == -1) {
+        std::cout << "Error in futexWait: " << errno << std::endl;
+    }
+    return returnVal;
+}
+
+template <typename T>
+void SData<T>::futexWakeAll(int* addr) {
+    int ret;
+    do {
+        ret = syscall(SYS_futex, addr, FUTEX_WAKE, INT_MAX, NULL, NULL, 0);
+    } while (ret == -1 && errno == EINTR);
+}
+
 //Template class initialization for the shared memory file and semaphore
 template <typename T>
 SData<T>::SData(const std::string name, Log* logger, const std::string& mapped_file, bool isProducer) : 
@@ -69,14 +106,6 @@ void SData<T>::closeMap() {
     if (munmap(shared_data, sizeof(shared_data_t)) == -1) {
         log("Error un-mmapping the file");
     }
-
-    if (sem_close(semaphore) == -1) {
-        log("Error closing semaphore");
-    }
-
-    if (sem_unlink(semaphore_file.c_str()) == -1) {
-        log("Error unlinking semaphore");
-    }
 }
 
 template <typename T>
@@ -98,11 +127,12 @@ bool SData<T>::isDataNew(T& data) {
 
 template<typename T>
 void SData<T>::setData(const T& data) {
-    std::cout << "Setting data" << std::endl;   
     std::unique_lock<std::mutex> lock(thread_lock);
     data_private = data;
     newData = true;
-    cv.notify_all();
+    if (isProducer){
+        cv.notify_all();
+    }
 }
 
 // Producer loop
@@ -113,7 +143,7 @@ void SData<T>::producer() {
     {
         std::unique_lock<std::mutex> lock(thread_lock);
         dataReady = (cv.wait_for(lock, 
-                    std::chrono::milliseconds(time_to_sleep),
+                    std::chrono::milliseconds(time_to_sleep_ms),
                     [this] { return isDataNew(data); }
                     ));
     }
@@ -123,12 +153,16 @@ void SData<T>::producer() {
         shared_data->data[(shared_data->index.load(std::memory_order_acquire) + 1) % 2] = data;
         // lock the boost mutex from the shared data
         // befoer incrementing the index
-        boost::interprocess::scoped_lock<boost::interprocess::interprocess_mutex> lock(shared_data->mutex);
+        // boost::interprocess::scoped_lock<boost::interprocess::interprocess_mutex> lock(shared_data->mutex);
+        // lock shared lock from the shared data as a writer
+        boost::interprocess::scoped_lock<boost::interprocess::interprocess_sharable_mutex> lock(shared_data->mutex);
         // increment the index
         shared_data->index.fetch_add(1, std::memory_order_release);
         // log("Index updated"+std::to_string(shared_data->index.load(std::memory_order_acquire)));
         // notify the consumer
-        shared_data->cv.notify_all();
+        // assign the index to the futex
+        shared_data->futex = shared_data->index.load(std::memory_order_acquire);
+        futexWakeAll(&shared_data->futex);
     }
     else 
     {
@@ -138,22 +172,17 @@ void SData<T>::producer() {
 
 template <typename T>
 void SData<T>::consumer() {
-        boost::interprocess::scoped_lock<boost::interprocess::interprocess_mutex> lock(shared_data->mutex);  
-        boost::posix_time::ptime timeout = boost::posix_time::microsec_clock::universal_time() + boost::posix_time::milliseconds(time_to_sleep);
-        if (shared_data->cv.timed_wait(lock,
-                             timeout,
-                             [this]{ return (shared_data->index.load(std::memory_order_acquire) != index);}))
-        
-        {
-            // copy the shared_data to the private data
-            setData(shared_data->data[shared_data->index.load(std::memory_order_acquire) % 2]);
-            // save the index
-            index = shared_data->index.load(std::memory_order_acquire);
-        }
-        // else
-        // {
-        //     log("Consumer no new data, time out");
-        // }
+    static bool dataReady;
+    boost::interprocess::sharable_lock<boost::interprocess::interprocess_sharable_mutex> lock(shared_data->mutex, boost::interprocess::defer_lock);
+    dataReady = futexWait(&shared_data->futex, (shared_data->index.load(std::memory_order_acquire)), time_to_sleep_ms);
+    log("Consumer index after wait: "+std::to_string(shared_data->index.load(std::memory_order_acquire)));
+
+    if (dataReady)
+    {
+        lock.lock();
+        // copy the shared_data to the private data
+        setData(shared_data->data[shared_data->index.load(std::memory_order_acquire) % 2]);
+    }
 }
 
 template <typename T>

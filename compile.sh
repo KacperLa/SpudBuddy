@@ -1,4 +1,6 @@
 #!/bin/bash
+export CC=/usr/bin/gcc-10
+export CXX=/usr/bin/g++-10
 
 set -e 
 set -x
