@@ -59,8 +59,8 @@ protected:
   BNO055 bno055{};
   std::string bus{"0"};
 
-  std::uint64_t time_limit  {1000000 / 10}; // 10 Hz
-  std::uint64_t forget_time {1000000 / 1};  // 1 Hz
+  std::int64_t time_limit  {1000000 / 10}; // 10 Hz
+  std::int64_t forget_time {1000000 / 1};  // 1 Hz
 
   IMUState imu_state;
 

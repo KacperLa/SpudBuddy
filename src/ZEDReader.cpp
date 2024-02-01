@@ -54,18 +54,18 @@ bool ZEDReader::getState(IMUState& data) {
 
 bool ZEDReader::getState(slamState_t& data) {
   std::lock_guard<std::mutex> lock(thread_lock);
-  data = slam_state;
+  std::memcpy(&data, &slam_state, sizeof(slamState_t));
   return data.tracking_state;
 }
 
 void ZEDReader::updateState(IMUState data) {
   std::lock_guard<std::mutex> lock(thread_lock);
-  imu_state = data;
+  std::memcpy(&imu_state, &data, sizeof(IMUState));
 }
 
 void ZEDReader::updateState(slamState_t data) {
   std::lock_guard<std::mutex> lock(thread_lock);
-  slam_state = data;
+  std::memcpy(&slam_state, &data, sizeof(slamState_t));
 }
 
 void ZEDReader::stop() {
@@ -93,43 +93,54 @@ void ZEDReader::loop() {
     }
 
     while (running) {
-        if (zed.grab() == ERROR_CODE::SUCCESS)
-        {
+        auto last_run = get_time_micro();
+        // if (zed.grab() == ERROR_CODE::SUCCESS)
+        // {
             // Get the position of the camera in a fixed reference frame (the World Frame)
-            tracking_state = zed.getPosition(camera_path, REFERENCE_FRAME::WORLD);
+            // tracking_state = zed.getPosition(camera_path, REFERENCE_FRAME::WORLD);
 
             if (zed.getSensorsData(sensors_data, TIME_REFERENCE::CURRENT ) == sl::ERROR_CODE::SUCCESS)
             {   
                 auto zedAngles = sensors_data.imu.pose.getEulerAngles(true);
                 auto zedRates = sensors_data.imu.angular_velocity;
-                angles_t angles = {-1.0f*zedAngles[0], -1.0f*zedAngles[1], zedAngles[2]};
-                rates_t rates =   {-1.0f*zedRates[0], -1.0f*zedRates[1], zedRates[2]};
-                data = {angles,
-                        rates,
+                data = {{-1.0f*zedAngles[0], -1.0f*zedAngles[1], zedAngles[2]},
+                        {-1.0f*zedRates[0],  -1.0f*zedRates[1],  zedRates[2]},
                         get_time_micro(), 1, 0};
+                // log("yaw: " + std::to_string(data.angles.yaw) + " pitch: " + std::to_string(data.angles.pitch) + " roll: " + std::to_string(data.angles.roll));
             }
             updateState(data);
 
-            if (tracking_state == POSITIONAL_TRACKING_STATE::OK)
-            {
-                slam_data = {camera_path.getTranslation().tx, 
-                            camera_path.getTranslation().ty, 
-                            camera_path.getTranslation().tz, 
-                            true};
-            } else {
-                slam_data.tracking_state = false;
-            }
-            // log("ZEDReader: " + std::to_string(data.angles.roll) + " " + std::to_string(data.angles.pitch) + " " + std::to_string(data.angles.yaw) + " " + std::to_string(slam_data.tracking_state));
-            updateState(slam_data);
-        }  
+        //     if (tracking_state == POSITIONAL_TRACKING_STATE::OK)
+        //     {
+        //         slam_data = {camera_path.getTranslation().tx, 
+        //                      camera_path.getTranslation().ty, 
+        //                      camera_path.getTranslation().tz, 
+        //                      true};
+        //     } else {
+        //         slam_data.tracking_state = false;
+        //     }
+        //     // log("ZEDReader: " + std::to_string(data.angles.roll) + " " + std::to_string(data.angles.pitch) + " " + std::to_string(data.angles.yaw) + " " + std::to_string(slam_data.tracking_state));
+        //     updateState(slam_data);
+        // }  
+        // else
+        // {
+        //     // watch dog set error is no new readingin a while
+        //     // std::cerr << "Error getting ZED data." << std::endl;
+        //     data.error = true;
+        //     std::cout << "Error getting ZED data." << std::endl;
+        // }
+
+        auto loop_dur = get_time_micro() - last_run;
+        if (loop_dur > loop_time)
+        {
+            auto loop_dur_in_seconds = loop_dur / 1000000.0;
+
+            log("Zed loop over time. actual: " + std::to_string(loop_dur_in_seconds) + " s should be: " + std::to_string(loop_time/1000000.0) + " s ");
+        } 
         else
         {
-            // watch dog set error is no new readingin a while
-            // std::cerr << "Error getting ZED data." << std::endl;
-            data.error = true;
-            std::cout << "Error getting ZED data." << std::endl;
+            std::this_thread::sleep_for(std::chrono::microseconds(loop_time-loop_dur));
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     zed.disablePositionalTracking();
     zed.close();

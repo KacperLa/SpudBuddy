@@ -49,14 +49,15 @@ bool LogThreaded::pullEvent(std::string& data){
 }
 
 void LogThreaded::pushEvent(std::string  data){
-    std::cout << "[log] pushing event to queue..." << std::endl;
     log_queue.enqueue(data); 
-    std::cout << data << std::endl;
 }
 
 bool LogThreaded::publishMessage(const std::string& message) {
     // Serialize the message using MessagePack
     
+    // print message locally
+    std::cout << message << std::endl;
+
     MsgPack message_out = MsgPack::object {
         { "data", message },
         { "timestamp", get_time_micro() }
@@ -65,7 +66,6 @@ bool LogThreaded::publishMessage(const std::string& message) {
     //serialize
     std::string msgpack_bytes = message_out.dump();
     
-
     // Check if socket is still open
     if (socket_pub == -1) {
         std::cerr << "[log] Socket is closed" << std::endl;
@@ -88,17 +88,18 @@ void LogThreaded::loop(){
     sigfillset(&set);
     pthread_sigmask(SIG_BLOCK, &set, nullptr);
     
-    if (!open()) {
-        std::cerr << "[log] Error opening socket" << std::endl;
-        running.store(false, std::memory_order_relaxed);
-    }
+    // if (!open()) {
+    //     std::cerr << "[log] Error opening socket" << std::endl;
+    //     running.store(false, std::memory_order_relaxed);
+    // }
 
     std::string message;
 
     // Read the queue events
     while (running.load(std::memory_order_relaxed)) {
         if (pullEvent(message)) {
-           publishMessage(message);
+            std::cout << message << std::endl;
+        //    publishMessage(message);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }

@@ -20,7 +20,8 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 
 
-find_package(PythonLibs EXACT 3.8 REQUIRED)
+find_package(PythonLibs EXACT 3.9 REQUIRED)
+find_package(PythonInterp EXACT 3.9 REQUIRED)
 include_directories (${PYTHON_INCLUDE_DIRS})
 
 add_subdirectory(libraries)

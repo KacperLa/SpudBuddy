@@ -544,8 +544,11 @@
 				ronPointer.position.set(new_pos.x*100,
 										0,
 										new_pos.z*100);
-	
-				document.getElementById('ron-battery').innerHTML = data["actual"]["voltage_0"].toFixed(2) + " V";
+				// if voltage is not null, set the battery icon to the correct voltage
+				if (data["actual"]["voltage_0"] != null)
+				{
+					document.getElementById('ron-battery').innerHTML = data["actual"]["voltage_0"].toFixed(2) + " V";
+				}
 				// console.log(data["actual"]["orientation_yaw"], data["actual"]["orientation_pitch"], data["actual"]["orientation_roll"])
 				let statusText = "Status: UNKNOWN";
                 switch(data["actual"]['state']) {

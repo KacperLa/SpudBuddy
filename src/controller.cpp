@@ -32,20 +32,19 @@ void calcTheta(float cmd, float actual, float & error)
     }
 }
 
-bool Controller::calculateOutput(robot_state_t actual_state, robot_state_t desired_state, float& outputLeft, float& outputRight)
+void calcPositionError(position_t actual, position_t desired, float & error_distance)
 {
-    float d_x = (desired_state.position.x - actual_state.position.x);
-    float d_y = (desired_state.position.y - actual_state.position.y);
+    float d_x = (desired.x - actual.x);
+    float d_y = (desired.y - actual.y);
+    error_distance = sqrt(pow(d_x, 2) + pow(d_y, 2));
+}
 
+void calcDesiredYaw(position_t actual, position_t desired, float & desired_yaw)
+{
+    float d_x = (desired.x - actual.x);
+    float d_y = (desired.y - actual.y);
+    desired_yaw = (atan(d_y / d_x)/M_PI) * 180.0f;
     
-    // Calculate positon error
-    float position_error = sqrt(pow(d_x, 2) + pow(d_y, 2));
-        
-   
-    // Calculate yaw error
-    float yaw_error = 0.0f;
-    float desired_yaw = (atan(d_y / d_x)/M_PI) * 180.0f;
-
     if (d_x < 0 && d_y < 0)
     {
         desired_yaw = -1.0f * (180.0f - desired_yaw);
@@ -56,85 +55,121 @@ bool Controller::calculateOutput(robot_state_t actual_state, robot_state_t desir
     } 
     
     desired_yaw = -1.0f * desired_yaw;
+}
 
-    calcTheta(desired_yaw, actual_state.angles.yaw, yaw_error);
-    if (fabs(yaw_error) < 2){
+
+    
+    
+
+bool Controller::calculateOutput(systemState_t actual_state, systemState_t desired_state, float& outputLeft, float& outputRight)
+{
+    // Positon error
+    float position_error;   
+    calcPositionError(actual_state.robot.position, desired_state.robot.position, position_error);
+
+    if (fabs(position_error) < actual_state.controller.dead_zone_pos)
+    {
+        position_error = 0;
+    }
+
+    // Position PID
+    float position_output = position_pid.getOutput(position_error);
+    desired_state.robot.velocity = -1.0f * position_output;
+
+    // ====================================
+    // Yaw error
+    float yaw_error;
+    calcDesiredYaw(actual_state.robot.position, desired_state.robot.position, desired_state.robot.angles.yaw);
+    calcTheta(desired_state.robot.angles.yaw, actual_state.robot.angles.yaw, yaw_error);
+
+    if (fabs(yaw_error) < actual_state.controller.dead_zone_yaw)
+    {
         yaw_error = 0;
     }
-    // std::cout << std::fixed << std::setprecision(2) << "yaw_e: " << yaw_error << " d_yaw: " << desired_yaw << " a_yaw: " << actual_state.angles.yaw << " d_x: " << d_x << " d_y" << d_y << std::endl;
-    std::cout << std::fixed << std::setprecision(2) << "distance: " << position_error << std::endl;
-    
-    // Calculate yaw pid output
+
+    // Yaw PID
     float yaw_pos_output = yaw_pid.getOutput(yaw_error);
-    desired_state.rates.gyro_yaw = -1.0f * yaw_pos_output;
+    desired_state.robot.rates.gyro_yaw = -1.0f * yaw_pos_output;
 
-    // if position error is with iin the dead zome dont move
-    if (fabs(position_error) > m_settings.dead_zone) {
-        // Calculate position pid output
-        float position_output = position_pid.getOutput(position_error);
-        desired_state.velocity = -1.0f * position_output;
-    }
-        
-    float yaw_rate_error = (actual_state.leftVelocity - actual_state.rightVelocity) + desired_state.rates.gyro_yaw;
-    double yaw_output = yaw_rate_pid.getOutput(yaw_rate_error); //(yaw_error * yaw_rate_pid.getP()) + (actual_state.rates.gyro_yaw * yaw_rate_pid.getD());
-        
+    // ====================================
+    // Velocity error
+    float velocity_error;
+    actual_state.robot.velocity = (actual_state.robot.leftVelocity+actual_state.robot.rightVelocity) / 2.0f;
+    velocity_error = desired_state.robot.velocity - actual_state.robot.velocity;
 
-    if (fabs(yaw_output) < 0.001f){
-        yaw_output = 0;
+    // Velocity PID
+    double velocity_output;
+    velocity_output = velocity_pid.getOutput(velocity_error);
+
+
+    // ====================================
+    // Yaw rate error
+    float yaw_rate_error = (actual_state.robot.leftVelocity - actual_state.robot.rightVelocity) + desired_state.robot.rates.gyro_yaw;
+    
+    if (fabs(yaw_rate_error) < actual_state.controller.dead_zone_yaw_rate)
+    {
+        yaw_rate_error = 0;
     }
     
-    double velocity_output = velocity_pid.getOutput(actual_state.velocity, (-1*desired_state.velocity));
+    // Yaw rate PID
+    double yaw_output = yaw_rate_pid.getOutput(yaw_rate_error);
+        
+   
+    // ====================================
+    // Pitch error
+    double pitch_error = desired_state.robot.angles.pitch - (actual_state.robot.angles.pitch + velocity_output);
 
-    double pitch_error = desired_state.angles.pitch - (actual_state.angles.pitch + velocity_output);
-    double pitch_output   =  (pitch_error * pitch_pid.getP()) - (actual_state.rates.gyro_pitch * pitch_pid.getD());
+    if (fabs(pitch_error) > 25){
+        // logger->pushEvent("[FSM] Robot fell, going into error state." + std::to_string(actual_state.angles.pitch));
+        std::cout << "Pitch error too large! is: " <<  actual_state.robot.angles.pitch << " should be: " << desired_state.robot.angles.pitch << std::endl;
+        return false;    
+    }
 
-    if (fabs(pitch_output) < 0.001f){
+    // Pitch PID
+    double pitch_output   =  (pitch_error * actual_state.controller.pitch_p) - (actual_state.robot.rates.gyro_pitch * actual_state.controller.pitch_d);
+
+    if (fabs(pitch_output) < actual_state.controller.dead_zone_pitch){
         pitch_output = 0;
     }
 
-   if (fabs(actual_state.angles.pitch - (desired_state.angles.pitch)) > 25){
-        std::cout << "Pitch error too large! is: " <<  actual_state.angles.pitch << " should be: " << desired_state.angles.pitch << std::endl;
-        return false;
-    }
 
-    if (!std::isnan(pitch_output) && !std::isnan(yaw_output) && !std::isnan(velocity_output)) {
+    // ====================================
+    // Set Outputs
+    if (!std::isnan(pitch_output) && 
+        !std::isnan(yaw_output) && 
+        !std::isnan(velocity_output)) 
+    {
         outputLeft  = pitch_output + yaw_output;
         outputRight = pitch_output - yaw_output;
-    } else {
+    }
+    else
+    {
         outputLeft  = 0;
         outputRight = 0;
     }
+    
+    // std::cout << std::fixed << std::setprecision(2) << "yaw_e: " << yaw_error << " d_yaw: " << desired_yaw << " a_yaw: " << actual_state.angles.yaw << " d_x: " << d_x << " d_y" << d_y << std::endl;
+    // std::cout << std::fixed << std::setprecision(2) << "distance: " << position_error << std::endl;
+    
     return true;
 }
  
 void Controller::get_settings(controllerSettings_t & settings) {
-    std::unique_lock<std::mutex> lock(mtx);
-    settings.pitch_p = pitch_pid.getP();
-    settings.pitch_i = pitch_pid.getI();
-    settings.pitch_d = pitch_pid.getD();
-    settings.velocity_p = velocity_pid.getP();
-    settings.velocity_i = velocity_pid.getI();
-    settings.velocity_d = velocity_pid.getD();
-    settings.yaw_rate_p = yaw_rate_pid.getP();
-    settings.yaw_rate_i = yaw_rate_pid.getI();
-    settings.yaw_rate_d = yaw_rate_pid.getD();
+    std::lock_guard<std::mutex> lock(mtx);
+    pitch_pid.getGains(settings.pitch_p, settings.pitch_i, settings.pitch_d);
+    velocity_pid.getGains(settings.velocity_p, settings.velocity_i, settings.velocity_d);
+    yaw_rate_pid.getGains(settings.yaw_rate_p, settings.yaw_rate_i, settings.yaw_rate_d);
+    yaw_pid.getGains(settings.yaw_p, settings.yaw_i, settings.yaw_d);
+    position_pid.getGains(settings.positon_p, settings.positon_i, settings.positon_d);
     settings.pitch_zero = m_settings.pitch_zero;
-    settings.yaw_p = yaw_pid.getP();
-    settings.yaw_i = yaw_pid.getI();
-    settings.yaw_d = yaw_pid.getD();
-    settings.positon_p = position_pid.getP();
-    settings.positon_i = position_pid.getI();
-    settings.positon_d = position_pid.getD();
-    settings.dead_zone = m_settings.dead_zone;
 }
 
 void Controller::set_settings(const controllerSettings_t & settings) {
-    std::unique_lock<std::mutex> lock(mtx);
+    std::lock_guard<std::mutex> lock(mtx);
     pitch_pid.setPID(settings.pitch_p, settings.pitch_i, settings.pitch_d);
     velocity_pid.setPID(settings.velocity_p, settings.velocity_i, settings.velocity_d);
     yaw_rate_pid.setPID(settings.yaw_rate_p, settings.yaw_rate_i, settings.yaw_rate_d);
     m_settings.pitch_zero = settings.pitch_zero;
     yaw_pid.setPID(settings.yaw_p, settings.yaw_i, settings.yaw_d);
     position_pid.setPID(settings.positon_p, settings.positon_i, settings.positon_d);
-    m_settings.dead_zone = settings.dead_zone;
 }

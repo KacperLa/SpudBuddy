@@ -22,6 +22,8 @@ public:
 protected:
     virtual void loop() = 0;
 
+    static void* loopParent(void* arg);
+
     void log(std::string strToLog);
     
     std::string threadName;

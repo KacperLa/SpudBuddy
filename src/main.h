@@ -2,6 +2,9 @@
 #include <thread>
 #include <sys/mman.h>
 
+#include <pthread.h>
+#include <sched.h>
+
 #include<joystick.h>
 #include<FSM.h>
 #include<sdata.h>
@@ -34,13 +37,8 @@ const char* shared_actual_file   = "/tmp/robot_actual";
 const char* shared_desired_file  = "/tmp/robot_desired";
 const char* shared_settings_file = "/tmp/robot_settings";
 
-// location of semaphore
-const char* semaphore_actual_file   = "/robot_actual_sem";
-const char* semaphore_desired_file  = "/robot_desired_sem";
-const char* semaphore_settings_file = "/robot_settings_sem";
-
 LogThreaded* logger_threaded;
 
 const std::int64_t timeout{10};
 const std::int64_t publish_loop (1000000.0 / 1000.0); // 1000 Hz
-const std::int64_t main_loop    (1000000.0 / 4000.0); // 4000 Hz
+const std::int64_t main_loop    (1000000.0 / 5000.0); // 4000 Hz

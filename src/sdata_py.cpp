@@ -9,10 +9,10 @@ PYBIND11_MODULE(SDataLib, m) {
 
     m.doc() = "pybind11 sdata plugin"; // optional module docstring
 
-    py::class_<SData<sytemState_t>>(m, "SData")
+    py::class_<SData<systemState_t>>(m, "SData")
         .def(py::init<const std::string&, bool>())
-        .def("getData", &SData<sytemState_t>::getData)
-        .def("setData", &SData<sytemState_t>::setData);
+        .def("getData", &SData<systemState_t>::getData)
+        .def("setData", &SData<systemState_t>::setData);
     
     py::class_<angles_t>(m, "angles_t")
         .def(py::init<>())
@@ -71,7 +71,11 @@ PYBIND11_MODULE(SDataLib, m) {
         .def_readwrite("positon_p", &controllerSettings_t::positon_p)
         .def_readwrite("positon_i", &controllerSettings_t::positon_i)
         .def_readwrite("positon_d", &controllerSettings_t::positon_d)
-        .def_readwrite("dead_zone", &controllerSettings_t::dead_zone);
+        .def_readwrite("dead_zone_pos", &controllerSettings_t::dead_zone_pos)
+        .def_readwrite("dead_zone_yaw", &controllerSettings_t::dead_zone_yaw)
+        .def_readwrite("dead_zone_vel", &controllerSettings_t::dead_zone_vel)
+        .def_readwrite("dead_zone_pitch", &controllerSettings_t::dead_zone_pitch)
+        .def_readwrite("dead_zone_yaw_rate", &controllerSettings_t::dead_zone_yaw_rate);
 
     py::class_<JoystickState>(m, "JoystickState")
         .def(py::init<>())
@@ -92,11 +96,11 @@ PYBIND11_MODULE(SDataLib, m) {
         .def_readwrite("axis_0", &driveSystemState::axis_0)
         .def_readwrite("axis_1", &driveSystemState::axis_1);
 
-    py::class_<sytemState_t>(m, "sytemState_t")
+    py::class_<systemState_t>(m, "systemState_t")
         .def(py::init<>())
-        .def_readwrite("actual", &sytemState_t::actual)
-        .def_readwrite("driveSystem", &sytemState_t::driveSystem)
-        .def_readwrite("controller_settings", &sytemState_t::controller_settings);
+        .def_readwrite("robot", &systemState_t::robot)
+        .def_readwrite("drive_system", &systemState_t::drive_system)
+        .def_readwrite("controller", &systemState_t::controller);
 
     py::class_<systemDesired_t>(m, "systemDesired_t")
         .def(py::init<>())

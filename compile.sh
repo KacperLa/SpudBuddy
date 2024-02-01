@@ -9,4 +9,6 @@ cd build
 cmake ..
 cd ..
 make -j4 -C build 
-make install
+
+# Copy python lib to server folder 
+cp build/lib/SDataLib.cpython-39-aarch64-linux-gnu.so server/SDataLib.so

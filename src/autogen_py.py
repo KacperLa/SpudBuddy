@@ -24,10 +24,10 @@ PYBIND11_MODULE(SDataLib, m) {
 
     m.doc() = "pybind11 sdata plugin"; // optional module docstring
 
-    py::class_<SData<sytemState_t>>(m, "SData")
+    py::class_<SData<systemState_t>>(m, "SData")
         .def(py::init<const std::string&, bool>())
-        .def("getData", &SData<sytemState_t>::getData)
-        .def("setData", &SData<sytemState_t>::setData);
+        .def("getData", &SData<systemState_t>::getData)
+        .def("setData", &SData<systemState_t>::setData);
     
 '''
 

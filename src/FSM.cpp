@@ -24,22 +24,13 @@ void Robot::react(RESET const &) {
 
 void Robot::react(cmd_data const &e)
 {
-  desired_state.velocity  = e.v;
-  desired_state.rates.gyro_yaw = e.w;
+  desired_state.robot.velocity  = e.v;
+  desired_state.robot.rates.gyro_yaw = e.w;
 }
 
-void Robot::updateIMU(IMUState & new_imu_state)
+bool Robot::requestDriveSystemStatus()
 {
-  if ((get_time_micro() - new_imu_state.timestamp) > error_time){
-    // logger->pushEvent("[FSM] IMU is too old.");
-  }
-  actual_state.angles = new_imu_state.angles;
-  actual_state.rates = new_imu_state.rates;
-  imu_timestamp = new_imu_state.timestamp;
-  // logger->pushEvent("roll: " + std::to_string(actual_state.angles.roll) + ", pitch: " + std::to_string(actual_state.angles.pitch) + ", yaw: " + std::to_string(actual_state.angles.yaw) + ", x: " + std::to_string(actual_state.position.x) + ", y: " + std::to_string(actual_state.position.y) + ", z: " + std::to_string(actual_state.position.z) + ", tracking: " + std::to_string(actual_state.positionStatus));    
-}
 
-bool Robot::requestDriveSystemStatus(){ 
   return drive_system->getStatus();
 }
 
@@ -81,23 +72,25 @@ class Idle;
 class Error;
 class Running;
 
-robot_state_t Robot::desired_state = {{0.0f, 0.0f},{0.0f, 0.0f},{0.0f, 0.0f}, 0,{0.0, 7.0, 90.0}, {0.0, 0.0, 0.0}, 0.0, 0.0, 0.0};
-robot_state_t Robot::actual_state;
+systemState_t Robot::desired_state;
+systemState_t Robot::actual_state;
 Controller Robot::controller;
 
 DriveSystem* Robot::drive_system = {nullptr};
 Log* Robot::logger = {nullptr};
-std::int64_t  Robot::imu_timestamp;
-std::int64_t  Robot::error_time = (1000000.0 / 1000.0); // 50 Hz
+std::int64_t  Robot::error_time = (1000000.0 / 390.0); // 400 Hz
 
 IMUState Robot::imu_state;
 
 class Running : public Robot
 {
   void entry() override {
-    actual_state.state = 2;
-    logger->pushEvent("[FSM] Entering running state.");
-    drive_system->enable();
+    actual_state.robot.state = 2;
+    if (updateSubsystemStatus())
+    {
+      logger->pushEvent("[FSM] Entering running state.");
+      drive_system->enable();
+    }
   };
   void exit() override {
     logger->pushEvent("[FSM] Exiting running state.");
@@ -106,26 +99,14 @@ class Running : public Robot
   void react(Update const &) override {
     float leftWheel_cmd;
     float rightWheel_cmd;
-    
 
-    drive_system->getVelocity(actual_state.leftVelocity, leftNode);
-    drive_system->getVelocity(actual_state.rightVelocity, rightNode);
-    actual_state.velocity = (actual_state.leftVelocity+actual_state.rightVelocity) / 2.0f;
-
-
-    if (fabs(actual_state.angles.pitch - desired_state.angles.pitch) > 50){
-      logger->pushEvent("[FSM] Robot fell, going into error state." + std::to_string(actual_state.angles.pitch));
-      transit<Error>();
+    if (controller.calculateOutput(actual_state, desired_state, leftWheel_cmd, rightWheel_cmd)){
+      drive_system->setTorque(leftWheel_cmd, leftNode);
+      drive_system->setTorque(rightWheel_cmd, rightNode);
     } else {
-      if (controller.calculateOutput(actual_state, desired_state, leftWheel_cmd, rightWheel_cmd)){
-        drive_system->setTorque(leftWheel_cmd, leftNode);
-        drive_system->setTorque(rightWheel_cmd, rightNode);
-      } else {
-        logger->pushEvent("[FSM] Robot controller failure\n");
-        transit<Error>();
-      }
+      logger->pushEvent("[FSM] Robot controller failure\n");
+      transit<Error>();
     }
-
    
   };
   void react(START const &) override {
@@ -139,7 +120,7 @@ class Running : public Robot
 class Error : public Robot
 {
   void entry() override {
-    actual_state.state = 3;
+    actual_state.robot.state = 3;
     logger->pushEvent("[FSM] Entering error state.");
     drive_system->ESTOP();
   };  
@@ -162,7 +143,7 @@ class Error : public Robot
 class Idle : public Robot
 {
   void entry() override {
-    actual_state.state = 1;
+    actual_state.robot.state = 1;
     logger->pushEvent("[FSM] Entering idle state.");
     //play_melody(idle_enter_melody, idle_enter_noteDurations);
     drive_system->disable();
@@ -180,6 +161,43 @@ class Idle : public Robot
     transit<Idle>();
   }
 };
+
+bool Robot::updateSubsystemStatus()
+{
+  // get drive system status
+  drive_system->getState(actual_state.drive_system.axis_0, 0);
+  drive_system->getState(actual_state.drive_system.axis_1, 1);
+
+  if (drive_system->getStatus() == false)
+  {
+    logger->pushEvent("[FSM] Drive system is in error. Entering error state.");
+    return false;
+  }
+  return true;
+}
+
+void Robot::updateIMU(IMUState & new_imu_state)
+{
+  // if ((get_time_micro() - new_imu_state.timestamp) > error_time)
+  // {
+  //   logger->pushEvent("[FSM] IMU is too old.");
+  // }
+
+  // Check if the IMU is in error
+  // if (new_imu_state.error &&
+  //     (actual_state.robot.state != RobotStates::ERROR || 
+  //     actual_state.robot.state != RobotStates::IDLE))
+  // {
+  //   logger->pushEvent("[FSM] IMU is in error. Entering error state.");
+  //   dispatch(FAIL());
+  // }
+  
+
+
+  actual_state.robot.angles = new_imu_state.angles;
+  actual_state.robot.rates = new_imu_state.rates;
+  // logger->pushEvent("roll: " + std::to_string(actual_state.robot.angles.roll) + ", pitch: " + std::to_string(actual_state.robot.angles.pitch) + ", yaw: " + std::to_string(actual_state.robot.angles.yaw));// + ", x: " + std::to_string(actual_state.position.x) + ", y: " + std::to_string(actual_state.position.y) + ", z: " + std::to_string(actual_state.position.z) + ", tracking: " + std::to_string(actual_state.positionStatus));    
+}
 
 void Robot::react(FAIL const &)
 {

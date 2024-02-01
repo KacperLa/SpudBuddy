@@ -5,11 +5,11 @@ PROJECT(ron_core LANGUAGES C CXX VERSION 1.0.0)
 INCLUDE(ExternalProject)
 
 # Require a C++ compiler that supports at least C++17 standard
-SET(CMAKE_CXX_STANDARD 17)
+SET(CMAKE_CXX_STANDARD 20)
 SET(CMAKE_STANDARD_REQUIRES ON)
 
 # Set the Compilation flags.
-SET(CMAKE_CXX_FLAGS "-std=gnu++14 -pthread -g")
+SET(CMAKE_CXX_FLAGS "-std=gnu++2a -pthread -pg -g")
 
 option(BUILD_FOR_SIM "An option for custom build" OFF)
 

@@ -1,8 +1,8 @@
-#!venv/bin/python3.10
+#!venv/bin/python3
 
 import copy
 from email import message
-import click
+# import click
 from git_commands import *
 from flask import Flask, send_file, request,render_template, current_app, g, abort
 from flask.cli import with_appcontext
@@ -16,15 +16,11 @@ from os.path import exists
 import random
 from subprocess import check_output, Popen, PIPE, STDOUT
 import time
-from mmap_functions import *
 from flask import Response
 import io
 from flask_socketio import SocketIO
 import cv2
-import mmap
-import struct
-import posix_ipc
-import threading
+import SDataLib
 
 DEVNULL = open(os.devnull, 'w')
 
@@ -58,196 +54,11 @@ MAP_NAME_ACTUAL  = '/tmp/robot_actual'
 MAP_NAME_DESIRED = '/tmp/robot_desired' 
 MAP_NAME_SETTINGS = '/tmp/robot_settings'
 
-SEMAPHORE_NAME_ACTUAL  = "/robot_actual_sem"
-SEMAPHORE_NAME_DESIRED = "/robot_desired_sem"
-SEMAPHORE_NAME_SETTINGS = "/robot_settings_sem"
-
-
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-class ThreadSafeStruct:
-    def __init__(self, data):
-        self.data = data
-        self.lock = threading.Lock()
-
-    def set(self, key, value):
-        with self.lock:
-            self.data[key] = value
-
-    def get(self, key):
-        with self.lock:
-            return self.data.get(key)
-
-    def get_all(self):
-        with self.lock:
-            return self.data
-
-    def remove(self, key):
-        with self.lock:
-            if key in self.data:
-                del self.data[key]
-
-# settings struct 
-settings_format_mapping = {
-    'pP': 'f',
-    'pI': 'f',
-    'pD': 'f',
-    'vP': 'f',
-    'vI': 'f',
-    'vD': 'f',
-    'yP': 'f',
-    'yI': 'f',
-    'yD': 'f',
-    'pitchZero': 'f',
-    'oP': 'f',
-    'oI': 'f',
-    'oD': 'f',
-    'dP': 'f',
-    'dI': 'f',
-    'dD': 'f',
-    'deadZone': 'f'
-}
-
-settings_struct = {
-    'pP': None,
-    'pI': None,
-    'pD': None,
-    'vP': None,
-    'vI': None,
-    'vD': None,
-    'yP': None,
-    'yI': None,
-    'yD': None,
-    'pitchZero': None,
-    'oP': None,
-    'oI': None,
-    'oD': None,
-    'dP': None,
-    'dI': None,
-    'dD': None,
-    'deadZone': None
-}
-
-settings = ThreadSafeStruct(settings_struct)
-settings_mmap = mmap_writer(SEMAPHORE_NAME_SETTINGS, MAP_NAME_SETTINGS, settings_format_mapping)
-
-# desired state struct
-desired_state_format_mapping = {
-    'state': 'i',
-    'js_x': 'f',
-    'js_y': 'f',
-    'time': 'q',
-    'pos_x': 'f',
-    'pos_y': 'f'
-}
-
-desired_state_struct = {
-    'state': 0,
-    'js_x': 0.0,
-    'js_y': 0.0,
-    'time': 0,
-    'pos_x': 0.0,
-    'pos_y': 0.0
-}
-
-desired_state = ThreadSafeStruct(desired_state_struct) 
-desired_state_mmap = mmap_writer(SEMAPHORE_NAME_DESIRED, MAP_NAME_DESIRED, desired_state_format_mapping)   
-
-
-# actual state struct
-actual_state_format_mapping = {
-    'position_x': 'f',
-    'position_y': 'f',
-    'position_z': 'f',
-    'positionDeadReckoning_x': 'f',
-    'positionDeadReckoning_y': 'f',
-    'positionDeadReckoning_z': 'f',
-    'positionSlam_x': 'f',
-    'positionSlam_y': 'f',
-    'positionSlam_z': 'f',
-    'positionStatus': 'i',
-    'orientation_roll': 'd',
-    'orientation_pitch': 'd',
-    'orientation_yaw': 'd',
-    'angular_velocity_roll': 'd',
-    'angular_velocity_pitch': 'd',
-    'angular_velocity_yaw': 'd',
-    'velocity': 'f',
-    'left_velocity': 'f',
-    'right_velocity': 'f',
-    'state': 'i',
-    'velocity_0': 'f',
-    'position_0': 'f',
-    'voltage_0': 'f',
-    'state_0': 'i',
-    'error_0': 'i',
-    'velocity_1': 'f',
-    'position_1': 'f',
-    'voltage_1': 'f',
-    'state_1': 'i',
-    'error_1': 'i',
-    'pP': 'f',
-    'pI': 'f',
-    'pD': 'f',
-    'vP': 'f',
-    'vI': 'f',
-    'vD': 'f',
-    'yP': 'f',
-    'yI': 'f',
-    'yD': 'f',
-    'pitchZero': 'f',
-    'oP': 'f',
-    'oI': 'f',
-    'oD': 'f',
-    'dP': 'f',
-    'dI': 'f',
-    'dD': 'f',
-    'deadZone': 'f'
-}
-
-actual_state_struct = {
-    'position_x': 0.0,
-    'position_y': 0.0,
-    'position_z': 0.0,
-    'positionDeadReckoning_x': 0.0,
-    'positionDeadReckoning_y': 0.0,
-    'positionDeadReckoning_z': 0.0,
-    'positionSlam_x': 0.0,
-    'positionSlam_y': 0.0,
-    'positionSlam_z': 0.0,
-    'positionStatus': 0,
-    'orientation_roll': 0.0,
-    'orientation_pitch': 0.0,
-    'orientation_yaw': 0.0,
-    'angular_velocity_roll': 0.0,
-    'angular_velocity_pitch': 0.0,
-    'angular_velocity_yaw': 0.0,
-    'velocity': 0.0,
-    'left_velocity': 0.0,
-    'right_velocity': 0.0,
-    'state': 0,
-    'pP': 0.0,
-    'pI': 0.0,
-    'pD': 0.0,
-    'vP': 0.0,
-    'vI': 0.0,
-    'vD': 0.0,
-    'yP': 0.0,
-    'yI': 0.0,
-    'yD': 0.0,
-    'pitchZero': 0.0,
-    'oP': 0.0,
-    'oI': 0.0,
-    'oD': 0.0,
-    'dP': 0.0,
-    'dI': 0.0,
-    'dD': 0.0,
-    'deadZone': 0.0
-}
-
-actual_state = ThreadSafeStruct(actual_state_struct)
-actual_state_mmap = mmap_reader(SEMAPHORE_NAME_ACTUAL, MAP_NAME_ACTUAL, actual_state_format_mapping)
+actual_reader = SDataLib.SData(MAP_NAME_ACTUAL, False)
+actual_state = SDataLib.systemState_t()
 
 @app.route("/")
 def home():
@@ -257,13 +68,25 @@ def generate_data():
     data_json = config['robotState']
     while True:
         #check if ron_core is running
-        if not check_if_running("ron_core"):
-            desired_state.set('state', 0)
-        desired_state_mmap.write(desired_state.get_all())
+        # if not check_if_running("ron_core"):
+            # desired_state.set('state', 0)
+        # desired_state_mmap.write(desired_state.get_all())
         
-        actual_data = actual_state_mmap.read(actual_state_struct)
-        for key in actual_data.keys():
-            data_json['actual'][key] = actual_data[key] 
+        actual_reader.getData(actual_state)
+
+        data_json['actual']['state'] = actual_state.robot.state
+        data_json['actual']['pos_x'] = actual_state.robot.position.x
+        data_json['actual']['pos_y'] = actual_state.robot.position.y
+        data_json['actual']['pos_z'] = actual_state.robot.position.z
+        # orientation
+        data_json['actual']['orientation_yaw']   = actual_state.robot.angles.yaw
+        data_json['actual']['orientation_pitch'] = actual_state.robot.angles.pitch
+        data_json['actual']['orientation_roll']  = actual_state.robot.angles.roll
+
+        print(data_json['actual']['orientation_yaw'], data_json['actual']['orientation_pitch'], data_json['actual']['orientation_roll'])
+
+        # for key in actual_data.keys():
+        #     data_json['actual'][key] = actual_data[key] 
         yield f"data: {json.dumps(data_json)}\n\n"
         time.sleep(.1)
     semaphore.close()
@@ -311,23 +134,23 @@ def handle_message(message):
     # put x and y in desired state
     data = json.loads(message)
     # convert string to floats
-    desired_state.set('js_x', float(data['x']))
-    desired_state.set('js_y', float(data['y']))
+    # desired_state.set('js_x', float(data['x']))
+    # desired_state.set('js_y', float(data['y']))
 
 @app.route('/request_position', methods=['POST'])
 def request_position():
     # ensure that the position is a float
-    desired_state.set('pos_x', float(request.json.get('pos_x')))
-    desired_state.set('pos_y', float(request.json.get('pos_y')))
-    print("got updated position", desired_state.get('pos_x'), desired_state.get('pos_y'))
+    # desired_state.set('pos_x', float(request.json.get('pos_x')))
+    # desired_state.set('pos_y', float(request.json.get('pos_y')))
+    # print("got updated position", desired_state.get('pos_x'), desired_state.get('pos_y'))
     return {"success": True}
 
 @app.route('/request_state')
 def request_state():
     # get state from args and set it to desired state
     # ensure that the state is an int
-    desired_state.set('state', int(request.args.get('state')))
-    print(desired_state.get('state'))
+    # desired_state.set('state', int(request.args.get('state')))
+    # print(desired_state.get('state'))
     return {"success": True}
 
 @app.route('/request_settings', methods=['GET', 'POST'])

@@ -12,7 +12,7 @@ public:
     Controller();
     ~Controller();
 
-    bool calculateOutput(robot_state_t actual_state, robot_state_t desired_state, float& outputLeft, float& outputRight);
+    bool calculateOutput(systemState_t actual_state, systemState_t desired_state, float& outputLeft, float& outputRight);
 
     void get_settings(controllerSettings_t & settings);
     void set_settings(const controllerSettings_t & settings);

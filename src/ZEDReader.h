@@ -49,8 +49,7 @@ protected:
     Camera zed;
     std::string m_areaFile{""};
 
-    float time_limit{0.10f}; // 20 Hz
-    float forget_time{1.0f}; // 1 Hz
+    std::int64_t  loop_time = (1000000.0 / 400.0); // 400 Hz
 
     slamState_t slam_state;
     IMUState imu_state;

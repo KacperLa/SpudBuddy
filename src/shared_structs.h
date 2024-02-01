@@ -69,23 +69,27 @@ struct robot_state_t
 
 struct controllerSettings_t
 {
-    float pitch_p;
-    float pitch_i;
-    float pitch_d;
-    float velocity_p;
-    float velocity_i;
-    float velocity_d;
-    float yaw_rate_p;
-    float yaw_rate_i;
-    float yaw_rate_d;
-    float pitch_zero;
-    float yaw_p;
-    float yaw_i;
-    float yaw_d;
-    float positon_p;
-    float positon_i;
-    float positon_d;
-    float dead_zone;
+    double pitch_p;
+    double pitch_i;
+    double pitch_d;
+    double velocity_p;
+    double velocity_i;
+    double velocity_d;
+    double yaw_rate_p;
+    double yaw_rate_i;
+    double yaw_rate_d;
+    double pitch_zero;
+    double yaw_p;
+    double yaw_i;
+    double yaw_d;
+    double positon_p;
+    double positon_i;
+    double positon_d;
+    double dead_zone_pos;
+    double dead_zone_yaw;
+    double dead_zone_vel;
+    double dead_zone_pitch;
+    double dead_zone_yaw_rate;
 
     // fill the struct with zeros
     controllerSettings_t() noexcept { std::memset(this, 0, sizeof(controllerSettings_t)); }
@@ -117,10 +121,10 @@ struct driveSystemState {
     DriveState axis_1;
 };
 
-struct sytemState_t {
-    robot_state_t actual;
-    driveSystemState driveSystem;
-    controllerSettings_t controller_settings;
+struct systemState_t {
+    robot_state_t        robot;
+    driveSystemState     drive_system;
+    controllerSettings_t controller;
 };
 
 struct systemDesired_t {

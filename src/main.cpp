@@ -2,6 +2,7 @@
 #include "iostream"
 #include <sys/resource.h>
 #include "common.h"
+#include <sched.h>
 
 
 void request_transition(int action){
@@ -109,7 +110,17 @@ int main(int argc, char *argv[])
 {
         std::cout << "Starting up.." << std::endl;
         std::cout << __cplusplus << std::endl;
-        setpriority(PRIO_PROCESS, getpid(), 1);
+        // setpriority(PRIO_PROCESS, getpid(), 1);
+
+        struct sched_param param;
+        param.sched_priority = 1;
+        int canSetRealTimeThreadPriority = (sched_setscheduler(pthread_self(), SCHED_FIFO, &param) == 0);
+
+        if (!canSetRealTimeThreadPriority)
+        {
+            std::cout << "Failed to set real-time thread priority." << std::endl;
+        }
+        
 
         signal(SIGINT, signal_handler);
         signal(SIGABRT, signal_handler);
@@ -138,41 +149,42 @@ int main(int argc, char *argv[])
         bool drive_system_error = false;
 
         robot_state_t        actual_state;
-        sytemState_t         shared_actual_state;
+        systemState_t         shared_actual_state;
         systemDesired_t      shared_desired_state;
         systemDesired_t      shared_desired_state_prev = shared_desired_state;
         controllerSettings_t shared_controller_settings;
         controllerSettings_t shared_controller_settings_prev = shared_controller_settings; 
         slamState_t          slam_state;
-        std::cout << "size of desired: " << sizeof(systemDesired_t) << std::endl;
         auto last_publish = get_time_micro();
-        auto last_run = get_time_micro();
-
+        auto last_run     = get_time_micro();
 
         // shared memory
-        SData<sytemState_t>         shared_actual_map("shared_actual_map",     logger, shared_actual_file,   true);
-        SData<systemDesired_t>      shared_desired_map("shared_desired_map",   logger, shared_desired_file,  false);
-        SData<controllerSettings_t> shared_settings_map("shared_settings_map", logger, shared_settings_file, false);
+        SData<systemState_t>         shared_actual_map("shared_actual_map",     logger, shared_actual_file,   true);
+        SData<systemDesired_t>       shared_desired_map("shared_desired_map",   logger, shared_desired_file,  false);
+        SData<controllerSettings_t>  shared_settings_map("shared_settings_map", logger, shared_settings_file, false);
+
+        while (!shared_actual_map.isMemoryMapped() ||
+               !shared_desired_map.isMemoryMapped() ||
+               !shared_settings_map.isMemoryMapped())
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+
+        position_t dr_pos;
+        position_t slam_pos;
+        float rel_x, rel_y;
+
 
         while(!time_to_quit){
                 last_run = get_time_micro();
     
-                actual_state  = fsm_handle::get_state();
-                imu_error     = imu.getState(imu_state);
+                imu_error = imu.getState(imu_state);
+                fsm_handle::updateIMU(imu_state);
+
+                shared_actual_state = fsm_handle::getActualState();
 
                 shared_desired_map.getData(shared_desired_state);
                 shared_settings_map.getData(shared_controller_settings);
-
-                if ((imu_error || fsm_handle::requestDriveSystemStatus()) &&
-                    (actual_state.state != RobotStates::ERROR && actual_state.state != RobotStates::IDLE)) 
-                    {
-                    std::string err_msg = "[MAIN] imu_error = " + std::to_string(imu_error) + " drive stystem error = " + std::to_string(drive_system_error);
-                    std::cout << err_msg << std::endl;
-                    logger->pushEvent(err_msg);
-                    fsm_handle::dispatch(FAIL());
-                } else {
-                    fsm_handle::updateIMU(imu_state);
-                }
 
                 // request a transition only if the desired state has changed
                 if (shared_desired_state.state != shared_desired_state_prev.state){
@@ -210,25 +222,17 @@ int main(int argc, char *argv[])
                     std::cout << "dP: " << std::to_string(shared_controller_settings.positon_p) << std::endl;
                     std::cout << "dI: " << std::to_string(shared_controller_settings.positon_i) << std::endl;
                     std::cout << "dD: " << std::to_string(shared_controller_settings.positon_d) << std::endl;
-                    std::cout << "deadZone: " << std::to_string(shared_controller_settings.dead_zone) << std::endl;
+                    std::cout << "deadZone: " << std::to_string(shared_controller_settings.dead_zone_pos) << std::endl;
                 }
                 
-                
-                cmd_data new_cmd;
-                new_cmd.v = (fabs(shared_desired_state.joystick.y) > 5) ? shared_desired_state.joystick.y / 100.0f : 0.0f;
-                new_cmd.w = (fabs(shared_desired_state.joystick.x) > 5) ? shared_desired_state.joystick.x / -100.0f : 0.0f;
-                fsm_handle::dispatch(new_cmd);
-
                 fsm_handle::dispatch(Update());
 
                 // calc position guess
-                position_t dr_pos;
                 drive_system.calcDeadRec(imu_state.angles.yaw);
                 drive_system.getDRAbsolute(dr_pos.x, dr_pos.y);
                 fsm_handle::setDRPosition(dr_pos);
 
                 imu.getState(slam_state);
-                position_t slam_pos;
                 slam_pos = {slam_state.x, slam_state.y, slam_state.z};
                 fsm_handle::setSlamPosition(slam_pos);
                 
@@ -238,7 +242,6 @@ int main(int argc, char *argv[])
                     drive_system.requestDRReset();
                 } else {
                     actual_state.positionStatus = (int)PositionState::DEAD_RECKONING;
-                    float rel_x, rel_y;
                     drive_system.getDRReletive(rel_x, rel_y);
                     slam_pos.x += rel_x;
                     slam_pos.y += rel_y;
@@ -247,33 +250,23 @@ int main(int argc, char *argv[])
                 fsm_handle::setPosition(slam_pos);
 
                 if ((get_time_micro() - last_publish) > publish_loop){
-                    shared_actual_state.actual = actual_state;
                     drive_system.requestVbusVoltage();
-                    drive_system.getState(shared_actual_state.driveSystem.axis_0, 0);
-                    drive_system.getState(shared_actual_state.driveSystem.axis_1, 1);
-                    fsm_handle::getControllerSettings(shared_actual_state.controller_settings);
-                    
-                    // std::cout << "x: " << std::to_string(shared_actual_state.actual.positionSlam.x) << " y: " << std::to_string(shared_actual_state.actual.positionSlam.y) << std::endl;
-
-                    shared_actual_map.setData(shared_actual_state);
-                    // std::cout << "x: " << std::to_string(shared_desired_state.joystick.x) << " y: " << std::to_string(shared_desired_state.joystick.y) << std::endl;
-                    
+                    fsm_handle::getControllerSettings(shared_actual_state.controller);
+                    shared_actual_map.setData(shared_actual_state);                    
+                    // logger->pushEvent("roll: " + std::to_string(shared_actual_state.robot.angles.roll) + " pitch: " + std::to_string(shared_actual_state.robot.angles.pitch) + " yaw: " + std::to_string(shared_actual_state.robot.angles.yaw));
                     last_publish = get_time_micro();
                 }
                 
-                auto loop_dur = get_time_micro() - last_run;
-                if (loop_dur > main_loop)
+                if ((get_time_micro() - last_run) > main_loop)
                 {
-                    auto loop_dur_in_seconds = loop_dur / 1000000.0;
-                    logger->pushEvent("[MAIN] Main loop over time. actual: " + std::to_string(loop_dur_in_seconds) + " s");
+                    auto loop_dur_in_seconds = (get_time_micro() - last_run) / 1000000.0;
+                    auto main_loop_in_seconds = main_loop / 1000000.0;
+                    logger->pushEvent("[MAIN] Main loop over time. actual: " + std::to_string(loop_dur_in_seconds) + " s should be: " + std::to_string(main_loop_in_seconds) + " s");
                 } 
                 else
                 {
-                    std::this_thread::sleep_for(std::chrono::microseconds(main_loop-loop_dur));
+                    std::this_thread::sleep_for(std::chrono::microseconds(main_loop-(get_time_micro() - last_run)));
                 }
-
-                // log real loop time
-                // logger->pushEvent("Loop time: " + std::to_string(get_time_micro() - last_run) + " micro seconds");
         }
 
 	    fsm_handle::dispatch(SHUTDOWN());
