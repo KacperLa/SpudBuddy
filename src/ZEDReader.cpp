@@ -46,26 +46,14 @@ bool ZEDReader::open() {
     return true;
 }
 
-bool ZEDReader::getState(IMUState& data) {
-  std::lock_guard<std::mutex> lock(thread_lock);
-  data = imu_state;
-  return data.error;
-}
-
 bool ZEDReader::getState(slamState_t& data) {
-  std::lock_guard<std::mutex> lock(thread_lock);
-  std::memcpy(&data, &slam_state, sizeof(slamState_t));
-  return data.tracking_state;
-}
-
-void ZEDReader::updateState(IMUState data) {
-  std::lock_guard<std::mutex> lock(thread_lock);
-  std::memcpy(&imu_state, &data, sizeof(IMUState));
+  std::memcpy(&data, &slam_state[(update_count.load(std::memory_order_acquire) + 1) % 2], sizeof(slamState_t));
+  return data.tracking_state; 
 }
 
 void ZEDReader::updateState(slamState_t data) {
-  std::lock_guard<std::mutex> lock(thread_lock);
-  std::memcpy(&slam_state, &data, sizeof(slamState_t));
+  std::memcpy(&slam_state[update_count.load(std::memory_order_acquire) % 2], &data, sizeof(slamState_t));
+  update_count.fetch_add(1, std::memory_order_release);
 }
 
 void ZEDReader::stop() {
@@ -75,20 +63,20 @@ void ZEDReader::stop() {
 void ZEDReader::loop() {
     setpriority(PRIO_PROCESS, getpid(), 1);
 
-    IMUState data;
-    slamState_t slam_data;
+    slamState_t tracking_data;
     SensorsData sensors_data;
     Pose camera_path;
     POSITIONAL_TRACKING_STATE tracking_state;
 
     // set error to true untill camera is open
-    data.error = true;
-    updateState(data);
+    tracking_data.tracking_state = false;
+    tracking_data.imu.error = true;
+    updateState(tracking_data);
 
     // Open the ZED device
     if (open() != 1) {
         std::cerr << "Error opening ZED." << std::endl;
-        data.error = true;
+        tracking_data.imu.error = true;
         return;
     }
 
@@ -103,12 +91,12 @@ void ZEDReader::loop() {
             {   
                 auto zedAngles = sensors_data.imu.pose.getEulerAngles(true);
                 auto zedRates = sensors_data.imu.angular_velocity;
-                data = {{-1.0f*zedAngles[0], -1.0f*zedAngles[1], zedAngles[2]},
-                        {-1.0f*zedRates[0],  -1.0f*zedRates[1],  zedRates[2]},
-                        get_time_micro(), 1, 0};
+                tracking_data.imu = {{-1.0f*zedAngles[0], -1.0f*zedAngles[1], zedAngles[2]},
+                                    {-1.0f*zedRates[0],  -1.0f*zedRates[1],  zedRates[2]},
+                                    get_time_micro(), 1, 0};
                 // log("yaw: " + std::to_string(data.angles.yaw) + " pitch: " + std::to_string(data.angles.pitch) + " roll: " + std::to_string(data.angles.roll));
             }
-            updateState(data);
+            updateState(tracking_data);
 
         //     if (tracking_state == POSITIONAL_TRACKING_STATE::OK)
         //     {

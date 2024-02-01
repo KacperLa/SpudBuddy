@@ -49,7 +49,8 @@ bool LogThreaded::pullEvent(std::string& data){
 }
 
 void LogThreaded::pushEvent(std::string  data){
-    log_queue.enqueue(data); 
+    // log_queue.enqueue(data);
+    std::cout << data << std::endl;
 }
 
 bool LogThreaded::publishMessage(const std::string& message) {

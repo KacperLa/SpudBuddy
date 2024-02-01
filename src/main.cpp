@@ -160,113 +160,111 @@ int main(int argc, char *argv[])
 
         // shared memory
         SData<systemState_t>         shared_actual_map("shared_actual_map",     logger, shared_actual_file,   true);
-        SData<systemDesired_t>       shared_desired_map("shared_desired_map",   logger, shared_desired_file,  false);
-        SData<controllerSettings_t>  shared_settings_map("shared_settings_map", logger, shared_settings_file, false);
+        // SData<systemDesired_t>       shared_desired_map("shared_desired_map",   logger, shared_desired_file,  false);
+        // SData<controllerSettings_t>  shared_settings_map("shared_settings_map", logger, shared_settings_file, false);
 
-        while (!shared_actual_map.isMemoryMapped() ||
-               !shared_desired_map.isMemoryMapped() ||
-               !shared_settings_map.isMemoryMapped())
+        while (!shared_actual_map.isMemoryMapped()) // ||
+            //    !shared_desired_map.isMemoryMapped() ||
+            //    !shared_settings_map.isMemoryMapped())
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
         position_t dr_pos;
-        position_t slam_pos;
+        position_t pos;
         float rel_x, rel_y;
 
 
         while(!time_to_quit){
-                last_run = get_time_micro();
-    
-                imu_error = imu.getState(imu_state);
-                fsm_handle::updateIMU(imu_state);
+            last_run = get_time_micro();
 
-                shared_actual_state = fsm_handle::getActualState();
+            imu_error = imu.getState(slam_state);
+            fsm_handle::updateIMU(slam_state.imu);
 
-                shared_desired_map.getData(shared_desired_state);
-                shared_settings_map.getData(shared_controller_settings);
+            shared_actual_state = fsm_handle::getActualState();
 
-                // request a transition only if the desired state has changed
-                if (shared_desired_state.state != shared_desired_state_prev.state){
-                    request_transition(shared_desired_state.state);
-                    shared_desired_state_prev.state = shared_desired_state.state;
-                    std::cout << "The desired state has changed to: " << std::to_string(shared_desired_state.state) << std::endl;
-                }
+            // shared_desired_map.getData(shared_desired_state);
+            // shared_settings_map.getData(shared_controller_settings);
 
-                // update desired positon if it has changed
-                if (memcmp(&shared_desired_state.position, &shared_desired_state_prev.position, sizeof(position_t)) != 0){
-                    fsm_handle::setDesiredPosition(shared_desired_state.position);
-                    shared_desired_state_prev.position = shared_desired_state.position;
-                    std::cout << "The desired position has changed." << std::endl;
-                }
+            // request a transition only if the desired state has changed
+            if (shared_desired_state.state != shared_desired_state_prev.state){
+                request_transition(shared_desired_state.state);
+                shared_desired_state_prev.state = shared_desired_state.state;
+                std::cout << "The desired state has changed to: " << std::to_string(shared_desired_state.state) << std::endl;
+            }
 
-                // update controller settings only if they have changed
-                if (memcmp(&shared_controller_settings, &shared_controller_settings_prev, sizeof(controllerSettings_t)) != 0){
-                    fsm_handle::setControllerSettings(shared_controller_settings);
-                    shared_controller_settings_prev = shared_controller_settings;
-                    std::cout << "The controller settings have changed." << std::endl;
-                    // print the settings
-                    std::cout << "pP: " << std::to_string(shared_controller_settings.pitch_p) << std::endl;
-                    std::cout << "pI: " << std::to_string(shared_controller_settings.pitch_i) << std::endl;
-                    std::cout << "pD: " << std::to_string(shared_controller_settings.pitch_d) << std::endl;
-                    std::cout << "vP: " << std::to_string(shared_controller_settings.velocity_p) << std::endl;
-                    std::cout << "vI: " << std::to_string(shared_controller_settings.velocity_i) << std::endl;
-                    std::cout << "vD: " << std::to_string(shared_controller_settings.velocity_d) << std::endl;
-                    std::cout << "yP: " << std::to_string(shared_controller_settings.yaw_rate_p) << std::endl;
-                    std::cout << "yI: " << std::to_string(shared_controller_settings.yaw_rate_i) << std::endl;
-                    std::cout << "yD: " << std::to_string(shared_controller_settings.yaw_rate_d) << std::endl;
-                    std::cout << "pitchZero: " << std::to_string(shared_controller_settings.pitch_zero) << std::endl;
-                    std::cout << "oP: " << std::to_string(shared_controller_settings.yaw_p) << std::endl;
-                    std::cout << "oI: " << std::to_string(shared_controller_settings.yaw_i) << std::endl;
-                    std::cout << "oD: " << std::to_string(shared_controller_settings.yaw_d) << std::endl;            
-                    std::cout << "dP: " << std::to_string(shared_controller_settings.positon_p) << std::endl;
-                    std::cout << "dI: " << std::to_string(shared_controller_settings.positon_i) << std::endl;
-                    std::cout << "dD: " << std::to_string(shared_controller_settings.positon_d) << std::endl;
-                    std::cout << "deadZone: " << std::to_string(shared_controller_settings.dead_zone_pos) << std::endl;
-                }
-                
-                fsm_handle::dispatch(Update());
+            // update desired positon if it has changed
+            if (memcmp(&shared_desired_state.position, &shared_desired_state_prev.position, sizeof(position_t)) != 0){
+                fsm_handle::setDesiredPosition(shared_desired_state.position);
+                shared_desired_state_prev.position = shared_desired_state.position;
+                std::cout << "The desired position has changed." << std::endl;
+            }
 
-                // calc position guess
-                drive_system.calcDeadRec(imu_state.angles.yaw);
-                drive_system.getDRAbsolute(dr_pos.x, dr_pos.y);
-                fsm_handle::setDRPosition(dr_pos);
+            // update controller settings only if they have changed
+            if (memcmp(&shared_controller_settings, &shared_controller_settings_prev, sizeof(controllerSettings_t)) != 0){
+                fsm_handle::setControllerSettings(shared_controller_settings);
+                shared_controller_settings_prev = shared_controller_settings;
+                std::cout << "The controller settings have changed." << std::endl;
+                // print the settings
+                std::cout << "pP: " << std::to_string(shared_controller_settings.pitch_p) << std::endl;
+                std::cout << "pI: " << std::to_string(shared_controller_settings.pitch_i) << std::endl;
+                std::cout << "pD: " << std::to_string(shared_controller_settings.pitch_d) << std::endl;
+                std::cout << "vP: " << std::to_string(shared_controller_settings.velocity_p) << std::endl;
+                std::cout << "vI: " << std::to_string(shared_controller_settings.velocity_i) << std::endl;
+                std::cout << "vD: " << std::to_string(shared_controller_settings.velocity_d) << std::endl;
+                std::cout << "yP: " << std::to_string(shared_controller_settings.yaw_rate_p) << std::endl;
+                std::cout << "yI: " << std::to_string(shared_controller_settings.yaw_rate_i) << std::endl;
+                std::cout << "yD: " << std::to_string(shared_controller_settings.yaw_rate_d) << std::endl;
+                std::cout << "pitchZero: " << std::to_string(shared_controller_settings.pitch_zero) << std::endl;
+                std::cout << "oP: " << std::to_string(shared_controller_settings.yaw_p) << std::endl;
+                std::cout << "oI: " << std::to_string(shared_controller_settings.yaw_i) << std::endl;
+                std::cout << "oD: " << std::to_string(shared_controller_settings.yaw_d) << std::endl;            
+                std::cout << "dP: " << std::to_string(shared_controller_settings.positon_p) << std::endl;
+                std::cout << "dI: " << std::to_string(shared_controller_settings.positon_i) << std::endl;
+                std::cout << "dD: " << std::to_string(shared_controller_settings.positon_d) << std::endl;
+                std::cout << "deadZone: " << std::to_string(shared_controller_settings.dead_zone_pos) << std::endl;
+            }
+            
+            fsm_handle::dispatch(Update());
 
-                imu.getState(slam_state);
-                slam_pos = {slam_state.x, slam_state.y, slam_state.z};
-                fsm_handle::setSlamPosition(slam_pos);
-                
-                // determine which position to use
-                if (slam_state.tracking_state){
-                    actual_state.positionStatus = (int)PositionState::SLAM;
-                    drive_system.requestDRReset();
-                } else {
-                    actual_state.positionStatus = (int)PositionState::DEAD_RECKONING;
-                    drive_system.getDRReletive(rel_x, rel_y);
-                    slam_pos.x += rel_x;
-                    slam_pos.y += rel_y;
-                } 
+            // calc position guess
+            drive_system.calcDeadRec(imu_state.angles.yaw);
+            drive_system.getDRAbsolute(dr_pos.x, dr_pos.y);
+            fsm_handle::setDRPosition(dr_pos);
 
-                fsm_handle::setPosition(slam_pos);
+            fsm_handle::setSlamPosition(slam_state.position);
+            pos = slam_state.position;
+            // determine which position to use
+            if (slam_state.tracking_state){
+                actual_state.positionStatus = (int)PositionState::SLAM;
+                drive_system.requestDRReset();
+            } else {
+                actual_state.positionStatus = (int)PositionState::DEAD_RECKONING;
+                drive_system.getDRReletive(rel_x, rel_y);
+                pos.x += rel_x;
+                pos.y += rel_y;
+            } 
 
-                if ((get_time_micro() - last_publish) > publish_loop){
-                    drive_system.requestVbusVoltage();
-                    fsm_handle::getControllerSettings(shared_actual_state.controller);
-                    shared_actual_map.setData(shared_actual_state);                    
-                    // logger->pushEvent("roll: " + std::to_string(shared_actual_state.robot.angles.roll) + " pitch: " + std::to_string(shared_actual_state.robot.angles.pitch) + " yaw: " + std::to_string(shared_actual_state.robot.angles.yaw));
-                    last_publish = get_time_micro();
-                }
-                
-                if ((get_time_micro() - last_run) > main_loop)
-                {
-                    auto loop_dur_in_seconds = (get_time_micro() - last_run) / 1000000.0;
-                    auto main_loop_in_seconds = main_loop / 1000000.0;
-                    logger->pushEvent("[MAIN] Main loop over time. actual: " + std::to_string(loop_dur_in_seconds) + " s should be: " + std::to_string(main_loop_in_seconds) + " s");
-                } 
-                else
-                {
-                    std::this_thread::sleep_for(std::chrono::microseconds(main_loop-(get_time_micro() - last_run)));
-                }
+            fsm_handle::setPosition(pos);
+
+            if ((get_time_micro() - last_publish) > publish_loop){
+                drive_system.requestVbusVoltage();
+                fsm_handle::getControllerSettings(shared_actual_state.controller);
+                shared_actual_map.setData(shared_actual_state);                    
+                // logger->pushEvent("roll: " + std::to_string(shared_actual_state.robot.angles.roll) + " pitch: " + std::to_string(shared_actual_state.robot.angles.pitch) + " yaw: " + std::to_string(shared_actual_state.robot.angles.yaw));
+                last_publish = get_time_micro();
+            }
+            
+            if ((get_time_micro() - last_run) > main_loop)
+            {
+                auto loop_dur_in_seconds = (get_time_micro() - last_run) / 1000000.0;
+                auto main_loop_in_seconds = main_loop / 1000000.0;
+                logger->pushEvent("[MAIN] Main loop over time. actual: " + std::to_string(loop_dur_in_seconds) + " s should be: " + std::to_string(main_loop_in_seconds) + " s");
+            } 
+            else
+            {
+                std::this_thread::sleep_for(std::chrono::microseconds(main_loop-(get_time_micro() - last_run)));
+            }
         }
 
 	    fsm_handle::dispatch(SHUTDOWN());

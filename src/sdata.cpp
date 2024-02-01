@@ -4,7 +4,7 @@
 namespace bip = boost::interprocess;
 
 template <typename T>
-bool SData<T>::futexWait(int* addr, int val, int timeoutMilliseconds) {
+bool SData<T>::futexWait(std::atomic<int>* addr, int val, int timeoutMilliseconds) {
     struct timespec timeout;
     timeout.tv_sec = timeoutMilliseconds / 1000;
     timeout.tv_nsec = (timeoutMilliseconds % 1000) * 1000000;
@@ -17,7 +17,11 @@ bool SData<T>::futexWait(int* addr, int val, int timeoutMilliseconds) {
                 // Interrupted by a signal, continue waiting
                 continue;
             } else if (errno == ETIMEDOUT) {
-                // Timeout occurred
+                // log("Timeout in futexWait");
+                return false;
+            } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // The operation was interrupted, the timeout expired, or the futex was not the expected value
+                log("EAGAIN or EWOULDBLOCK in futexWait");
                 return false;
             } else {
                 // Other futex error occurred
@@ -31,7 +35,7 @@ bool SData<T>::futexWait(int* addr, int val, int timeoutMilliseconds) {
 }
 
 template <typename T>
-void SData<T>::futexWakeAll(int* addr) {
+void SData<T>::futexWakeAll(std::atomic<int>* addr) {
     int ret;
     do {
         ret = syscall(SYS_futex, addr, FUTEX_WAKE, INT_MAX, NULL, NULL, 0);
@@ -43,7 +47,6 @@ template <typename T>
 SData<T>::SData(const std::string name, Log* logger, const std::string& mapped_file, bool isProducer) : 
     ronThread(name, logger),
     mapped_file(mapped_file),
-    local_data(T()),
     m_new_data(false),
     memory_mapped(false),
     isProducer(isProducer)
@@ -56,7 +59,6 @@ template <typename T>
 SData<T>::SData(const std::string& mapped_file, bool isProducer) : 
     ronThread("none", static_cast<Log*>(simplelog)),
     mapped_file(mapped_file),
-    local_data(T()),
     memory_mapped(false),
     isProducer(isProducer)
 {
@@ -73,40 +75,50 @@ template <typename T>
 bool SData<T>::openMap() {
     log("Opening memory mapped file");    
     // open the mapped memory file descriptor
-    int fd = open(mapped_file.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    int fd;
+    if (isProducer)
+    {
+        fd = open(mapped_file.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    } else {
+        fd = open(mapped_file.c_str(), O_RDWR);
+    }
+
     if (fd == -1) {
         log("Error opening/creating memory-mapped file");
         return 1;
     }
 
-    // Check if file needs to be truncated
-    struct stat fileStat;
-    if (stat(mapped_file.c_str(), &fileStat) == 0)
+    if (isProducer)
     {
-        off_t currentSize = fileStat.st_size;
-        if (currentSize != sizeof(shared_data_t))
+        // Check if file needs to be truncated
+        struct stat fileStat;
+        if (stat(mapped_file.c_str(), &fileStat) == 0)
         {
-            if (ftruncate(fd, sizeof(shared_data_t)) == -1)
+            off_t currentSize = fileStat.st_size;
+            if (currentSize != sizeof(shared_data_t))
             {
-                log("Error truncating Memmory Map");
-                close(fd);
-                return true;
-            } 
+                if (ftruncate(fd, sizeof(shared_data_t)) == -1)
+                {
+                    log("Error truncating Memmory Map");
+                    close(fd);
+                    return true;
+                } 
+                else
+                {
+                    log("Memmory Map truncated successfully");
+                }
+            }
             else
             {
-                log("Memmory Map truncated successfully");
+                log("Memmory Map already at the correct size");
             }
         }
         else
         {
-            log("Memmory Map already at the correct size");
+            log("Error getting Memmory Map stat");
+            close(fd);
+            return true;
         }
-    }
-    else
-    {
-        log("Error getting Memmory Map stat");
-        close(fd);
-        return true;
     }
 
     // Map the memory
@@ -119,23 +131,18 @@ bool SData<T>::openMap() {
         log("Memory mapped successfully");
     }
 
-    // print index and futex of shared data
-    log("Index: "+std::to_string(shared_data->index.load(std::memory_order_acquire)));
-    log("Futex: "+std::to_string(shared_data->futex));
-
     if (isProducer)
     {
-        shared_data->index.store(0, std::memory_order_release);
-        shared_data->futex = 0;
+        shared_data->producer_futex.store(0, std::memory_order_release);
+        shared_data->consumer_futex.store(0, std::memory_order_release);
         shared_data->triple_buffer[0] = T();
         shared_data->triple_buffer[1] = T();
         shared_data->triple_buffer[2] = T();
 
-        shared_data->producer_index = 0U;
-        shared_data->consumer_index = 1U;
-        shared_data->free_index     = 2U;
+        shared_data->buffer_index[0] = 0U;
+        shared_data->buffer_index[1] = 1U;
+        shared_data->buffer_index[2] = 2U;
     }
-
     return 0;
 }
 
@@ -153,63 +160,34 @@ bool SData<T>::isMemoryMapped() {
 }
 
 template <typename T>
-bool SData<T>::getData(T& data) {
-    bool expected = true;
-    if (m_new_data.compare_exchange_weak(expected, false, std::memory_order_acquire))
-    {
-        std::lock_guard<std::mutex> lock(thread_lock);
-        std::memcpy(&data, &local_data, sizeof(T));
-        return true;
-    }
-    return false;
-}
-
-template <typename T>
-bool SData<T>::isDataNew()
-{
-    bool expected = true;
-    if (m_new_data.compare_exchange_weak(expected, false, std::memory_order_acquire))
-    {
-        std::swap(shared_data->producer_index,
-                  shared_data->free_index);
-        return true;
-    }
-    return false;
+void SData<T>::getData(T& data) {
+    std::memcpy(&data,
+                &local_data[(local_data_new_index.load(std::memory_order_acquire) + 1) % 2],
+                sizeof(T));
 }
 
 template<typename T>
-void SData<T>::setData(const T& data) {
-    {
-        std::lock_guard<std::mutex> lock(thread_lock);
-        std::memcpy(&shared_data->triple_buffer[shared_data->producer_index], 
-                    &data, 
-                    sizeof(T));
-        m_new_data.store(true, std::memory_order_release);
-    }
-    cv.notify_all();
+void SData<T>::setData(const T& data)
+{
+    std::memcpy(&shared_data->triple_buffer[shared_data->buffer_index[shared_data->producer_futex.load(std::memory_order_acquire) % 2]], 
+                &data, 
+                sizeof(T));
+    shared_data->producer_futex.fetch_add(1, std::memory_order_release);
+    futexWakeAll(&shared_data->producer_futex);
 }
 
 // Producer loop
 template <typename T>
 void SData<T>::producer() {
-    static bool dataReady;
+    if (futexWait(&shared_data->producer_futex, shared_data->producer_futex.load(std::memory_order_acquire), time_to_sleep_ms))
     {
-        std::unique_lock<std::mutex> lock(thread_lock);
-        dataReady = (cv.wait_for(lock, 
-                    std::chrono::milliseconds(time_to_sleep_ms),
-                    [this] { return isDataNew(); }
-                    ));
-    }
-    if (dataReady)    
-    {
-        shared_data->mutex.lock();
-        std::swap(shared_data->free_index,
-                  shared_data->consumer_index);
-        shared_data->mutex.unlock();
+        // shared_data->mutex.lock();
+        // atomicly swap the free producer buffer with the consumer buffer
+        shared_data->buffer_index[2].store(shared_data->buffer_index[(shared_data->producer_futex.load(std::memory_order_acquire) + 1) % 2].exchange(shared_data->buffer_index[2], std::memory_order_acquire));
+        // shared_data->mutex.unlock();
 
-        shared_data->index.fetch_add(1, std::memory_order_release);
-        shared_data->futex = shared_data->index.load(std::memory_order_acquire);
-        futexWakeAll(&shared_data->futex);
+        shared_data->consumer_futex.fetch_add(1, std::memory_order_release);
+        futexWakeAll(&shared_data->consumer_futex);
     }
     else 
     {
@@ -219,19 +197,20 @@ void SData<T>::producer() {
 
 template <typename T>
 void SData<T>::consumer() {
-    T data;
-    if (futexWait(&shared_data->futex, (shared_data->index.load(std::memory_order_acquire)), time_to_sleep_ms))
+    if (futexWait(&shared_data->consumer_futex, (shared_data->consumer_futex.load(std::memory_order_acquire)), time_to_sleep_ms))
     {
-        shared_data->mutex.lock_sharable();
-        std::memcpy(&data, 
-                    &shared_data->triple_buffer[shared_data->consumer_index],
+        int current_buffer_index = shared_data->buffer_index[2].load(std::memory_order_acquire);
+        // shared_data->mutex.lock_sharable();
+        std::memcpy(&local_data[local_data_new_index.load(std::memory_order_acquire) % 2], 
+                    &shared_data->triple_buffer[current_buffer_index],
                     sizeof(T));
-        shared_data->mutex.unlock_sharable();
-
+        if (current_buffer_index == shared_data->buffer_index[2].load(std::memory_order_acquire))
         {
-            std::lock_guard<std::mutex> lock(thread_lock);
-            std::memcpy(&local_data, &data, sizeof(T));
-            m_new_data.store(true, std::memory_order_release);
+            local_data_new_index.fetch_add(1, std::memory_order_release);  
+        }
+        else 
+        {
+            log("Buffer index mismatch");
         }
     }
 }

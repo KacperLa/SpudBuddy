@@ -45,7 +45,7 @@ public:
 
     virtual ~SData();
 
-    bool getData(T& data);
+    void getData(T& data);
 
     void setData(const T& data);
 
@@ -61,17 +61,23 @@ protected:
     void producer();
     void consumer();
 
-    bool futexWait(int* addr, int val, int timeoutMilliseconds);
-    void futexWakeAll(int* addr);
+    bool futexWait(std::atomic<int>* addr, int val, int timeoutMilliseconds);
+    void futexWakeAll(std::atomic<int>* addr);
 
     // struct of shared data
     struct shared_data_t {
-        std::atomic<int> index;
-        int futex;
+        std::atomic<int> producer_futex;
+        std::atomic<int> consumer_futex;
         T triple_buffer[3];
-        std::uint8_t producer_index;
-        std::uint8_t consumer_index;
-        std::uint8_t free_index;
+        std::atomic<std::uint8_t> buffer_index[3];
+        // buffer index: 1 = producer 
+        // buffer index: 2 = producer
+        // depending on the current index
+        // the producer will write to one
+        // of the two producer buffers
+        // index   % 2     = active producer buffer
+        // index+1 % 2     = inactive producer buffer
+        // buffer_index: 3 = consumer
         // shared mutex
         boost::interprocess::interprocess_sharable_mutex mutex;
     };
@@ -81,7 +87,8 @@ protected:
     int fd;
     std::atomic<bool> memory_mapped;
 
-    T local_data;
+    std::atomic<std::uint8_t> local_data_new_index;
+    T local_data[2] {T(), T()};
 
     // Shared data structure type from template
     shared_data_t* shared_data;

@@ -9,7 +9,7 @@
 #include <chrono>
 #include "fcntl.h"
 #include "unistd.h"
-
+#include <signal.h>
 #include <logger.h>
 
 class ronThread {

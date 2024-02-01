@@ -9,10 +9,16 @@ ronThread::~ronThread() {}
 
 void ronThread::log(std::string strToLog) {
     std::cout << "[" << threadName << "] " << strToLog << std::endl;
-    // logger.pushEvent("[" + threadName + "] " +  strToLog);
+    // logger->pushEvent("[" + threadName + "] " +  strToLog);
 }
 
 void* ronThread::loopParent(void* arg) {
+    // apply signal mask
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGINT);
+    pthread_sigmask(SIG_BLOCK, &mask, NULL);
+    
     ronThread* self = static_cast<ronThread*>(arg);
     self->log("thread has started.");
     self->loop();

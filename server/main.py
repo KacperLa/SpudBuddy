@@ -83,7 +83,7 @@ def generate_data():
         data_json['actual']['orientation_pitch'] = actual_state.robot.angles.pitch
         data_json['actual']['orientation_roll']  = actual_state.robot.angles.roll
 
-        print(data_json['actual']['orientation_yaw'], data_json['actual']['orientation_pitch'], data_json['actual']['orientation_roll'])
+        # print(data_json['actual']['orientation_yaw'], data_json['actual']['orientation_pitch'], data_json['actual']['orientation_roll'])
 
         # for key in actual_data.keys():
         #     data_json['actual'][key] = actual_data[key] 
