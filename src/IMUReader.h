@@ -40,7 +40,7 @@ public:
   IMUReader(const std::string& bus, const std::string name, Log* logger);
   virtual ~IMUReader();
 
-  bool getState(IMUState& data);
+  bool getState(imuData_t& data);
   void logCalStatus();
 
 private:
@@ -48,7 +48,7 @@ private:
 
 protected:
   void stop();
-  void updateState(IMUState data);
+  void updateState(imuData_t data);
 
   bool open();
   bool readAngles(BNO055::euler_angles& angles);
@@ -62,7 +62,7 @@ protected:
   std::int64_t time_limit  {1000000 / 10}; // 10 Hz
   std::int64_t forget_time {1000000 / 1};  // 1 Hz
 
-  IMUState imu_state;
+  imuData_t imu_state;
 
 };
 

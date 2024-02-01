@@ -23,7 +23,7 @@ struct slamState_t {
 
 struct shared_state_t {
   slamState_t slam_state;
-  IMUState imu_state;
+  imuData_t imu_state;
 };
 
 class StateReader : public ronThread
@@ -32,7 +32,7 @@ public:
   StateReader(const std::string& areaFile, const std::string name, Log& logger);
   virtual ~StateReader();
 
-  bool getState(IMUState& data);
+  bool getState(imuData_t& data);
   bool getState(slamState_t& data);
 
 private:
@@ -40,7 +40,7 @@ private:
 
 protected:
     void stop();
-    void updateState(IMUState data);
+    void updateState(imuData_t data);
     void updateState(slamState_t data);
 
     bool open();
@@ -59,7 +59,7 @@ protected:
     std::int64_t forget_time {1}; // 1 Hz
 
     slamState_t slam_state;
-    IMUState imu_state;
+    imuData_t imu_state;
 };
 
 #endif

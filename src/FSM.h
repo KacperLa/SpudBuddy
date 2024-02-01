@@ -71,14 +71,14 @@ public:
 
     static void getControllerSettings(controllerSettings_t & settings);
     static void setControllerSettings(controllerSettings_t & settings);
-    static void updateIMU(IMUState & new_imu_state);
+    static void updateIMU(imuData_t & new_imu_state);
 
     static systemState_t desired_state;
     static systemState_t actual_state;
 
     static std::int64_t error_time; // 1000 Hz
 
-    static IMUState imu_state;
+    static imuData_t imu_state;
 
     static Controller controller;
     

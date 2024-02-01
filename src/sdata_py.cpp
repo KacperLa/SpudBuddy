@@ -26,13 +26,13 @@ PYBIND11_MODULE(SDataLib, m) {
         .def_readwrite("gyro_pitch", &rates_t::gyro_pitch)
         .def_readwrite("gyro_yaw", &rates_t::gyro_yaw);
 
-    py::class_<IMUState>(m, "IMUState")
+    py::class_<imuData_t>(m, "imuData_t")
         .def(py::init<>())
-        .def_readwrite("angles", &IMUState::angles)
-        .def_readwrite("rates", &IMUState::rates)
-        .def_readwrite("timestamp", &IMUState::timestamp)
-        .def_readwrite("quality", &IMUState::quality)
-        .def_readwrite("error", &IMUState::error);
+        .def_readwrite("angles", &imuData_t::angles)
+        .def_readwrite("rates", &imuData_t::rates)
+        .def_readwrite("timestamp", &imuData_t::timestamp)
+        .def_readwrite("quality", &imuData_t::quality)
+        .def_readwrite("error", &imuData_t::error);
 
     py::class_<position_t>(m, "position_t")
         .def(py::init<>())

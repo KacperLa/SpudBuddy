@@ -60,6 +60,24 @@ void ZEDReader::stop() {
   running = false;
 }
 
+void ZEDReader::getIMUData(imuData_t& data)
+{
+    SensorsData sensors_data;
+    if (zed.getSensorsData(sensors_data, TIME_REFERENCE::CURRENT ) == sl::ERROR_CODE::SUCCESS)
+    {
+        auto zedAngles = sensors_data.imu.pose.getEulerAngles(true);
+        auto zedRates = sensors_data.imu.angular_velocity;
+        data = {{-1.0f*zedAngles[0], -1.0f*zedAngles[1], zedAngles[2]},
+                            {-1.0f*zedRates[0],  -1.0f*zedRates[1],  zedRates[2]},
+                            get_time_micro(), 1, 0};
+        // log("yaw: " + std::to_string(data.angles.yaw) + " pitch: " + std::to_string(data.angles.pitch) + " roll: " + std::to_string(data.angles.roll));
+    }
+    else
+    {
+        data.error = true;
+    }
+}
+
 void ZEDReader::loop() {
     setpriority(PRIO_PROCESS, getpid(), 1);
 
@@ -82,41 +100,31 @@ void ZEDReader::loop() {
 
     while (running) {
         auto last_run = get_time_micro();
-        // if (zed.grab() == ERROR_CODE::SUCCESS)
-        // {
+        if (zed.grab() == ERROR_CODE::SUCCESS)
+        {
             // Get the position of the camera in a fixed reference frame (the World Frame)
-            // tracking_state = zed.getPosition(camera_path, REFERENCE_FRAME::WORLD);
+            tracking_state = zed.getPosition(camera_path, REFERENCE_FRAME::WORLD);
 
-            if (zed.getSensorsData(sensors_data, TIME_REFERENCE::CURRENT ) == sl::ERROR_CODE::SUCCESS)
-            {   
-                auto zedAngles = sensors_data.imu.pose.getEulerAngles(true);
-                auto zedRates = sensors_data.imu.angular_velocity;
-                tracking_data.imu = {{-1.0f*zedAngles[0], -1.0f*zedAngles[1], zedAngles[2]},
-                                    {-1.0f*zedRates[0],  -1.0f*zedRates[1],  zedRates[2]},
-                                    get_time_micro(), 1, 0};
-                // log("yaw: " + std::to_string(data.angles.yaw) + " pitch: " + std::to_string(data.angles.pitch) + " roll: " + std::to_string(data.angles.roll));
+            if (tracking_state == POSITIONAL_TRACKING_STATE::OK)
+            {
+                tracking_data.position = {camera_path.getTranslation().tx, 
+                                          camera_path.getTranslation().ty, 
+                                          camera_path.getTranslation().tz, 
+                                        };
+                tracking_data.tracking_state = true;
+            } else {
+                tracking_data.tracking_state = false;
             }
+            // log("ZEDReader: " + std::to_string(data.angles.roll) + " " + std::to_string(data.angles.pitch) + " " + std::to_string(data.angles.yaw) + " " + std::to_string(slam_data.tracking_state));
             updateState(tracking_data);
-
-        //     if (tracking_state == POSITIONAL_TRACKING_STATE::OK)
-        //     {
-        //         slam_data = {camera_path.getTranslation().tx, 
-        //                      camera_path.getTranslation().ty, 
-        //                      camera_path.getTranslation().tz, 
-        //                      true};
-        //     } else {
-        //         slam_data.tracking_state = false;
-        //     }
-        //     // log("ZEDReader: " + std::to_string(data.angles.roll) + " " + std::to_string(data.angles.pitch) + " " + std::to_string(data.angles.yaw) + " " + std::to_string(slam_data.tracking_state));
-        //     updateState(slam_data);
-        // }  
-        // else
-        // {
-        //     // watch dog set error is no new readingin a while
-        //     // std::cerr << "Error getting ZED data." << std::endl;
-        //     data.error = true;
-        //     std::cout << "Error getting ZED data." << std::endl;
-        // }
+        }  
+        else
+        {
+            // watch dog set error is no new readingin a while
+            // std::cerr << "Error getting ZED data." << std::endl;
+            tracking_data.tracking_state = false;
+            std::cout << "Error getting ZED data." << std::endl;
+        }
 
         auto loop_dur = get_time_micro() - last_run;
         if (loop_dur > loop_time)

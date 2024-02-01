@@ -75,9 +75,9 @@ def generate_data():
         actual_reader.getData(actual_state)
 
         data_json['actual']['state'] = actual_state.robot.state
-        data_json['actual']['pos_x'] = actual_state.robot.position.x
-        data_json['actual']['pos_y'] = actual_state.robot.position.y
-        data_json['actual']['pos_z'] = actual_state.robot.position.z
+        data_json['actual']['positionSlam_x'] = actual_state.robot.position.x
+        data_json['actual']['positionSlam_y'] = actual_state.robot.position.y
+        data_json['actual']['positionSlam_z'] = actual_state.robot.position.z
         # orientation
         data_json['actual']['orientation_yaw']   = actual_state.robot.angles.yaw
         data_json['actual']['orientation_pitch'] = actual_state.robot.angles.pitch

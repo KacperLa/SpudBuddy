@@ -22,7 +22,7 @@ bool StateReader::open()
     return true;
 }
 
-bool StateReader::getState(IMUState& data) {
+bool StateReader::getState(imuData_t& data) {
   std::lock_guard<std::mutex> lock(thread_lock);
   data = imu_state;
   return data.error;
@@ -34,7 +34,7 @@ bool StateReader::getState(slamState_t& data) {
   return data.tracking_state;
 }
 
-void StateReader::updateState(IMUState data) {
+void StateReader::updateState(imuData_t data) {
   std::lock_guard<std::mutex> lock(thread_lock);
   imu_state = data;
 }
@@ -51,7 +51,7 @@ void StateReader::stop() {
 void StateReader::loop() {
     setpriority(PRIO_PROCESS, getpid(), 1);
 
-    IMUState data;
+    imuData_t data;
     slamState_t slam_data;
 
     // set error to true untill camera is open

@@ -18,7 +18,7 @@
 #include <sl/Camera.hpp>
 
 struct slamState_t {
-  IMUState imu;
+  imuData_t imu;
   position_t position;
   bool tracking_state{false};
 };
@@ -31,6 +31,8 @@ public:
   virtual ~ZEDReader();
 
   bool getState(slamState_t& data);
+  
+  void getIMUData(imuData_t& data);
 
 private:
   virtual void loop() override;
@@ -46,11 +48,11 @@ protected:
     Camera zed;
     std::string m_areaFile{""};
 
-    std::int64_t  loop_time = (1000000.0 / 400.0); // 400 Hz
+    std::int64_t  loop_time = (1000000.0 / 15.0); // 400 Hz
 
     std::atomic<int> update_count{0};
     slamState_t slam_state[2];
-    IMUState imu_state;
+    imuData_t imu_state;
 };
 
 #endif

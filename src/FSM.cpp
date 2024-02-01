@@ -80,7 +80,7 @@ DriveSystem* Robot::drive_system = {nullptr};
 Log* Robot::logger = {nullptr};
 std::int64_t  Robot::error_time = (1000000.0 / 390.0); // 400 Hz
 
-IMUState Robot::imu_state;
+imuData_t Robot::imu_state;
 
 class Running : public Robot
 {
@@ -176,7 +176,7 @@ bool Robot::updateSubsystemStatus()
   return true;
 }
 
-void Robot::updateIMU(IMUState & new_imu_state)
+void Robot::updateIMU(imuData_t & new_imu_state)
 {
   // if ((get_time_micro() - new_imu_state.timestamp) > error_time)
   // {

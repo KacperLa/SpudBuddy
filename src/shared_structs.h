@@ -25,7 +25,7 @@ struct rates_t
     rates_t(float gyro_rol, float gyro_pitch, float gyro_yaw) : gyro_roll(gyro_rol), gyro_pitch(gyro_pitch), gyro_yaw(gyro_yaw) {}
 };
 
-struct IMUState
+struct imuData_t
 {
   angles_t angles ;
   rates_t rates;
@@ -34,8 +34,8 @@ struct IMUState
   bool error;
 
   // fill the struct with zeros
-  IMUState() noexcept { std::memset(this, 0, sizeof(IMUState)); }
-  IMUState(angles_t angles, rates_t rates, std::int64_t timestamp, bool quality, bool error) : angles(angles), rates(rates), timestamp(timestamp), quality(quality), error(error) {}
+  imuData_t() noexcept { std::memset(this, 0, sizeof(imuData_t)); }
+  imuData_t(angles_t angles, rates_t rates, std::int64_t timestamp, bool quality, bool error) : angles(angles), rates(rates), timestamp(timestamp), quality(quality), error(error) {}
 };
 
 struct position_t

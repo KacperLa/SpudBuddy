@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
         fsm_handle::start();
 
         JoystickState js_state;
-        IMUState imu_state;
+        imuData_t imu_state;
         bool imu_error = false;
         bool drive_system_error = false;
 
@@ -155,6 +155,7 @@ int main(int argc, char *argv[])
         controllerSettings_t shared_controller_settings;
         controllerSettings_t shared_controller_settings_prev = shared_controller_settings; 
         slamState_t          slam_state;
+        imuData_t            imu_data;
         auto last_publish = get_time_micro();
         auto last_run     = get_time_micro();
 
@@ -179,7 +180,8 @@ int main(int argc, char *argv[])
             last_run = get_time_micro();
 
             imu_error = imu.getState(slam_state);
-            fsm_handle::updateIMU(slam_state.imu);
+            imu.getIMUData(imu_state);
+            fsm_handle::updateIMU(imu_state);
 
             shared_actual_state = fsm_handle::getActualState();
 

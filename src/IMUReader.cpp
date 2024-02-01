@@ -37,7 +37,7 @@ bool IMUReader::readRates(rates_t& rates) {
   return ret < 0;
 }
 
-bool IMUReader::getState(IMUState& data) {
+bool IMUReader::getState(imuData_t& data) {
   std::lock_guard<std::mutex> lock(thread_lock);
   data = imu_state;
   return data.error;
@@ -58,7 +58,7 @@ void IMUReader::logCalStatus(){
    
 }
 
-void IMUReader::updateState(IMUState data) {
+void IMUReader::updateState(imuData_t data) {
   std::lock_guard<std::mutex> lock(thread_lock);
   imu_state = data;
 }
@@ -95,7 +95,7 @@ double calcTheta(double cmd, double actual)
 void IMUReader::loop() {
   setpriority(PRIO_PROCESS, getpid(), 1);
 
-  IMUState data;
+  imuData_t data;
   // Open the BNO055 device
   if (open() != 0) {
     std::cerr << "Error opening IMU." << std::endl;
@@ -114,7 +114,7 @@ void IMUReader::loop() {
   // Read the IMU data
   angles_t angles;
   rates_t rates;
-  IMUState last_state;
+  imuData_t last_state;
 
   while (running) {
     int imu_status = bno055.get_sstat();
