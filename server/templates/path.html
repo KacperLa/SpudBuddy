@@ -506,8 +506,9 @@
 				// controls.enabled = true;
 			};
 			dragControls.updateJoint = (joint, angle) => {
+				console.log(joint);
 				robot_model.setJointValue(joint.name, angle);
-				console.log(joint.name, angle);
+				console.log(joint.name, angle*100);
 			};
 
 			const RON_Pointer_loader = new SVGLoader();
@@ -838,11 +839,11 @@
 
 				} );
 
-				document.addEventListener( 'pointerdown', onPointerDown );
-				document.addEventListener( 'pointerup', onPointerUp );
-				document.addEventListener( 'pointermove', onPointerMove );
-				window.addEventListener( 'resize', onWindowResize );
-				renderer.domElement.addEventListener('click', onPointerClick, false);
+				// document.addEventListener( 'pointerdown', onPointerDown );
+				// document.addEventListener( 'pointerup', onPointerUp );
+				// document.addEventListener( 'pointermove', onPointerMove );
+				// window.addEventListener( 'resize', onWindowResize );
+				// renderer.domElement.addEventListener('click', onPointerClick, false);
 
 				/*******
 				 * Curves
@@ -1038,26 +1039,26 @@
 
 			}
 
-			function onPointerDown( event ) {
+			// function onPointerDown( event ) {
 
-				onDownPosition.x = event.clientX;
-				onDownPosition.y = event.clientY;
+			// 	onDownPosition.x = event.clientX;
+			// 	onDownPosition.y = event.clientY;
 
-			}
+			// }
 
-			function onPointerUp( event ) {
+			// function onPointerUp( event ) {
 
-				onUpPosition.x = event.clientX;
-				onUpPosition.y = event.clientY;
+			// 	onUpPosition.x = event.clientX;
+			// 	onUpPosition.y = event.clientY;
 
-				if ( onDownPosition.distanceTo( onUpPosition ) === 0 ) {
+			// 	if ( onDownPosition.distanceTo( onUpPosition ) === 0 ) {
 
-					transformControl.detach();
-					render();
+			// 		transformControl.detach();
+			// 		render();
 
-				}
+			// 	}
 
-			}
+			// }
 
 			function onPointerClick(event) {
 				// event.preventDefault();
