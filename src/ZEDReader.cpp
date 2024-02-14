@@ -6,7 +6,8 @@
 #include "common.h"
 
 ZEDReader::ZEDReader(const std::string& areaFile, const std::string name, Log* logger) :
-  ronThread(name, logger)
+  ronThread(name, logger),
+  shared_tracking_state(logger, shared_tracking_state_file,  true)
 {
     m_areaFile = areaFile;
 }
@@ -43,17 +44,18 @@ bool ZEDReader::open() {
         zed.close();
         return false;
     }
+
+    // SpatialMappingParameters mapping_parameters;
+    // mapping_parameters.save_texture = true;  // Scene texture will be recorded
+    // returned_state = zed.enableSpatialMapping(mapping_parameters);
+    // if (returned_state != ERROR_CODE::SUCCESS)
+    // {
+    //     log("Enabling spatial mapping failed");
+    //     zed.close();
+    //     return false;
+    // }
+
     return true;
-}
-
-bool ZEDReader::getState(slamState_t& data) {
-  std::memcpy(&data, &slam_state[(update_count.load(std::memory_order_acquire) + 1) % 2], sizeof(slamState_t));
-  return data.tracking_state; 
-}
-
-void ZEDReader::updateState(slamState_t data) {
-  std::memcpy(&slam_state[update_count.load(std::memory_order_acquire) % 2], &data, sizeof(slamState_t));
-  update_count.fetch_add(1, std::memory_order_release);
 }
 
 void ZEDReader::stop() {
@@ -62,14 +64,17 @@ void ZEDReader::stop() {
 
 void ZEDReader::getIMUData(imuData_t& data)
 {
-    SensorsData sensors_data;
+    static SensorsData sensors_data;
     if (zed.getSensorsData(sensors_data, TIME_REFERENCE::CURRENT ) == sl::ERROR_CODE::SUCCESS)
     {
-        auto zedAngles = sensors_data.imu.pose.getEulerAngles(true);
-        auto zedRates = sensors_data.imu.angular_velocity;
-        data = {{-1.0f*zedAngles[0], -1.0f*zedAngles[1], zedAngles[2]},
-                            {-1.0f*zedRates[0],  -1.0f*zedRates[1],  zedRates[2]},
-                            get_time_micro(), 1, 0};
+        data.angles.yaw       = -sensors_data.imu.pose.getEulerAngles(true)[0];
+        data.angles.pitch     = -sensors_data.imu.pose.getEulerAngles(true)[1];
+        data.angles.roll      =  sensors_data.imu.pose.getEulerAngles(true)[2];
+        data.rates.gyro_yaw   = -sensors_data.imu.angular_velocity[0];
+        data.rates.gyro_pitch = -sensors_data.imu.angular_velocity[1];
+        data.rates.gyro_roll  =  sensors_data.imu.angular_velocity[2];
+        data.timestamp        =  sensors_data.imu.timestamp.getNanoseconds();
+        data.error            =  false; 
         // log("yaw: " + std::to_string(data.angles.yaw) + " pitch: " + std::to_string(data.angles.pitch) + " roll: " + std::to_string(data.angles.roll));
     }
     else
@@ -78,28 +83,33 @@ void ZEDReader::getIMUData(imuData_t& data)
     }
 }
 
-void ZEDReader::loop() {
-    setpriority(PRIO_PROCESS, getpid(), 1);
+void ZEDReader::saveMesh()
+{
+    Mesh mesh; 
+    zed.extractWholeSpatialMap(mesh);
+    mesh.applyTexture();
+    mesh.filter(MeshFilterParameters::MESH_FILTER::LOW); // Filter the mesh (remove unnecessary vertices and faces)
+    mesh.save("server/static/mesh.obj");
+}
 
-    slamState_t tracking_data;
+void ZEDReader::loop() {
     SensorsData sensors_data;
     Pose camera_path;
     POSITIONAL_TRACKING_STATE tracking_state;
 
     // set error to true untill camera is open
-    tracking_data.tracking_state = false;
-    tracking_data.imu.error = true;
-    updateState(tracking_data);
+    trackingState_t tracking_data;
+    tracking_data.is_tracking = false;
+    shared_tracking_state.setData(tracking_data);
 
     // Open the ZED device
     if (open() != 1) {
         std::cerr << "Error opening ZED." << std::endl;
-        tracking_data.imu.error = true;
         return;
     }
 
     while (running) {
-        auto last_run = get_time_micro();
+        auto last_run = get_time_nano();
         if (zed.grab() == ERROR_CODE::SUCCESS)
         {
             // Get the position of the camera in a fixed reference frame (the World Frame)
@@ -111,22 +121,22 @@ void ZEDReader::loop() {
                                           camera_path.getTranslation().ty, 
                                           camera_path.getTranslation().tz, 
                                         };
-                tracking_data.tracking_state = true;
+                tracking_data.is_tracking = true;
             } else {
-                tracking_data.tracking_state = false;
+                tracking_data.is_tracking = false;
             }
-            // log("ZEDReader: " + std::to_string(data.angles.roll) + " " + std::to_string(data.angles.pitch) + " " + std::to_string(data.angles.yaw) + " " + std::to_string(slam_data.tracking_state));
-            updateState(tracking_data);
         }  
         else
         {
             // watch dog set error is no new readingin a while
             // std::cerr << "Error getting ZED data." << std::endl;
-            tracking_data.tracking_state = false;
+            tracking_data.is_tracking = false;
             std::cout << "Error getting ZED data." << std::endl;
         }
+        
+        shared_tracking_state.setData(tracking_data);
 
-        auto loop_dur = get_time_micro() - last_run;
+        auto loop_dur = get_time_nano() - last_run;
         if (loop_dur > loop_time)
         {
             auto loop_dur_in_seconds = loop_dur / 1000000.0;
@@ -138,7 +148,9 @@ void ZEDReader::loop() {
             std::this_thread::sleep_for(std::chrono::microseconds(loop_time-loop_dur));
         }
     }
+    
     zed.disablePositionalTracking();
+    // zed.disableSpatialMapping();
     zed.close();
 }
 

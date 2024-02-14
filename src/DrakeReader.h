@@ -55,8 +55,8 @@ protected:
 
     shared_state_t shared_state;
 
-    std::int64_t time_limit{1000 / 10}; // 20 Hz
-    std::int64_t forget_time {1}; // 1 Hz
+    std::uint64_t time_limit  {1000000000 / 10}; // 20 Hz
+    std::uint64_t forget_time {1000000000}; // 1 Hz
 
     slamState_t slam_state;
     imuData_t imu_state;

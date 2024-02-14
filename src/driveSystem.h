@@ -1,5 +1,5 @@
-#ifndef DRIVESYSTEM_H
-#define DRIVESYSTEM_H
+#ifndef dRIVESYSTEM_H
+#define dRIVESYSTEM_H
 
 #include <string>
 #include <iostream>
@@ -16,12 +16,13 @@
 
 #include "drivers/ODriveCAN/ODriveCAN.h"
 #include<ronThread.h>
+#include <sdata.h>
 
-class DriveSystem : public ronThread
+class driveSystem : public ronThread
 {
 public:
-    DriveSystem(const int id[], const bool dir[], const int size, const std::string name, Log* logger);
-    virtual ~DriveSystem();
+    driveSystem(const int id[], const bool dir[], const int size, const std::string name, Log* logger);
+    virtual ~driveSystem();
 
     virtual bool open();
     virtual bool readEvent(can_frame& event);
@@ -33,15 +34,15 @@ public:
     void getVelocity(float& vel, const int axis_id);
     void getPosition(float& pos, const int axis_id);
 
-    void getDRAbsolute(float& x, float& y);
-    void getDRReletive(float& x, float& y);
+    void getDRAbsolute(position_t& pos);
+    void getDRReletive(position_t& pos);
 
     void requestVbusVoltage();
     void requestDRReset();
 
     bool getState(DriveState& data, int axid_id);
     bool getStatus();
-    void calcDeadRec(double imu_angle);
+    void calcDeadRec();
 
     bool enable(); // ODriveCAN::AxisState_t::AXIS_STATE_CLOSED_LOOP_CONTROL
     bool disable(); // ODriveCAN::AxisState_t::AXIS_STATE_IDLE
@@ -59,14 +60,19 @@ private:
 
 protected:
 
+    imuData_t imu_state;
+    SData<imuData_t> shared_imu_state;
+
     ODriveCAN::AxisState_t requestedWheelState = ODriveCAN::AXIS_STATE_UNDEFINED;
     ODriveCAN odriveCAN;
     std::thread read_thread;
 
     int numberOfNodes {2};
 
-    double deadRecPos[3] {0.0f, 0.0f, 0.0f};
-    double deadRecPosSinceStart[3] {0.0f, 0.0f, 0.0f};
+    position_t deadRecPos;
+    position_t deadRecPosSinceStart;
+
+    double deadRecAngle {0.0}; 
 
     float lastWheelPos[2] {0.0f, 0.0f};
 
@@ -74,6 +80,8 @@ protected:
 
     std::string device;
     
+    SData<driveSystemState_t> shared_state;
+
     DriveState state[2];
     const int* nodeIDs;
     const bool* nodeReversed;

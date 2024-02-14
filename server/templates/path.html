@@ -329,7 +329,8 @@
 			import { LoadingManager } from "{{ url_for('static', filename='three.js/src/loaders/LoadingManager.js') }}";
 
 			import URDFLoader from "{{ url_for('static', filename='urdf-loaders/javascript/src/URDFLoader.js') }}";
-			// import { OBJLoader } from "{{ url_for('static', filename='three.js/examples/jsm/loaders/OBJLoader.js') }}";
+			import { PointerURDFDragControls } from  "{{ url_for('static', filename='urdf-loaders/javascript/src/URDFDragControls.js') }}";
+			import { OBJLoader } from "{{ url_for('static', filename='three.js/examples/jsm/loaders/OBJLoader.js') }}";
 			import { SVGLoader } from "{{ url_for('static', filename='three.js/examples/jsm/loaders/SVGLoader.js') }}";
 			import { CupertinoPane } from "{{ url_for('static', filename='panes/dist/cupertino-pane.esm.min.js') }}";
 
@@ -444,6 +445,70 @@
 			};
 
 
+			const dragControls = new PointerURDFDragControls(scene, camera, renderer.domElement);
+
+			const highlightColor = '#FFFFFF'
+			const highlightMaterial = new THREE.MeshBasicMaterial({color: 0xff0000});
+
+			// highlight the link geometry when hovering over the joint
+			// dragControls.onHover = (joint) => {
+			// 	console.log("you hovered over a joint");
+			// 	console.log(joint);
+			// 	joint.highlightLinkGeometry(joint, false, highlightMaterial);
+			// };
+
+			const isJoint = j => {
+				return j.isURDFJoint && j.jointType !== 'fixed';
+			};
+
+			const highlightLinkGeometry = (m, revert) => {
+				const traverse = c => {
+					// Set or revert the highlight color
+					if (c.type === 'Mesh') {
+						if (revert) {
+							c.material = c.__origMaterial;
+							delete c.__origMaterial;
+						} else {
+							c.__origMaterial = c.material;
+							c.material = highlightMaterial;
+						}
+					}
+
+					// Look into the children and stop if the next child is
+					// another joint
+					if (c === m || !isJoint(c)) {
+
+						for (let i = 0; i < c.children.length; i++) {
+
+							const child = c.children[i];
+							if (!child.isURDFCollider) {
+
+								traverse(c.children[i]);
+							}
+						}
+					}
+				};
+				traverse(m);
+			};
+
+			dragControls.onHover = joint => {
+				console.log("you hovered over a joint");
+				highlightLinkGeometry(joint, false);
+			};
+			dragControls.onUnhover = joint => {
+				highlightLinkGeometry(joint, true);
+			};
+			dragControls.onDragStart = joint => {
+				// controls.enabled = false;
+
+			};
+			dragControls.onDragEnd = joint => {
+				// controls.enabled = true;
+			};
+			dragControls.updateJoint = (joint, angle) => {
+				robot_model.setJointValue(joint.name, angle);
+				console.log(joint.name, angle);
+			};
 
 			const RON_Pointer_loader = new SVGLoader();
 
@@ -485,26 +550,26 @@
 				}
 			);
 
-			// const loader = new OBJLoader();
-			// loader.load(
-			// 	"{{ url_for('static', filename='mesh_gen.obj') }}",
-			// 	function ( object ) {
-			// 		object.traverse(function (child) {
-			// 		if (child instanceof THREE.Mesh) {
-			// 				child.material = material; // Apply the material to each mesh part of the object
-			// 			}
-			// 		});
-			// 		object.scale.set(100, 100, 100)
-			// 		// set matial to the object 
-			// 		scene.add( object );
-			// 	},
-			// 	function ( xhr ) {
-			// 		console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-			// 	},
-			// 	function ( error ) {
-			// 		console.log( 'An error happened' );
-			// 	}
-			// );
+			const loader = new OBJLoader();
+			loader.load(
+				"{{ url_for('static', filename='mesh.obj') }}",
+				function ( object ) {
+					object.traverse(function (child) {
+					if (child instanceof THREE.Mesh) {
+							child.material = material; // Apply the material to each mesh part of the object
+						}
+					});
+					object.scale.set(100, 100, 100)
+					// set matial to the object 
+					scene.add( object );
+				},
+				function ( xhr ) {
+					console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+				},
+				function ( error ) {
+					console.log( 'An error happened' );
+				}
+			);
 
 			
 			var source = new EventSource('/data');
@@ -588,6 +653,35 @@
 				renderer.render( scene, camera );
       
             }
+
+
+			// function addDragControl() {
+        	// 	const highlightColor = '#FFFFFF'
+			// 	const highlightMaterial =
+			// 		new MeshPhongMaterial({
+			// 			shininess: 10,
+			// 			color: highlightColor,
+			// 			emissive: highlightColor,
+			// 			emissiveIntensity: 0.25,
+			// 		});
+				
+			// 	const dragControls = new PointerURDFDragControls(this.scene, this.camera, this.renderer.domElement);
+			// 	// dragControls.updateJoint = (joint:URDFMimicJoint, angle:number) => {
+			// 	// 	this.setJointValue(joint.name, angle);
+			// 	// 	// updateAngle(joint.name, angle)
+			// 	// };
+			// 	dragControls.onDragStart = () => this.controls.enabled = false;
+			// 	dragControls.onDragEnd = () => this.controls.enabled = true;
+			// 	dragControls.onHover = (joint:URDFMimicJoint) => this.highlightLinkGeometry(joint, false, highlightMaterial);
+			// 	dragControls.onUnhover = (joint:URDFMimicJoint) => this.highlightLinkGeometry(joint, true, highlightMaterial);
+
+			// 	// this.renderer.domElement.addEventListener('touchstart', (data) => dragControls._mouseDown(data.touches[0]));
+			// 	// this.renderer.domElement.addEventListener('touchmove', (data) => dragControls._mouseMove(data.touches[0]))
+			// 	// this.renderer.domElement.addEventListener('touchup', (data) => dragControls._mouseUp(data.touches[0]));
+			// 	// return this
+			// }
+
+
 
             function hideJoystick() {
                 var joystickCard = document.getElementById("joystickCard");
@@ -701,43 +795,7 @@
 				renderer.shadowMap.enabled = true;
 				container.appendChild( renderer.domElement );
 
-				// console.log(container);
-
-				// container.addEventListener('joint-mouseover', e => {
-				// 	console.log(e.detail)
-				// 	console.log("mouse over")
-				// 	const j = document.querySelector(`li[joint-name="${ e.detail }"]`);
-				// 	if (j) j.setAttribute('robot-hovered', true);
-
-				// });
-
-				// container.addEventListener('joint-mouseout', e => {
-
-				// 	const j = document.querySelector(`li[joint-name="${ e.detail }"]`);
-				// 	if (j) j.removeAttribute('robot-hovered');
-
-				// });
-
-				// let originalNoAutoRecenter;
-				// container.addEventListener('manipulate-start', e => {
-
-				// const j = document.querySelector(`li[joint-name="${ e.detail }"]`);
-				// 	if (j) {
-				// 		j.scrollIntoView({ block: 'nearest' });
-				// 		window.scrollTo(0, 0);
-				// 	}
-
-				// 	originalNoAutoRecenter = container.noAutoRecenter;
-				// 	container.noAutoRecenter = true;
-
-				// });
-
-				// container.addEventListener('manipulate-end', e => {
-
-				// 	container.noAutoRecenter = originalNoAutoRecenter;
-
-				// });
-
+				
 				const gui = new GUI();
 
 				gui.add( params, 'uniform' ).onChange( render );

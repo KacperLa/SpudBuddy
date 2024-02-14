@@ -135,9 +135,9 @@ void IMUReader::loop() {
 
       getState(last_state);
      
-      if ((get_time_micro() - last_state.timestamp) > forget_time)
+      if ((get_time_nano() - last_state.timestamp) > forget_time)
       {
-        data = {angles, rates, get_time_micro(), 1, 0};
+        data = {angles, rates, get_time_nano(), 1, 0};
         updateState(data);
         std::cout << "[IMU] Updating the IMU to replace old data." << std::endl;    
       } else {

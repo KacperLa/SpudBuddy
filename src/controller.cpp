@@ -60,42 +60,42 @@ void calcDesiredYaw(position_t actual, position_t desired, float & desired_yaw)
 
     
     
-
-bool Controller::calculateOutput(systemState_t actual_state, systemState_t desired_state, float& outputLeft, float& outputRight)
+bool Controller::calculateOutput(driveSystemState_t drive_state, imuData_t imu, trackingState_t tracking, systemDesired_t command, controllerSettings_t controller_settings, float& outputLeft, float& outputRight)
 {
     // Positon error
     float position_error;   
-    calcPositionError(actual_state.robot.position, desired_state.robot.position, position_error);
+    calcPositionError(tracking.position, command.position, position_error);
 
-    if (fabs(position_error) < actual_state.controller.dead_zone_pos)
+    if (fabs(position_error) < controller_settings.dead_zone_pos && 
+        tracking.is_tracking == false)
     {
         position_error = 0;
     }
 
     // Position PID
     float position_output = position_pid.getOutput(position_error);
-    desired_state.robot.velocity = -1.0f * position_output;
+    float desired_velocity = -1.0f * position_output;
 
     // ====================================
     // Yaw error
     float yaw_error;
-    calcDesiredYaw(actual_state.robot.position, desired_state.robot.position, desired_state.robot.angles.yaw);
-    calcTheta(desired_state.robot.angles.yaw, actual_state.robot.angles.yaw, yaw_error);
+    calcDesiredYaw(tracking.position, command.position, command.angles.yaw);
+    calcTheta(command.angles.yaw, imu.angles.yaw, yaw_error);
 
-    if (fabs(yaw_error) < actual_state.controller.dead_zone_yaw)
+    if (fabs(yaw_error) < controller_settings.dead_zone_yaw)
     {
         yaw_error = 0;
     }
 
     // Yaw PID
     float yaw_pos_output = yaw_pid.getOutput(yaw_error);
-    desired_state.robot.rates.gyro_yaw = -1.0f * yaw_pos_output;
+    float desired__yaw = -1.0f * yaw_pos_output;
 
     // ====================================
     // Velocity error
     float velocity_error;
-    actual_state.robot.velocity = (actual_state.robot.leftVelocity+actual_state.robot.rightVelocity) / 2.0f;
-    velocity_error = desired_state.robot.velocity - actual_state.robot.velocity;
+    float actual_velocity = (drive_state.axis[leftNode].velocity + drive_state.axis[rightNode].velocity) / 2.0f;
+    velocity_error = desired_velocity - actual_velocity;
 
     // Velocity PID
     double velocity_output;
@@ -104,9 +104,9 @@ bool Controller::calculateOutput(systemState_t actual_state, systemState_t desir
 
     // ====================================
     // Yaw rate error
-    float yaw_rate_error = (actual_state.robot.leftVelocity - actual_state.robot.rightVelocity) + desired_state.robot.rates.gyro_yaw;
+    float yaw_rate_error = (drive_state.axis[leftNode].velocity - drive_state.axis[rightNode].velocity) + command.rates.gyro_yaw;
     
-    if (fabs(yaw_rate_error) < actual_state.controller.dead_zone_yaw_rate)
+    if (fabs(yaw_rate_error) < controller_settings.dead_zone_yaw_rate)
     {
         yaw_rate_error = 0;
     }
@@ -117,21 +117,20 @@ bool Controller::calculateOutput(systemState_t actual_state, systemState_t desir
    
     // ====================================
     // Pitch error
-    double pitch_error = desired_state.robot.angles.pitch - (actual_state.robot.angles.pitch + velocity_output);
+    double pitch_error = command.angles.pitch - (imu.angles.pitch + velocity_output);
 
     if (fabs(pitch_error) > 25){
         // logger->pushEvent("[FSM] Robot fell, going into error state." + std::to_string(actual_state.angles.pitch));
-        std::cout << "Pitch error too large! is: " <<  actual_state.robot.angles.pitch << " should be: " << desired_state.robot.angles.pitch << std::endl;
+        std::cout << "Pitch error too large! is: " <<  imu.angles.pitch << " should be: " << command.angles.pitch << std::endl;
         return false;    
     }
 
     // Pitch PID
-    double pitch_output   =  (pitch_error * actual_state.controller.pitch_p) - (actual_state.robot.rates.gyro_pitch * actual_state.controller.pitch_d);
+    double pitch_output   =  (pitch_error * controller_settings.pitch_p) - (imu.rates.gyro_pitch * controller_settings.pitch_d);
 
-    if (fabs(pitch_output) < actual_state.controller.dead_zone_pitch){
+    if (fabs(pitch_output) < controller_settings.dead_zone_pitch){
         pitch_output = 0;
     }
-
 
     // ====================================
     // Set Outputs

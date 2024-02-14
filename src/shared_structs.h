@@ -27,15 +27,15 @@ struct rates_t
 
 struct imuData_t
 {
-  angles_t angles ;
+  angles_t angles;
   rates_t rates;
-  std::int64_t timestamp;
+  std::uint64_t timestamp;
   bool quality;
   bool error;
 
   // fill the struct with zeros
   imuData_t() noexcept { std::memset(this, 0, sizeof(imuData_t)); }
-  imuData_t(angles_t angles, rates_t rates, std::int64_t timestamp, bool quality, bool error) : angles(angles), rates(rates), timestamp(timestamp), quality(quality), error(error) {}
+  imuData_t(angles_t angles, rates_t rates, std::uint64_t timestamp, bool quality, bool error) : angles(angles), rates(rates), timestamp(timestamp), quality(quality), error(error) {}
 };
 
 struct position_t
@@ -49,22 +49,13 @@ struct position_t
     position_t(float x, float y, float z) : x(x), y(y), z(z) {}
 };
 
-struct robot_state_t
+struct systemActual_t
 {
-    position_t position;
-    position_t positionDeadReckoning;
-    position_t positionSlam;
-    int positionStatus;
-    angles_t angles;
-    rates_t rates;
-    float velocity;
-    float leftVelocity;
-    float rightVelocity;
     int state;
 
     // fill the struct with zeros
-    robot_state_t() noexcept { std::memset(this, 0, sizeof(robot_state_t)); }
-    robot_state_t(position_t position, position_t positionDeadReckoning, position_t positionSlam, int positionStatus, angles_t angles, rates_t rates, float velocity, float leftVelocity, float rightVelocity, int state) : position(position), positionDeadReckoning(positionDeadReckoning), positionSlam(positionSlam), positionStatus(positionStatus), angles(angles), rates(rates), velocity(velocity), leftVelocity(leftVelocity), rightVelocity(rightVelocity), state(state) {}
+    systemActual_t() noexcept { std::memset(this, 0, sizeof(systemActual_t)); }
+    systemActual_t(int state) : state(state) {}
 };
 
 struct controllerSettings_t
@@ -115,22 +106,35 @@ struct DriveState {
     DriveState() noexcept { std::memset(this, 0, sizeof(DriveState)); }
 };
 
-// DriveSystem specific
-struct driveSystemState {
-    DriveState axis_0;
-    DriveState axis_1;
+// Tracking specific
+struct trackingState_t {
+    position_t position;
+    bool is_tracking;
+    time_t timestamp;
+
+    // fill the struct with zeros
+    trackingState_t() noexcept { std::memset(this, 0, sizeof(trackingState_t)); }
+    trackingState_t(position_t position, bool is_tracking, time_t timestamp) : position(position), is_tracking(is_tracking), timestamp(timestamp) {}
 };
 
-struct systemState_t {
-    robot_state_t        robot;
-    driveSystemState     drive_system;
-    controllerSettings_t controller;
+// DriveSystem specific
+struct driveSystemState_t {
+    // array of axis
+    position_t position;
+    DriveState axis[2];
+
+    // fill the struct with zeros
+    driveSystemState_t() noexcept { std::memset(this, 0, sizeof(driveSystemState_t)); }
+
+    // function to accees each axis by index 
+    DriveState getAxis(const std::uint8_t index) { return axis[index]; }
 };
 
 struct systemDesired_t {
     int state;
-    JoystickState joystick;
     position_t position;
+    angles_t angles;
+    rates_t rates;
     
     // fill the struct with zeros
     systemDesired_t() noexcept { std::memset(this, 0, sizeof(systemDesired_t)); }

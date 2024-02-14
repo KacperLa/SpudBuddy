@@ -5,14 +5,14 @@
 
 #include "drivers/bno055/BNO055.h"
 #include <shared_structs.h>
-
+#include <common.h>
 
 class Controller {
 public:
     Controller();
     ~Controller();
 
-    bool calculateOutput(systemState_t actual_state, systemState_t desired_state, float& outputLeft, float& outputRight);
+    bool calculateOutput(driveSystemState_t drive_state, imuData_t imu, trackingState_t tracking, systemDesired_t command, controllerSettings_t controller_settings, float& outputLeft, float& outputRight);
 
     void get_settings(controllerSettings_t & settings);
     void set_settings(const controllerSettings_t & settings);

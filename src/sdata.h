@@ -39,13 +39,14 @@ template <typename T>
 class SData : public ronThread
 {
 public:
-    SData(const std::string name, Log* logger, const std::string& mapped_file, bool isProducer);
+    SData(Log* logger, const std::string& mapped_file, bool isProducer);
     
     SData(const std::string& mapped_file, bool isProducer);
 
     virtual ~SData();
 
-    void getData(T& data);
+    bool getData(T& data);
+    bool waitOnStateChange(T& data);
 
     void setData(const T& data);
 
@@ -61,24 +62,17 @@ protected:
     void producer();
     void consumer();
 
-    bool futexWait(std::atomic<int>* addr, int val, int timeoutMilliseconds);
+    bool futexWait(std::atomic<int>* addr, int val);
     void futexWakeAll(std::atomic<int>* addr);
+    
+    struct timespec timeout {0, 100000000}; // 100 milliseconds
 
     // struct of shared data
     struct shared_data_t {
         std::atomic<int> producer_futex;
         std::atomic<int> consumer_futex;
         T triple_buffer[3];
-        std::atomic<std::uint8_t> buffer_index[3];
-        // buffer index: 1 = producer 
-        // buffer index: 2 = producer
-        // depending on the current index
-        // the producer will write to one
-        // of the two producer buffers
-        // index   % 2     = active producer buffer
-        // index+1 % 2     = inactive producer buffer
-        // buffer_index: 3 = consumer
-        // shared mutex
+      
         boost::interprocess::interprocess_sharable_mutex mutex;
     };
 
@@ -106,8 +100,6 @@ protected:
 
     // local index
     int index{0};
-
-    const std::int64_t time_to_sleep_ms {100};
 };
 
 #include "sdata.cpp"

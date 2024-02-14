@@ -37,9 +37,10 @@ if(BUILD_FOR_SIM)
         main.cpp
         joystick.cpp
         controller.cpp
-        DriveSystem.cpp
+        driveSystem.cpp
         FSM.cpp
         loggerThreaded.cpp
+        controllerThread.cpp
         ronThread.cpp
         DrakeReader.cpp
         sdata_py.cpp
@@ -60,9 +61,10 @@ else()
         main.cpp
         joystick.cpp
         controller.cpp
-        DriveSystem.cpp
+        driveSystem.cpp
         FSM.cpp
         loggerThreaded.cpp
+        controllerThread.cpp
         ronThread.cpp
         ZEDReader.cpp
         sdata_py.cpp

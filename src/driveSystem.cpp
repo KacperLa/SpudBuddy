@@ -1,18 +1,22 @@
-#include "DriveSystem.h"
+#include "driveSystem.h"
 #define PI 3.1415926535897932384626433832795
 
-DriveSystem::DriveSystem(const int id[], const bool dir[], const int size, const std::string name, Log* logger) :
+driveSystem::driveSystem(const int id[], const bool dir[], const int size, const std::string name, Log* logger) :
     ronThread(name, logger),
+    shared_imu_state(logger, shared_imu_file, false),
     numberOfNodes(size),
+    shared_state(logger, shared_drive_system_file, true),
     nodeIDs(id),
     nodeReversed(dir),
     odriveCAN() {
     }
 
-DriveSystem::~DriveSystem() {}
+driveSystem::~driveSystem() {}
 
-void DriveSystem::calcDeadRec(double imu_angle)
+void driveSystem::calcDeadRec()
 {
+    shared_imu_state.getData(imu_state);
+
     static double inter_tire_distance = 0.240; // 240 mm
     static double tire_radius = 0.189/2.0; //80mm
     static double tire_cir = 2.0*PI*tire_radius;
@@ -32,83 +36,82 @@ void DriveSystem::calcDeadRec(double imu_angle)
         double local_y = (radius - (cos(angle) * radius));
         double local_x = radius * sin(angle);
 
-        double global_x = ((sin(deadRecPos[2]) * local_y) + (cos(deadRecPos[2]) * local_x));
-        double global_y = ((cos(deadRecPos[2]) * local_y) + (sin(deadRecPos[2]) * local_x));
+        double global_x = ((sin(deadRecAngle) * local_y) + (cos(deadRecAngle) * local_x));
+        double global_y = ((cos(deadRecAngle) * local_y) + (sin(deadRecAngle) * local_x));
 
-        deadRecPos[0] -= global_x;
-        deadRecPos[1] += global_y;
+        deadRecPos.x -= global_x;
+        deadRecPos.y += global_y;
         
-        deadRecPosSinceStart[0] -= global_x;
-        deadRecPosSinceStart[1] += global_y;
+        deadRecPosSinceStart.x -= global_x;
+        deadRecPosSinceStart.y += global_y;
 
         // update heading angle
-        deadRecPos[2]           = (imu_angle/180)*PI;
-        deadRecPosSinceStart[2] = deadRecPos[2];
+        deadRecAngle = (imu_state.angles.yaw/180)*PI;
 
     } else {
-        double global_x = (sin(deadRecPos[2]) * (arcR+arcL)/2.0);
-        double global_y = (cos(deadRecPos[2]) * (arcR+arcL)/2.0);
+        double global_x = (sin(deadRecAngle) * (arcR+arcL)/2.0);
+        double global_y = (cos(deadRecAngle) * (arcR+arcL)/2.0);
         
-        deadRecPos[0] -= global_x;
-        deadRecPos[1] += global_y;
-        deadRecPosSinceStart[0] -= global_x;    
-        deadRecPosSinceStart[1] += global_y;
+        deadRecPos.x -= global_x;
+        deadRecPos.y += global_y;
+        deadRecPosSinceStart.x -= global_x;    
+        deadRecPosSinceStart.y += global_y;
     }
 
     std::memcpy(lastWheelPos, currentWheelPos, sizeof(currentWheelPos));
 }
 
-void DriveSystem::getDRReletive(float& x, float& y){
-    x = deadRecPos[0];
-    y = deadRecPos[1];
+void driveSystem::getDRReletive(position_t& pos)
+{
+    pos = deadRecPos;
 }
 
-void DriveSystem::getDRAbsolute(float& x, float& y){
-    x = deadRecPosSinceStart[0];
-    y = deadRecPosSinceStart[1];
+void driveSystem::getDRAbsolute(position_t& pos)
+{
+    pos = deadRecPosSinceStart;
 }
 
-bool DriveSystem::open() {
+bool driveSystem::open() {
     // Open the can interface
     log("opening can");
     return odriveCAN.open();
 }
 
-bool DriveSystem::readEvent(struct can_frame& inMsg) {
+bool driveSystem::readEvent(struct can_frame& inMsg) {
     // Read a can event
     return odriveCAN.readMsg(inMsg) > 0;
 }
 
-void DriveSystem::close() {
-    std::cout << "[DriveSystem] close()" << std::endl;
+void driveSystem::close() {
+    std::cout << "[driveSystem] close()" << std::endl;
 }
 
-void DriveSystem::setTorque(float& t, const int axis_id){
+void driveSystem::setTorque(float& t, const int axis_id){
     odriveCAN.SetTorque(axis_id, t*(isReversed(axis_id) ? -1 : 1));
 }
 
-void DriveSystem::requestVbusVoltage(){
+void driveSystem::requestVbusVoltage(){
     odriveCAN.GetVbusVoltage(0);
 }
 
-void DriveSystem::requestDRReset(){
-    deadRecPos[0] = 0.0;
-    deadRecPos[1] = 0.0;
+void driveSystem::requestDRReset()
+{
+    deadRecPos = {0.0, 0.0, 0.0};
 }
 
-void DriveSystem::getVelocity(float& vel, const int axis_id){
+void driveSystem::getVelocity(float& vel, const int axis_id){
     DriveState cur_state;
     getState(cur_state, axis_id);
     vel = cur_state.velocity;
 }
 
-void DriveSystem::getPosition(float& pos, const int axis_id){
+void driveSystem::getPosition(float& pos, const int axis_id){
     DriveState cur_state;
     getState(cur_state, axis_id);
     pos = cur_state.position;
 }
 
-bool DriveSystem::getState(DriveState& data, int axis_id) {
+bool driveSystem::getState(DriveState& data, int axis_id) {
     std::lock_guard<std::mutex> lock(thread_lock);
     // check if index if out of range
     int axis_index = findIndex(nodeIDs, axis_id, numberOfNodes);
@@ -117,7 +120,7 @@ bool DriveSystem::getState(DriveState& data, int axis_id) {
     return data.error;
 }
 
-bool DriveSystem::getStatus(){
+bool driveSystem::getStatus(){
     bool is_running = running.load(std::memory_order_relaxed);
     bool axis_error = false;
     DriveState cur_state;
@@ -128,36 +131,39 @@ bool DriveSystem::getStatus(){
     return (!is_running || axis_error > 0);
 }
 
-bool DriveSystem::isReversed(int axis_id)
+bool driveSystem::isReversed(int axis_id)
 {
     int axis_index = findIndex(nodeIDs, axis_id, numberOfNodes);
     return nodeReversed[axis_index];
 }
 
-void DriveSystem::updateState(const DriveState& data, int axis_id) {
-    std::lock_guard<std::mutex> lock(thread_lock);
+void driveSystem::updateState(const DriveState& data, int axis_id) {
     int axis_index = findIndex(nodeIDs, axis_id, numberOfNodes);
-    state[axis_index] = data;
+    driveSystemState_t s_state;
+    shared_state.getData(s_state);
+    s_state.axis[axis_index] = data;
+    s_state.position = deadRecPos;
+    shared_state.setData(s_state);
 }
 
-void DriveSystem::runState(int axisState){
+void driveSystem::runState(int axisState){
     for (int index = 0; index < numberOfNodes; index++)
     {
         odriveCAN.RunState(nodeIDs[index], axisState);
     }
 }
 
-bool DriveSystem::enable() {
+bool driveSystem::enable() {
     runState(ODriveCAN::AxisState_t::AXIS_STATE_CLOSED_LOOP_CONTROL);
     return 0;
 }
 
-bool DriveSystem::disable(){
+bool driveSystem::disable(){
     runState(ODriveCAN::AxisState_t::AXIS_STATE_IDLE);
     return 0;
 }
 
-bool DriveSystem::ESTOP(){
+bool driveSystem::ESTOP(){
     for (int index = 0; index < numberOfNodes; index++)
     {
         odriveCAN.Estop(nodeIDs[index]);
@@ -165,7 +171,7 @@ bool DriveSystem::ESTOP(){
     return 0;
 }
 
-bool DriveSystem::reset(){
+bool driveSystem::reset(){
     for (int index = 0; index < numberOfNodes; index++)
     {
         odriveCAN.ClearErrors(nodeIDs[index]);
@@ -173,7 +179,7 @@ bool DriveSystem::reset(){
     return 0;
 }
 
-int DriveSystem::findIndex(const int arr[], int target, int size) {
+int driveSystem::findIndex(const int arr[], int target, int size) {
     for (int i = 0; i < size; i++) {
         if (arr[i] == target) {
             return i;
@@ -182,7 +188,7 @@ int DriveSystem::findIndex(const int arr[], int target, int size) {
     return -1; // target not found
 }
 
-void DriveSystem::loop() {
+void driveSystem::loop() {
     // Open the odrive device
     if (open()) {
         log("Error opening odrive device");

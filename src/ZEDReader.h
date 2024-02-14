@@ -15,13 +15,8 @@
 #include<ronThread.h>
 #include <shared_structs.h>
 
+#include <sdata.h>
 #include <sl/Camera.hpp>
-
-struct slamState_t {
-  imuData_t imu;
-  position_t position;
-  bool tracking_state{false};
-};
 
 using namespace sl;
 class ZEDReader : public ronThread
@@ -29,18 +24,15 @@ class ZEDReader : public ronThread
 public:
   ZEDReader(const std::string& areaFile, const std::string name, Log* logger);
   virtual ~ZEDReader();
-
-  bool getState(slamState_t& data);
   
   void getIMUData(imuData_t& data);
+  void saveMesh();
 
 private:
   virtual void loop() override;
 
 protected:
     void stop();
-    void updateState(slamState_t data);
-
     bool open();
 
     std::string device;
@@ -48,10 +40,10 @@ protected:
     Camera zed;
     std::string m_areaFile{""};
 
-    std::int64_t  loop_time = (1000000.0 / 15.0); // 400 Hz
+    std::uint64_t  loop_time = (1000000000 / 15); // 15 Hz
 
-    std::atomic<int> update_count{0};
-    slamState_t slam_state[2];
+    SData<trackingState_t> shared_tracking_state;
+
     imuData_t imu_state;
 };
 

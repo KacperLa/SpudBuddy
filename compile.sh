@@ -10,5 +10,8 @@ cmake ..
 cd ..
 make -j4 -C build 
 
+# Set real-time priority for the core
+sudo setcap cap_sys_nice+ep build/bin/ron_core
+
 # Copy python lib to server folder 
 cp build/lib/SDataLib.cpython-39-aarch64-linux-gnu.so server/SDataLib.so

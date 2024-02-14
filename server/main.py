@@ -50,15 +50,30 @@ def shutdown(message=None):
 
 config = import_config(config_file_path)
 
-MAP_NAME_ACTUAL  = '/tmp/robot_actual'
-MAP_NAME_DESIRED = '/tmp/robot_desired' 
+MAP_NAME_ACTUAL  = 'robot_actual'
+MAP_NAME_COMMAND = 'robot_command' 
 MAP_NAME_SETTINGS = '/tmp/robot_settings'
+MAP_NAME_IMU  = 'robot_imu'
+MAP_NAME_DRIVE_SYSTEM = 'robot_drive_system'
+MAP_NAME_TRACKING = 'robot_tracking'
 
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-actual_reader = SDataLib.SData(MAP_NAME_ACTUAL, False)
-actual_state = SDataLib.systemState_t()
+imu_reader = SDataLib.SDataIMU(MAP_NAME_IMU, False)
+imu_state  = SDataLib.imuData_t()
+
+command_writer = SDataLib.SDataSystemDesired(MAP_NAME_COMMAND, True)
+command_state  = SDataLib.systemDesired_t()
+
+actual_reader = SDataLib.SDataSystemActual(MAP_NAME_ACTUAL, False)    
+actual_state  = SDataLib.systemActual_t()
+
+drive_reader = SDataLib.SDataDriveSystemState(MAP_NAME_DRIVE_SYSTEM, False)
+drive_state  = SDataLib.driveSystemState_t()
+
+tracking_reader = SDataLib.SDataTrackingState(MAP_NAME_TRACKING, False)
+tracking_state  = SDataLib.trackingState_t()
 
 @app.route("/")
 def home():
@@ -67,26 +82,39 @@ def home():
 def generate_data():
     data_json = config['robotState']
     while True:
-        #check if ron_core is running
-        # if not check_if_running("ron_core"):
-            # desired_state.set('state', 0)
-        # desired_state_mmap.write(desired_state.get_all())
+        if not imu_reader.getData(imu_state):
+            print("Failed to get imu data")
+            continue
         
-        actual_reader.getData(actual_state)
+        if not actual_reader.getData(actual_state):
+            print("Failed to get actual data")
+            continue
 
-        data_json['actual']['state'] = actual_state.robot.state
-        data_json['actual']['positionSlam_x'] = actual_state.robot.position.x
-        data_json['actual']['positionSlam_y'] = actual_state.robot.position.y
-        data_json['actual']['positionSlam_z'] = actual_state.robot.position.z
-        # orientation
-        data_json['actual']['orientation_yaw']   = actual_state.robot.angles.yaw
-        data_json['actual']['orientation_pitch'] = actual_state.robot.angles.pitch
-        data_json['actual']['orientation_roll']  = actual_state.robot.angles.roll
+        if not drive_reader.getData(drive_state):
+            print("Failed to get drive data")
+            continue
 
-        # print(data_json['actual']['orientation_yaw'], data_json['actual']['orientation_pitch'], data_json['actual']['orientation_roll'])
+        if not tracking_reader.getData(tracking_state):
+            print("Failed to get tracking data")
+            continue
 
-        # for key in actual_data.keys():
-        #     data_json['actual'][key] = actual_data[key] 
+        data_json['actual']["positionDeadReckoning_x"] = drive_state.position.x
+        data_json['actual']["positionDeadReckoning_y"] = drive_state.position.y
+        data_json['actual']["positionDeadReckoning_z"] = drive_state.position.z
+        data_json['actual']["positionSlam_x"] = tracking_state.position.x
+        data_json['actual']["positionSlam_y"] = tracking_state.position.y
+        data_json['actual']["positionSlam_z"] = tracking_state.position.z
+        data_json['actual']["positionStatus"] = tracking_state.is_tracking
+        data_json['actual']["orientation_yaw"] = imu_state.angles.yaw
+        data_json['actual']["orientation_pitch"] = imu_state.angles.pitch
+        data_json['actual']["orientation_roll"] = imu_state.angles.roll
+        data_json['actual']["angular_velocity_yaw"] = imu_state.rates.gyro_yaw
+        data_json['actual']["angular_velocity_pitch"] = imu_state.rates.gyro_pitch
+        data_json['actual']["angular_velocity_roll"] = imu_state.rates.gyro_roll
+        # data_json['actual']["velocity"] = actual_state.robot.velocity
+        data_json['actual']["voltage_0"] = drive_state.getAxis(0).vBusVoltage
+        data_json['actual']["state"] = actual_state.state
+
         yield f"data: {json.dumps(data_json)}\n\n"
         time.sleep(.1)
     semaphore.close()
@@ -149,8 +177,8 @@ def request_position():
 def request_state():
     # get state from args and set it to desired state
     # ensure that the state is an int
-    # desired_state.set('state', int(request.args.get('state')))
-    # print(desired_state.get('state'))
+    command_state.state = int(request.args.get('state'))
+    command_writer.setData(command_state)
     return {"success": True}
 
 @app.route('/request_settings', methods=['GET', 'POST'])

@@ -4,8 +4,9 @@
 #include <string>
 #include <libraries/tinyfsm/include/tinyfsm.hpp>
 #include "controller.h"
-#include "DriveSystem.h"
+#include "driveSystem.h"
 #include <shared_structs.h>
+#include <sdata.h>
 
 #include<logger.h>
 
@@ -32,8 +33,7 @@ struct cmd_data : tinyfsm::Event {
     double w {0.0};
 };
 
-class Robot 
-: public tinyfsm::Fsm<Robot>
+class Robot : public tinyfsm::Fsm<Robot>
 {
 public:
 
@@ -43,16 +43,8 @@ public:
     
     void get_vbusVoltage(float& voltage);
 
-    static systemState_t getActualState() { return actual_state; }
-    static systemState_t getDesiredState() { return desired_state; }
     static void set_logger(Log* new_logger) { logger = new_logger;};
-    static void setDriveSystem(DriveSystem* new_drive_system) { drive_system = new_drive_system;};
-    static void setGoToPosition(position_t new_position) { desired_state.robot.positionSlam = new_position; };     
-    static void setDRPosition(position_t new_position) { actual_state.robot.positionDeadReckoning = new_position; };
-    static void setSlamPosition(position_t new_position) { actual_state.robot.positionSlam = new_position; };
-    static void setPosition(position_t new_position) { actual_state.robot.position = new_position; };
-    static void setDesiredPosition(position_t new_position) { desired_state.robot.position = new_position; }; 
-    //void process_odrive_heartbeat(uint32_t id, HeartbeatMsg_t heartbeat);
+    static void setDriveSystem(driveSystem* new_drive_system) { drive_system = new_drive_system;};
 
     virtual void entry(void);  /* entry actions in some states */
     virtual void exit(void);  /* no exit actions at all */
@@ -73,20 +65,25 @@ public:
     static void setControllerSettings(controllerSettings_t & settings);
     static void updateIMU(imuData_t & new_imu_state);
 
-    static systemState_t desired_state;
-    static systemState_t actual_state;
+    // static systemState_t desired_state;
+    // static systemState_t actual_state;
 
-    static std::int64_t error_time; // 1000 Hz
+    static std::uint64_t error_time; // 1000 Hz
 
     static imuData_t imu_state;
 
     static Controller controller;
     
     static Log* logger;
-    static DriveSystem* drive_system;
+    static driveSystem* drive_system;
 
-    static const int leftNode       {0};
-    static const int rightNode      {1};
+    static SData<imuData_t>* shared_imu_state;
+    static SData<trackingState_t>* shared_tracking_state;
+    static SData<driveSystemState_t>* shared_drive_system_state;
+    static SData<systemDesired_t>* shared_command_state;    
+    static SData<controllerSettings_t>* shared_settings;
+
+    static int state;
 
 private:
   
@@ -98,7 +95,7 @@ private:
   static float vbusVoltage;
 
 
-  static std::int64_t clock_last_run;
+  static std::uint64_t clock_last_run;
 
   unsigned long interval    {20};
 };

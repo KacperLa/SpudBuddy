@@ -6,9 +6,8 @@
 #include <sched.h>
 
 #include<joystick.h>
-#include<FSM.h>
 #include<sdata.h>
-#include "DriveSystem.h"
+#include "driveSystem.h"
 #include "shared_structs.h"
 #include<loggerThreaded.h>
 #include<logger.h>
@@ -21,7 +20,6 @@
 
 bool time_to_quit = false;
 
-using fsm_handle = Robot;
 
 // Enum of positional tracking states
 enum class PositionState {
@@ -32,13 +30,9 @@ enum class PositionState {
 };
 
 
-// location of shared memory
-const char* shared_actual_file   = "/tmp/robot_actual";
-const char* shared_desired_file  = "/tmp/robot_desired";
-const char* shared_settings_file = "/tmp/robot_settings";
 
 LogThreaded* logger_threaded;
 
-const std::int64_t timeout{10};
-const std::int64_t publish_loop (1000000.0 / 1000.0); // 1000 Hz
-const std::int64_t main_loop    (1000000.0 / 5000.0); // 4000 Hz
+const std::uint64_t timeout{10};
+const std::uint64_t publish_loop (1000000000 / 1000); // 1000 Hz
+const std::uint64_t main_loop    (1000000000 / 10000); // 5000 Hz

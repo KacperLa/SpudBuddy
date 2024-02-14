@@ -61,7 +61,7 @@ bool LogThreaded::publishMessage(const std::string& message) {
 
     MsgPack message_out = MsgPack::object {
         { "data", message },
-        { "timestamp", get_time_micro() }
+        { "timestamp", get_time_nano() }
     };
 
     //serialize

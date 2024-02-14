@@ -5,15 +5,29 @@
 
 namespace py = pybind11;    
 
+template<typename T>
+void bindSData(py::module& m, const std::string& name) {
+    py::class_<SData<T>>(m, name.c_str())
+        .def(py::init<const std::string&, bool>())
+        .def("getData", &SData<T>::getData)
+        .def("setData", &SData<T>::setData);
+}
+
 PYBIND11_MODULE(SDataLib, m) {
 
     m.doc() = "pybind11 sdata plugin"; // optional module docstring
 
-    py::class_<SData<systemState_t>>(m, "SData")
-        .def(py::init<const std::string&, bool>())
-        .def("getData", &SData<systemState_t>::getData)
-        .def("setData", &SData<systemState_t>::setData);
-    
+    // Bind SData for imuData_t
+    bindSData<imuData_t>(m, "SDataIMU");
+    // Bind SData for systemDesired_t
+    bindSData<systemDesired_t>(m, "SDataSystemDesired");
+    // Bind SData for systemActual_t
+    bindSData<systemActual_t>(m, "SDataSystemActual");
+    // Bind SData for trackingState_t
+    bindSData<trackingState_t>(m, "SDataTrackingState");
+    // Bind SData for driveSystemState_t
+    bindSData<driveSystemState_t>(m, "SDataDriveSystemState");
+
     py::class_<angles_t>(m, "angles_t")
         .def(py::init<>())
         .def_readwrite("roll", &angles_t::roll)
@@ -40,18 +54,9 @@ PYBIND11_MODULE(SDataLib, m) {
         .def_readwrite("y", &position_t::y)
         .def_readwrite("z", &position_t::z);
 
-    py::class_<robot_state_t>(m, "robot_state_t")
+    py::class_<systemActual_t>(m, "systemActual_t")
         .def(py::init<>())
-        .def_readwrite("position", &robot_state_t::position)
-        .def_readwrite("positionDeadReckoning", &robot_state_t::positionDeadReckoning)
-        .def_readwrite("positionSlam", &robot_state_t::positionSlam)
-        .def_readwrite("positionStatus", &robot_state_t::positionStatus)
-        .def_readwrite("angles", &robot_state_t::angles)
-        .def_readwrite("rates", &robot_state_t::rates)
-        .def_readwrite("velocity", &robot_state_t::velocity)
-        .def_readwrite("leftVelocity", &robot_state_t::leftVelocity)
-        .def_readwrite("rightVelocity", &robot_state_t::rightVelocity)
-        .def_readwrite("state", &robot_state_t::state);
+        .def_readwrite("state", &systemActual_t::state);
 
     py::class_<controllerSettings_t>(m, "controllerSettings_t")
         .def(py::init<>())
@@ -91,22 +96,23 @@ PYBIND11_MODULE(SDataLib, m) {
         .def_readwrite("state", &DriveState::state)
         .def_readwrite("error", &DriveState::error);
 
-    py::class_<driveSystemState>(m, "driveSystemState")
+    py::class_<trackingState_t>(m, "trackingState_t")
         .def(py::init<>())
-        .def_readwrite("axis_0", &driveSystemState::axis_0)
-        .def_readwrite("axis_1", &driveSystemState::axis_1);
+        .def_readwrite("is_tracking", &trackingState_t::is_tracking)
+        .def_readwrite("position", &trackingState_t::position)
+        .def_readwrite("timestamp", &trackingState_t::timestamp);
 
-    py::class_<systemState_t>(m, "systemState_t")
+    py::class_<driveSystemState_t>(m, "driveSystemState_t")
         .def(py::init<>())
-        .def_readwrite("robot", &systemState_t::robot)
-        .def_readwrite("drive_system", &systemState_t::drive_system)
-        .def_readwrite("controller", &systemState_t::controller);
+        .def_readwrite("position", &driveSystemState_t::position)
+        .def("getAxis", &driveSystemState_t::getAxis);
 
     py::class_<systemDesired_t>(m, "systemDesired_t")
         .def(py::init<>())
         .def_readwrite("state", &systemDesired_t::state)
-        .def_readwrite("joystick", &systemDesired_t::joystick)
-        .def_readwrite("position", &systemDesired_t::position);
+        .def_readwrite("position", &systemDesired_t::position)
+        .def_readwrite("angles", &systemDesired_t::angles)
+        .def_readwrite("rates", &systemDesired_t::rates);
 
 };
 
