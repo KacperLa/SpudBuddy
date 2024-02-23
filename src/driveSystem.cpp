@@ -2,7 +2,7 @@
 #define PI 3.1415926535897932384626433832795
 
 driveSystem::driveSystem(const int id[], const bool dir[], const int size, const std::string name, Log* logger) :
-    ronThread(name, logger),
+    ronThread(name, logger, false),
     shared_imu_state(logger, shared_imu_file, false),
     numberOfNodes(size),
     shared_state(logger, shared_drive_system_file, true),
@@ -88,6 +88,15 @@ void driveSystem::close() {
 
 void driveSystem::setTorque(float& t, const int axis_id){
     odriveCAN.SetTorque(axis_id, t*(isReversed(axis_id) ? -1 : 1));
+}
+
+void driveSystem::setPosition(float& pos, const int axis_id){
+    // check if pos is within limits
+    if (pos > max_position[axis_id] || pos < min_position[axis_id]){
+        log("Position out of range" + std::to_string(pos) + " for axis: " + std::to_string(axis_id));
+        return;
+    }
+    odriveCAN.SetPosition(axis_id, pos*(isReversed(axis_id) ? -1 : 1));
 }
 
 void driveSystem::requestVbusVoltage(){
@@ -212,6 +221,7 @@ void driveSystem::loop() {
                     odriveCAN.Heartbeat(returnVals, frame);
                     cur_state.state = returnVals.currentState;
                     cur_state.error = returnVals.axisError > 0;
+                    // log("Axis: " + std::to_string(axis_id) + " State: " + std::to_string(cur_state.state) + " Error: " + std::to_string(cur_state.error));
                     break;
                     }
                 case (ODriveCAN::CMD_ID_GET_ENCODER_ESTIMATES): {
@@ -220,6 +230,7 @@ void driveSystem::loop() {
                     cur_state.velocity = returnVals.velEstimate * dir;
                     cur_state.position = returnVals.posEstimate * dir;
                     // cur_state.timestamp = message_time;
+                    // log("Axis: " + std::to_string(axis_id) + " Position: " + std::to_string(cur_state.position) + " Velocity: " + std::to_string(cur_state.velocity));
                     break;
                     }
                 case (ODriveCAN::CMD_ID_GET_IQ): {

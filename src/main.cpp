@@ -114,9 +114,9 @@ int main(int argc, char *argv[])
         // sleep for a bit
         std::this_thread::sleep_for(std::chrono::milliseconds(3000));        
         
-        int nodes[2] = {leftNode, rightNode};
-        bool nodeRev[2] = {true, false};
-        driveSystem drive_system(nodes, nodeRev, 2, "driveSystem", logger);
+        int nodes[4] = {leftNode, rightNode, leftShoulder, rightShoulder};
+        bool nodeRev[4] = {true, false, false, true};
+        driveSystem drive_system(nodes, nodeRev, 4, "driveSystem", logger);
         drive_system.startThread();
 
         controllerThread controller("Controller", logger, drive_system);

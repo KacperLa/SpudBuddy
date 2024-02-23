@@ -6,7 +6,7 @@
 #include "common.h"
 
 StateReader::StateReader(const std::string& areaFile, const std::string name, Log& logger) :
-  ronThread(name, logger),
+  ronThread(name, logger, false),
   shared_state_map("shared_sim_state_map", logger, shared_sim_state_file, semaphore_sim_state_file, false)
 {
 

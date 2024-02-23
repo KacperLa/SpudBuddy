@@ -432,7 +432,9 @@
           "velocity": null,
           "omega": null,
           "voltage_0": null,
-          "state": null
+          "state": null, 
+          "right_arm_joint_1": null,
+          "left_arm_joint_1": null
         },
         "timestamp": null
     }

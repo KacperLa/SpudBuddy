@@ -41,7 +41,7 @@ void SData<T>::futexWakeAll(std::atomic<int>* addr) {
 //Template class initialization for the shared memory file and semaphore
 template <typename T>
 SData<T>::SData(Log* logger, const std::string& mapped_file, bool isProducer) : 
-    ronThread(mapped_file, logger),
+    ronThread(mapped_file, logger, true),
     mapped_file(mapped_file),
     m_new_data(false),
     memory_mapped(false),
@@ -59,7 +59,7 @@ SData<T>::SData(Log* logger, const std::string& mapped_file, bool isProducer) :
 //Template class initialization for the shared memory file and semaphore
 template <typename T>
 SData<T>::SData(const std::string& mapped_file, bool isProducer) : 
-    ronThread(mapped_file, static_cast<Log*>(simplelog)),
+    ronThread(mapped_file, static_cast<Log*>(simplelog), true),
     mapped_file(mapped_file),
     memory_mapped(false),
     isProducer(isProducer)

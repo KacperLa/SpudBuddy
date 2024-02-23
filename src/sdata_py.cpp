@@ -112,7 +112,9 @@ PYBIND11_MODULE(SDataLib, m) {
         .def_readwrite("state", &systemDesired_t::state)
         .def_readwrite("position", &systemDesired_t::position)
         .def_readwrite("angles", &systemDesired_t::angles)
-        .def_readwrite("rates", &systemDesired_t::rates);
-
+        .def_readwrite("rates", &systemDesired_t::rates)
+        .def_readwrite("leftShoulder", &systemDesired_t::leftShoulder)
+        .def_readwrite("rightShoulder", &systemDesired_t::rightShoulder);
+    
 };
 

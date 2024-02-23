@@ -6,7 +6,7 @@
 #include "common.h"
 
 IMUReader::IMUReader(const std::string& new_bus, const std::string name, Log* logger) :
-  ronThread(name, logger)
+  ronThread(name, logger, true)
 {
   this->bus = new_bus;
 }

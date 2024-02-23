@@ -1,8 +1,9 @@
 #include "joystick.h"
 
-ronThread::ronThread(const std::string name, Log* logger) : 
+ronThread::ronThread(const std::string name, Log* logger, bool realTime) : 
     threadName(name),
-    logger(logger)
+    logger(logger),
+    realTime(realTime)
     {}
 
 ronThread::~ronThread() {}
@@ -18,24 +19,26 @@ void* ronThread::loopParent(void* arg) {
     sigemptyset(&mask);
     sigaddset(&mask, SIGINT);
     pthread_sigmask(SIG_BLOCK, &mask, NULL);
-    
+
     ronThread* self = static_cast<ronThread*>(arg);
 
-    // set real-time priority
-    struct sched_param param;
-    int max_priority = sched_get_priority_max(SCHED_FIFO);
-    if (max_priority == -1) {
-        
-        perror("sched_get_priority_max failed");
-        return NULL;
-    }
-    param.sched_priority = max_priority;
+    if (self->realTime) {
+        // set real-time priority
+        struct sched_param param;
+        int max_priority = sched_get_priority_max(SCHED_FIFO);
+        if (max_priority == -1) {
+            
+            perror("sched_get_priority_max failed");
+            return NULL;
+        }
+        param.sched_priority = max_priority;
 
-    int rc = pthread_setschedparam(pthread_self(), SCHED_FIFO, &param);
-    if( rc != 0) {
-        self->log("Setting Scheduling parameter failed rc=" + std::to_string(rc) + " " + strerror(rc));
-    } else {
-        self->log("Setting Scheduling parameter succeeded to " + std::to_string(max_priority) + " " + strerror(rc));
+        int rc = pthread_setschedparam(pthread_self(), SCHED_FIFO, &param);
+        if( rc != 0) {
+            self->log("Setting Scheduling parameter failed rc=" + std::to_string(rc) + " " + strerror(rc));
+        } else {
+            self->log("Setting Scheduling parameter succeeded to " + std::to_string(max_priority) + " " + strerror(rc));
+        }
     }
 
     self->log("thread has started.");

@@ -6,7 +6,7 @@
 #include "common.h"
 
 ZEDReader::ZEDReader(const std::string& areaFile, const std::string name, Log* logger) :
-  ronThread(name, logger),
+  ronThread(name, logger, false),
   shared_tracking_state(logger, shared_tracking_state_file,  true)
 {
     m_areaFile = areaFile;

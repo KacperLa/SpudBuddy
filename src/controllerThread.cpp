@@ -1,7 +1,7 @@
 #include "controllerThread.h"
 
 controllerThread::controllerThread(const std::string name, Log* logger, driveSystem& drive_system) :
-    ronThread(name, logger),
+    ronThread(name, logger, true),
     shared_actual_map(logger, shared_actual_state_file, true)
 {
     fsm_handle::set_logger(logger);

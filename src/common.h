@@ -11,8 +11,15 @@ inline std::uint64_t get_time_nano()
     return duration_cast<nanoseconds>(system_clock::now().time_since_epoch()).count();
 }
 
+
+const float max_position[4] {0.0f, 0.0f,  2.30f,  3.0f}; // max position of each node 0 means no limit
+const float min_position[4] {0.0f, 0.0f, -2.30f, -3.0f}; // min position of each node 0 means no limit
+
+
 const int leftNode       {0};
 const int rightNode      {1};
+const int leftShoulder   {2};
+const int rightShoulder  {3};
 
 // location of shared memory
 const std::string shared_drive_system_file {"robot_drive_system"};

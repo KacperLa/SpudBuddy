@@ -14,7 +14,7 @@
 
 class ronThread {
 public:
-    explicit ronThread(const std::string name, Log* logger);
+    explicit ronThread(const std::string name, Log* logger, bool realTime);
     virtual ~ronThread();
     
     void startThread();
@@ -31,6 +31,8 @@ protected:
     std::mutex thread_lock;
 
     Log* logger;
+
+    bool realTime;
 
     std::atomic<bool> running {false};
     std::thread object_thread;

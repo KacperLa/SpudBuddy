@@ -106,14 +106,14 @@ class Running : public Robot
     if (!shared_imu_state->waitOnStateChange(imu_state))
     {
       logger->pushEvent("[FSM] IMU is in error. Entering error state.");
-      transit<Error>();
+      // transit<Error>();
     }
     // check is imu data is stale
     if ((get_time_nano() - imu_state.timestamp) > (1000000000/100))
     {
       std::uint64_t time_diff = get_time_nano() - imu_state.timestamp;
       logger->pushEvent("[FSM] IMU sample stale sample is : " + std::to_string(time_diff) + " ns old");
-      transit<Error>();
+      // transit<Error>();
     } 
 
     // get drive system state
@@ -121,6 +121,9 @@ class Running : public Robot
     shared_tracking_state->getData(tracking_state);
     shared_command_state->getData(command);
     shared_settings->getData(settings);
+
+    drive_system->setPosition(command.leftShoulder, leftShoulder);
+    drive_system->setPosition(command.rightShoulder, rightShoulder);
 
     if (controller.calculateOutput(drive_system_state, imu_state, tracking_state, command, settings, leftWheel_cmd, rightWheel_cmd)){
       drive_system->setTorque(leftWheel_cmd, leftNode);

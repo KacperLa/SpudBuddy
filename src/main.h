@@ -34,5 +34,5 @@ enum class PositionState {
 LogThreaded* logger_threaded;
 
 const std::uint64_t timeout{10};
-const std::uint64_t publish_loop (1000000000 / 1000); // 1000 Hz
-const std::uint64_t main_loop    (1000000000 / 10000); // 5000 Hz
+const std::uint64_t publish_loop (1000000000 / 1000);
+const std::uint64_t main_loop    (1000000000 / 10000);

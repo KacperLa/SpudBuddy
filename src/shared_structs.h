@@ -121,7 +121,7 @@ struct trackingState_t {
 struct driveSystemState_t {
     // array of axis
     position_t position;
-    DriveState axis[2];
+    DriveState axis[4];
 
     // fill the struct with zeros
     driveSystemState_t() noexcept { std::memset(this, 0, sizeof(driveSystemState_t)); }
@@ -135,6 +135,8 @@ struct systemDesired_t {
     position_t position;
     angles_t angles;
     rates_t rates;
+    float leftShoulder;
+    float rightShoulder;
     
     // fill the struct with zeros
     systemDesired_t() noexcept { std::memset(this, 0, sizeof(systemDesired_t)); }

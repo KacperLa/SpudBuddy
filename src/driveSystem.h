@@ -31,6 +31,7 @@ public:
     virtual void updateState(const DriveState& data, const int axos_id);
 
     void setTorque(float& t, const int axis_id);
+    void setPosition(float& pos, const int axis_id);
     void getVelocity(float& vel, const int axis_id);
     void getPosition(float& pos, const int axis_id);
 
@@ -82,7 +83,7 @@ protected:
     
     SData<driveSystemState_t> shared_state;
 
-    DriveState state[2];
+    DriveState state[4];
     const int* nodeIDs;
     const bool* nodeReversed;
 

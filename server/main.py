@@ -21,6 +21,7 @@ import io
 from flask_socketio import SocketIO
 import cv2
 import SDataLib
+import math
 
 DEVNULL = open(os.devnull, 'w')
 
@@ -112,12 +113,13 @@ def generate_data():
         data_json['actual']["angular_velocity_pitch"] = imu_state.rates.gyro_pitch
         data_json['actual']["angular_velocity_roll"] = imu_state.rates.gyro_roll
         # data_json['actual']["velocity"] = actual_state.robot.velocity
-        data_json['actual']["voltage_0"] = drive_state.getAxis(0).vBusVoltage
+        data_json['actual']["voltage_0"] = drive_state.getAxis(2).vBusVoltage
         data_json['actual']["state"] = actual_state.state
+        data_json['actual']["right_arm_joint_1"] = (drive_state.getAxis(3).position / 10) * math.pi * 2
+        data_json['actual']["left_arm_joint_1"]  = (drive_state.getAxis(2).position / 10) * math.pi * 2
 
         yield f"data: {json.dumps(data_json)}\n\n"
         time.sleep(.1)
-    semaphore.close()
 
 def generate_log_data():
     while True:
@@ -156,6 +158,17 @@ def path():
 @app.route('/ron')
 def ron():
     return render_template('ron.html')
+
+@socketio.on('jointDesired')
+def handle_jointsDesired(message):
+    data = json.loads(message)
+    print(data)
+    if data.get('joint_name', None) == 'arm_right_joint_1':
+        command_state.rightShoulder = (data['value'] / (math.pi*2)) * 10
+    elif data.get('joint_name', None) == 'arm_left_joint_1':
+        command_state.leftShoulder  = (data['value'] / (math.pi*2)) * 10
+    
+    command_writer.setData(command_state)
 
 @socketio.on('js')
 def handle_message(message):
