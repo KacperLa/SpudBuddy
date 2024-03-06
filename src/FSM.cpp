@@ -103,7 +103,7 @@ class Running : public Robot
     static controllerSettings_t settings;
 
     // Block until the IMU data is updated
-    if (!shared_imu_state->waitOnStateChange(imu_state))
+    if (!shared_imu_state->waitOnStateChange(&imu_state))
     {
       logger->pushEvent("[FSM] IMU is in error. Entering error state.");
       // transit<Error>();
@@ -117,10 +117,10 @@ class Running : public Robot
     } 
 
     // get drive system state
-    shared_drive_system_state->getData(drive_system_state);
-    shared_tracking_state->getData(tracking_state);
-    shared_command_state->getData(command);
-    shared_settings->getData(settings);
+    shared_drive_system_state->getData(&drive_system_state);
+    shared_tracking_state->getData(&tracking_state);
+    shared_command_state->getData(&command);
+    shared_settings->getData(&settings);
 
     drive_system->setPosition(command.leftShoulder, leftShoulder);
     drive_system->setPosition(command.rightShoulder, rightShoulder);

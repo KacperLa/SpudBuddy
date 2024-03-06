@@ -18,7 +18,8 @@ endif()
 find_package(Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
-
+find_package(sdata REQUIRED)
+include_directories(${SDATA_INCLUDE_DIRS})
 
 find_package(PythonLibs EXACT 3.9 REQUIRED)
 find_package(PythonInterp EXACT 3.9 REQUIRED)
@@ -29,8 +30,9 @@ add_subdirectory(drivers)
 
 pybind11_add_module( SDataLib MODULE
             sdata_py.cpp
-            ronThread.cpp
             )
+
+target_link_libraries(SDataLib PRIVATE sdata)
 
 if(BUILD_FOR_SIM)
     add_executable(ron_core 
@@ -55,6 +57,8 @@ if(BUILD_FOR_SIM)
         ${CMAKE_THREAD_LIBS_INIT}
         ${PYTHON_LIBRARIES}
         msgpack11
+        sdata
+        ${SDATA_LIBRARIES}
     )
 else()
     add_executable(ron_core 
@@ -80,6 +84,8 @@ else()
         ${ZED_LIBS}
         ${PYTHON_LIBRARIES}
         msgpack11
+        sdata
+        ${SDATA_LIBRARIES}
     )
 endif()
 

@@ -7,7 +7,7 @@
 
 ZEDReader::ZEDReader(const std::string& areaFile, const std::string name, Log* logger) :
   ronThread(name, logger, false),
-  shared_tracking_state(logger, shared_tracking_state_file,  true)
+  shared_tracking_state(shared_tracking_state_file,  true)
 {
     m_areaFile = areaFile;
 }
@@ -100,7 +100,7 @@ void ZEDReader::loop() {
     // set error to true untill camera is open
     trackingState_t tracking_data;
     tracking_data.is_tracking = false;
-    shared_tracking_state.setData(tracking_data);
+    shared_tracking_state.setData(&tracking_data);
 
     // Open the ZED device
     if (open() != 1) {
@@ -134,7 +134,7 @@ void ZEDReader::loop() {
             std::cout << "Error getting ZED data." << std::endl;
         }
         
-        shared_tracking_state.setData(tracking_data);
+        shared_tracking_state.setData(&tracking_data);
 
         auto loop_dur = get_time_nano() - last_run;
         if (loop_dur > loop_time)

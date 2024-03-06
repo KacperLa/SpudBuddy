@@ -5,8 +5,8 @@
 #include <pthread.h>
 #include <sched.h>
 
-#include<joystick.h>
-#include<sdata.h>
+#include <joystick.h>
+#include <sdata.h>
 #include "driveSystem.h"
 #include "shared_structs.h"
 #include<loggerThreaded.h>

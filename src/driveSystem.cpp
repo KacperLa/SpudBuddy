@@ -3,9 +3,9 @@
 
 driveSystem::driveSystem(const int id[], const bool dir[], const int size, const std::string name, Log* logger) :
     ronThread(name, logger, false),
-    shared_imu_state(logger, shared_imu_file, false),
+    shared_imu_state(shared_imu_file, false),
     numberOfNodes(size),
-    shared_state(logger, shared_drive_system_file, true),
+    shared_state(shared_drive_system_file, true),
     nodeIDs(id),
     nodeReversed(dir),
     odriveCAN() {
@@ -15,7 +15,7 @@ driveSystem::~driveSystem() {}
 
 void driveSystem::calcDeadRec()
 {
-    shared_imu_state.getData(imu_state);
+    shared_imu_state.getData(&imu_state);
 
     static double inter_tire_distance = 0.240; // 240 mm
     static double tire_radius = 0.189/2.0; //80mm
@@ -149,10 +149,10 @@ bool driveSystem::isReversed(int axis_id)
 void driveSystem::updateState(const DriveState& data, int axis_id) {
     int axis_index = findIndex(nodeIDs, axis_id, numberOfNodes);
     driveSystemState_t s_state;
-    shared_state.getData(s_state);
+    shared_state.getData(&s_state);
     s_state.axis[axis_index] = data;
     s_state.position = deadRecPos;
-    shared_state.setData(s_state);
+    shared_state.setData(&s_state);
 }
 
 void driveSystem::runState(int axisState){

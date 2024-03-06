@@ -1,0 +1,17 @@
+@PACKAGE_INIT@
+
+# Include directories
+set(@PROJECT_NAME@_INCLUDE_DIRS "@CMAKE_CURRENT_SOURCE_DIR@/include")
+
+# Library paths
+set(@PROJECT_NAME@_LIBRARY_DIRS "@CMAKE_CURRENT_SOURCE_DIR@/lib")
+
+# Libraries
+set(@PROJECT_NAME@_LIBRARIES sdata)
+
+# Dependencies
+set(@PROJECT_NAME@_DEPENDENCIES "")
+
+include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
+
+check_required_components(@PROJECT_NAME@)

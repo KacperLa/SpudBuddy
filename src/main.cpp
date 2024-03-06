@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
         auto last_run     = get_time_nano();
 
         // shared memory
-        SData<imuData_t>             shared_imu_map(logger, shared_imu_file,      true);
+        SData<imuData_t>             shared_imu_map(shared_imu_file,      true);
         // SData<systemDesired_t>       shared_desired_map("shared_desired_map",   logger, shared_desired_file,  false);
         // SData<controllerSettings_t>  shared_settings_map("shared_settings_map", logger, shared_settings_file, false);
 
@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
             {
                 imu_time_prev = imu_state.timestamp;
                 imu_state.timestamp = get_time_nano();
-                shared_imu_map.setData(imu_state);
+                shared_imu_map.setData(&imu_state);
                 // logger->pushEvent("Updated Controller IMU time Diff: " + std::to_string(get_time_nano() - imu_state.timestamp)); 
             }
 

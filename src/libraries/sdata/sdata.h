@@ -20,40 +20,22 @@
 #include <sys/syscall.h>
 #include <sys/stat.h>
 
-#include <boost/interprocess/sync/interprocess_sharable_mutex.hpp>
-#include <boost/interprocess/sync/sharable_lock.hpp>
 
-#include <shared_structs.h>
-
-// import boost chrone
-#include <boost/chrono.hpp>
-
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <ronThread.h>
-
-#include <loggerSimple.h>
-
-namespace bip = boost::interprocess;
-
-template <typename T>
-class SData : public ronThread
+class MappedBuffer
 {
-public:
-    SData(Log* logger, const std::string& mapped_file, bool isProducer);
-    
-    SData(const std::string& mapped_file, bool isProducer);
+public:    
+    MappedBuffer(const std::string mapped_file, bool isProducer, std::size_t blob_size);
 
-    virtual ~SData();
+    virtual ~MappedBuffer();
 
-    bool getData(T& data);
-    bool waitOnStateChange(T& data);
+    bool getData(void *data);
+    bool waitOnStateChange(void *data);
 
-    void setData(const T& data);
+    void setData(const void *data);
 
     bool isMemoryMapped();
 
 protected:
-    virtual void loop() override;
     bool openMap();
 
     bool isDataNew();
@@ -61,6 +43,7 @@ protected:
     void closeMap();
     void producer();
     void consumer();
+    void log(std::string message);
 
     bool futexWait(std::atomic<int>* addr, int val);
     void futexWakeAll(std::atomic<int>* addr);
@@ -70,28 +53,28 @@ protected:
     // struct of shared data
     struct shared_data_t {
         std::atomic<int> producer_futex;
-        std::atomic<int> consumer_futex;
-        T triple_buffer[3];
-      
-        boost::interprocess::interprocess_sharable_mutex mutex;
-    };
+        };
 
     // shared memory
     std::string mapped_file;
     int fd;
     std::atomic<bool> memory_mapped;
 
+    // size of shared structure
+    std::size_t blob_size;
+
+    // pointer to each buffer for local data
+    void* m_data[3];
+
     std::atomic<std::uint8_t> local_data_new_index;
-    T local_data[2] {T(), T()};
 
     // Shared data structure type from template
     shared_data_t* shared_data;
+    std::size_t map_size;
 
     // isProducer flag
     bool isProducer;
-    
-    LogSimple* simplelog;
-    
+        
     // conditional variable
     std::condition_variable cv;
 
@@ -102,5 +85,39 @@ protected:
     int index{0};
 };
 
-#include "sdata.cpp"
+template <typename T>
+class SData
+{
+public:
+    SData(const std::string mapped_file, bool isProducer) :
+        mapped_file(mapped_file),
+        isProducer(isProducer)
+    {
+    }
+
+    void setData(T *data)
+    {
+        sdata->setData(static_cast<void*>(data));
+    }
+
+    bool getData(T *data)
+    {
+        return sdata->getData(static_cast<void*>(data));
+    }
+
+    bool waitOnStateChange(T *data)
+    {
+        return sdata->waitOnStateChange(static_cast<void*>(data));
+    }
+
+    bool isMemoryMapped()
+    {
+        return sdata->isMemoryMapped();
+    }
+
+private:
+    const std::string mapped_file;
+    const bool isProducer;
+    MappedBuffer *sdata = new MappedBuffer(mapped_file, isProducer, sizeof(T));
+};
 #endif // SDATA_H

@@ -9,7 +9,7 @@ SET(CMAKE_CXX_STANDARD 20)
 SET(CMAKE_STANDARD_REQUIRES ON)
 
 # Set the Compilation flags.
-SET(CMAKE_CXX_FLAGS "-std=gnu++2a -pthread -pg -O3 -g")
+SET(CMAKE_CXX_FLAGS "-std=gnu++2a -pthread -pg -g")
 
 option(BUILD_FOR_SIM "An option for custom build" OFF)
 
@@ -18,6 +18,10 @@ option(BUILD_FOR_SIM "An option for custom build" OFF)
 SET(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 list(APPEND CMAKE_PREFIX_PATH "/opt/code/ronTheHelper/src/libraries/msgpack11/build")
+
+# /usr/local/lib/libsdata.so
+# /usr/local/include/sdata.h
+# /usr/local/lib/pkgconfig/sdata.pc
 
 # Prefer -pthread compiler and linker flag when using libpthread. This must
 # be set before call to FIND_PACKAGE(Threads).
