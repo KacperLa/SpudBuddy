@@ -1,4 +1,5 @@
 #include <cstring> 
+#include <common.h>
 
 #ifndef SHARED_STRUCTS_H
 #define SHARED_STRUCTS_H
@@ -38,6 +39,14 @@ struct imuData_t
   imuData_t(angles_t angles, rates_t rates, std::uint64_t timestamp, bool quality, bool error) : angles(angles), rates(rates), timestamp(timestamp), quality(quality), error(error) {}
 };
 
+struct camera_feed_t
+{
+    std::uint8_t frame[2764800]; // zed HD720 image is 1280x720x3 thats a total of 2764800 bytes
+
+    // fill the struct with zeros
+    camera_feed_t() noexcept { std::memset(this, 0, sizeof(camera_feed_t)); }
+};
+
 struct position_t
 {
     float x;
@@ -47,6 +56,18 @@ struct position_t
     // fill the struct with zeros
     position_t() noexcept { std::memset(this, 0, sizeof(position_t)); }
     position_t(float x, float y, float z) : x(x), y(y), z(z) {}
+};
+
+struct positionSystem_t
+{
+    position_t position;
+    bool status;
+    uint64_t timestamp;
+
+    // fill the struct with zeros
+    positionSystem_t() noexcept { std::memset(this, 0, sizeof(positionSystem_t)); }
+    positionSystem_t(position_t pos, bool status, time_t timestamp) : position(pos), status(status), timestamp(timestamp) {}
+    positionSystem_t(position_t pos, bool status) : position(pos), status(status), timestamp(get_time_nano()) {}
 };
 
 struct systemActual_t
@@ -106,21 +127,9 @@ struct DriveState {
     DriveState() noexcept { std::memset(this, 0, sizeof(DriveState)); }
 };
 
-// Tracking specific
-struct trackingState_t {
-    position_t position;
-    bool is_tracking;
-    time_t timestamp;
-
-    // fill the struct with zeros
-    trackingState_t() noexcept { std::memset(this, 0, sizeof(trackingState_t)); }
-    trackingState_t(position_t position, bool is_tracking, time_t timestamp) : position(position), is_tracking(is_tracking), timestamp(timestamp) {}
-};
-
 // DriveSystem specific
 struct driveSystemState_t {
     // array of axis
-    position_t position;
     DriveState axis[4];
 
     // fill the struct with zeros

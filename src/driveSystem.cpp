@@ -6,6 +6,7 @@ driveSystem::driveSystem(const int id[], const bool dir[], const int size, const
     shared_imu_state(shared_imu_file, false),
     numberOfNodes(size),
     shared_state(shared_drive_system_file, true),
+    dead_reckoning_shared_position(shared_dead_reckoning_file, true),
     nodeIDs(id),
     nodeReversed(dir),
     odriveCAN() {
@@ -13,7 +14,7 @@ driveSystem::driveSystem(const int id[], const bool dir[], const int size, const
 
 driveSystem::~driveSystem() {}
 
-void driveSystem::calcDeadRec()
+void driveSystem::calculateDeadReckoning()
 {
     shared_imu_state.getData(&imu_state);
 
@@ -39,11 +40,8 @@ void driveSystem::calcDeadRec()
         double global_x = ((sin(deadRecAngle) * local_y) + (cos(deadRecAngle) * local_x));
         double global_y = ((cos(deadRecAngle) * local_y) + (sin(deadRecAngle) * local_x));
 
-        deadRecPos.x -= global_x;
-        deadRecPos.y += global_y;
-        
-        deadRecPosSinceStart.x -= global_x;
-        deadRecPosSinceStart.y += global_y;
+        dead_reckoning_position.x -= global_x;
+        dead_reckoning_position.y += global_y;
 
         // update heading angle
         deadRecAngle = (imu_state.angles.yaw/180)*PI;
@@ -52,23 +50,15 @@ void driveSystem::calcDeadRec()
         double global_x = (sin(deadRecAngle) * (arcR+arcL)/2.0);
         double global_y = (cos(deadRecAngle) * (arcR+arcL)/2.0);
         
-        deadRecPos.x -= global_x;
-        deadRecPos.y += global_y;
-        deadRecPosSinceStart.x -= global_x;    
-        deadRecPosSinceStart.y += global_y;
+        dead_reckoning_position.x -= global_x;    
+        dead_reckoning_position.y += global_y;
     }
+    positionSystem_t* tmp = dead_reckoning_shared_position.getBuffer();
+    tmp->position = dead_reckoning_position;
+    tmp->status = true;
+    dead_reckoning_shared_position.trigger();
 
     std::memcpy(lastWheelPos, currentWheelPos, sizeof(currentWheelPos));
-}
-
-void driveSystem::getDRReletive(position_t& pos)
-{
-    pos = deadRecPos;
-}
-
-void driveSystem::getDRAbsolute(position_t& pos)
-{
-    pos = deadRecPosSinceStart;
 }
 
 bool driveSystem::open() {
@@ -105,7 +95,11 @@ void driveSystem::requestVbusVoltage(){
 
 void driveSystem::requestDRReset()
 {
-    deadRecPos = {0.0, 0.0, 0.0};
+    dead_reckoning_position = {0.0, 0.0, 0.0};
+    positionSystem_t* tmp = dead_reckoning_shared_position.getBuffer();
+    tmp->position = dead_reckoning_position;
+    tmp->status = true;
+    dead_reckoning_shared_position.trigger();
 }
 
 void driveSystem::getVelocity(float& vel, const int axis_id){
@@ -151,7 +145,6 @@ void driveSystem::updateState(const DriveState& data, int axis_id) {
     driveSystemState_t s_state;
     shared_state.getData(&s_state);
     s_state.axis[axis_index] = data;
-    s_state.position = deadRecPos;
     shared_state.setData(&s_state);
 }
 
@@ -251,10 +244,7 @@ void driveSystem::loop() {
             }
             updateState(cur_state, axis_id);
         }
-        //std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-
-    // Close the odrive device
     close();
 }
 

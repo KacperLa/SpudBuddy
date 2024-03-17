@@ -4,10 +4,10 @@ import argparse
 import os
 import sys
 import webbrowser
-from mmap_functions import *
+import SDataLib
 
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 from pydrake.common.value import Value
 

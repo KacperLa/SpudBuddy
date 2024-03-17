@@ -34,5 +34,6 @@ enum class PositionState {
 LogThreaded* logger_threaded;
 
 const std::uint64_t timeout{10};
-const std::uint64_t publish_loop (1000000000 / 1000);
-const std::uint64_t main_loop    (1000000000 / 10000);
+const std::uint64_t publish_loop (1000000000 / 100);
+const std::chrono::nanoseconds main_loop(1000000000 / 1000);
+const std::chrono::nanoseconds dead_reckoning_loop(1000000000 / 10);

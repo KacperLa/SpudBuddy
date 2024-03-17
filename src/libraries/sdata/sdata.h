@@ -32,6 +32,9 @@ public:
     bool waitOnStateChange(void *data);
 
     void setData(const void *data);
+    void setData();
+
+    void* getBuffer();
 
     bool isMemoryMapped();
 
@@ -113,6 +116,16 @@ public:
     bool isMemoryMapped()
     {
         return sdata->isMemoryMapped();
+    }
+
+    void trigger()
+    {
+        sdata->setData();
+    }
+
+    T* getBuffer()
+    {
+        return static_cast<T*>(sdata->getBuffer());
     }
 
 private:

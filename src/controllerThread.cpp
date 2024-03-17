@@ -6,7 +6,7 @@ controllerThread::controllerThread(const std::string name, Log* logger, driveSys
 {
     fsm_handle::set_logger(logger);
     fsm_handle::shared_imu_state = new SData<imuData_t>(shared_imu_file,             false);
-    fsm_handle::shared_tracking_state = new SData<trackingState_t>(shared_tracking_state_file,  false);
+    fsm_handle::shared_tracking_state = new SData<positionSystem_t>(shared_tracking_state_file,  false);
     fsm_handle::shared_command_state = new SData<systemDesired_t>(shared_command_file,   false);
     fsm_handle::shared_drive_system_state = new SData<driveSystemState_t>(shared_drive_system_file,    false);
     fsm_handle::shared_settings = new SData<controllerSettings_t>(shared_settings_file,    false);

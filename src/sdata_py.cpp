@@ -10,7 +10,9 @@ void bindSData(py::module& m, const std::string& name) {
     py::class_<SData<T>>(m, name.c_str())
         .def(py::init<const std::string&, bool>())
         .def("getData", &SData<T>::getData)
-        .def("setData", &SData<T>::setData);
+        .def("setData", &SData<T>::setData)
+        .def("waitOnStateChange", &SData<T>::waitOnStateChange)
+        .def("isMemoryMapped", &SData<T>::isMemoryMapped);
 }
 
 PYBIND11_MODULE(SDataLib, m) {
@@ -24,9 +26,11 @@ PYBIND11_MODULE(SDataLib, m) {
     // Bind SData for systemActual_t
     bindSData<systemActual_t>(m, "SDataSystemActual");
     // Bind SData for trackingState_t
-    bindSData<trackingState_t>(m, "SDataTrackingState");
+    bindSData<positionSystem_t>(m, "SDataPositionSystem");
     // Bind SData for driveSystemState_t
     bindSData<driveSystemState_t>(m, "SDataDriveSystemState");
+    // Bind SData for camera_feed_t
+    bindSData<camera_feed_t>(m, "SDataCameraFeed");
 
     py::class_<angles_t>(m, "angles_t")
         .def(py::init<>())
@@ -88,6 +92,10 @@ PYBIND11_MODULE(SDataLib, m) {
         .def_readwrite("y", &JoystickState::y)
         .def_readwrite("time", &JoystickState::time);
 
+    // py::class_<camera_feed_t>(m, "camera_feed_t")
+    //     .def(py::init<>())
+    //     .def_readwrite("frame", &camera_feed_t::frame)
+
     py::class_<DriveState>(m, "DriveState")
         .def(py::init<>())
         .def_readwrite("velocity", &DriveState::velocity)
@@ -96,15 +104,14 @@ PYBIND11_MODULE(SDataLib, m) {
         .def_readwrite("state", &DriveState::state)
         .def_readwrite("error", &DriveState::error);
 
-    py::class_<trackingState_t>(m, "trackingState_t")
+    py::class_<positionSystem_t>(m, "positionSystem_t")
         .def(py::init<>())
-        .def_readwrite("is_tracking", &trackingState_t::is_tracking)
-        .def_readwrite("position", &trackingState_t::position)
-        .def_readwrite("timestamp", &trackingState_t::timestamp);
+        .def_readwrite("status", &positionSystem_t::status)
+        .def_readwrite("position", &positionSystem_t::position)
+        .def_readwrite("timestamp", &positionSystem_t::timestamp);
 
     py::class_<driveSystemState_t>(m, "driveSystemState_t")
         .def(py::init<>())
-        .def_readwrite("position", &driveSystemState_t::position)
         .def("getAxis", &driveSystemState_t::getAxis);
 
     py::class_<systemDesired_t>(m, "systemDesired_t")

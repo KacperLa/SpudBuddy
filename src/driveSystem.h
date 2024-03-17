@@ -35,15 +35,14 @@ public:
     void getVelocity(float& vel, const int axis_id);
     void getPosition(float& pos, const int axis_id);
 
-    void getDRAbsolute(position_t& pos);
-    void getDRReletive(position_t& pos);
+    void getDeadReckoningPosition(position_t& pos);
 
     void requestVbusVoltage();
     void requestDRReset();
 
     bool getState(DriveState& data, int axid_id);
     bool getStatus();
-    void calcDeadRec();
+    void calculateDeadReckoning();
 
     bool enable(); // ODriveCAN::AxisState_t::AXIS_STATE_CLOSED_LOOP_CONTROL
     bool disable(); // ODriveCAN::AxisState_t::AXIS_STATE_IDLE
@@ -70,8 +69,7 @@ protected:
 
     int numberOfNodes {2};
 
-    position_t deadRecPos;
-    position_t deadRecPosSinceStart;
+    position_t dead_reckoning_position;
 
     double deadRecAngle {0.0}; 
 
@@ -82,6 +80,7 @@ protected:
     std::string device;
     
     SData<driveSystemState_t> shared_state;
+    SData<positionSystem_t> dead_reckoning_shared_position;
 
     DriveState state[4];
     const int* nodeIDs;

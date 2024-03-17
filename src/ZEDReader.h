@@ -25,7 +25,7 @@ public:
   ZEDReader(const std::string& areaFile, const std::string name, Log* logger);
   virtual ~ZEDReader();
   
-  void getIMUData(imuData_t& data);
+  void getIMUData(imuData_t *data);
   void saveMesh();
 
 private:
@@ -42,7 +42,8 @@ protected:
 
     std::uint64_t  loop_time = (1000000000 / 15); // 15 Hz
 
-    SData<trackingState_t> shared_tracking_state;
+    SData<positionSystem_t> shared_tracking_state;
+    SData<camera_feed_t>   shared_camera_feed;
 
     imuData_t imu_state;
 };

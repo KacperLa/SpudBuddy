@@ -78,7 +78,7 @@ public:
     static driveSystem* drive_system;
 
     static SData<imuData_t>* shared_imu_state;
-    static SData<trackingState_t>* shared_tracking_state;
+    static SData<positionSystem_t>* shared_tracking_state;
     static SData<driveSystemState_t>* shared_drive_system_state;
     static SData<systemDesired_t>* shared_command_state;    
     static SData<controllerSettings_t>* shared_settings;

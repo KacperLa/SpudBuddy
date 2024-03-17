@@ -171,7 +171,7 @@ bool MappedBuffer::waitOnStateChange(void *data)
     int current_index = shared_data->producer_futex.load(std::memory_order_acquire);
     std::atomic_wait(&shared_data->producer_futex, current_index);
     return getData(data);
-    //     if (futexWait(&shared_data->producer_futex, current_index))
+    // if (futexWait(&shared_data->producer_futex, current_index))
     // {
     //     std::memcpy(&data,
     //                 m_data[current_index % 3],
@@ -203,5 +203,14 @@ void MappedBuffer::setData(const void* data)
     shared_data->producer_futex.notify_all();   
 }
 
+void MappedBuffer::setData()
+{
+    shared_data->producer_futex.fetch_add(1, std::memory_order_release);
+    shared_data->producer_futex.notify_all();   
+}
 
+void* MappedBuffer::getBuffer()
+{
+    return m_data[shared_data->producer_futex.load(std::memory_order_acquire) % 3];
+} 
     

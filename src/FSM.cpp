@@ -77,7 +77,7 @@ imuData_t Robot::imu_state;
 int Robot::state = 0;
 
 SData<imuData_t>*  Robot::shared_imu_state = {nullptr};
-SData<trackingState_t>* Robot::shared_tracking_state = {nullptr};
+SData<positionSystem_t>* Robot::shared_tracking_state = {nullptr};
 SData<driveSystemState_t>* Robot::shared_drive_system_state = {nullptr};
 SData<systemDesired_t>* Robot::shared_command_state = {nullptr};
 SData<controllerSettings_t>* Robot::shared_settings = {nullptr};
@@ -96,7 +96,7 @@ class Running : public Robot
     static float leftWheel_cmd;
     static float rightWheel_cmd;
 
-    static trackingState_t tracking_state;
+    static positionSystem_t tracking_state;
     static systemDesired_t command;
     static imuData_t imu_state;
     static driveSystemState_t drive_system_state;

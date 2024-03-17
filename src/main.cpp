@@ -119,27 +119,28 @@ int main(int argc, char *argv[])
         driveSystem drive_system(nodes, nodeRev, 4, "driveSystem", logger);
         drive_system.startThread();
 
-        controllerThread controller("Controller", logger, drive_system);
-        controller.startThread();
+        // controllerThread controller("Controller", logger, drive_system);
+        // controller.startThread();
 
-        JoystickState js_state;
-        imuData_t imu_state;
+        // JoystickState js_state;
         std::uint64_t imu_time_prev = 0;
-        bool imu_error = false;
-        bool drive_system_error = false;
+        // bool drive_system_error = false;
 
-        systemDesired_t      shared_desired_state;
+        // systemDesired_t      shared_desired_state;
 
-        controllerSettings_t shared_controller_settings;
-        controllerSettings_t shared_controller_settings_prev = shared_controller_settings; 
+        // controllerSettings_t shared_controller_settings;
+        // controllerSettings_t shared_controller_settings_prev = shared_controller_settings; 
         imuData_t            shared_imu_state;
 
         
         auto last_publish = get_time_nano();
-        auto last_run     = get_time_nano();
-
+        auto last_run     = get_time_nano_chrono();
+        auto last_dead_reckoning = get_time_nano_chrono();
         // shared memory
+        imuData_t *imu_state;
         SData<imuData_t>             shared_imu_map(shared_imu_file,      true);
+        imu_state = shared_imu_map.getBuffer();
+
         // SData<systemDesired_t>       shared_desired_map("shared_desired_map",   logger, shared_desired_file,  false);
         // SData<controllerSettings_t>  shared_settings_map("shared_settings_map", logger, shared_settings_file, false);
 
@@ -158,41 +159,22 @@ int main(int argc, char *argv[])
         int mesh_save_count = 0;
         
         while(!time_to_quit){
-            last_run = get_time_nano();
+            last_run = get_time_nano_chrono();
 
             imu.getIMUData(imu_state);
-            if (imu_state.timestamp != imu_time_prev)
+            if (imu_state->timestamp != imu_time_prev)
             {
-                imu_time_prev = imu_state.timestamp;
-                imu_state.timestamp = get_time_nano();
-                shared_imu_map.setData(&imu_state);
-                // logger->pushEvent("Updated Controller IMU time Diff: " + std::to_string(get_time_nano() - imu_state.timestamp)); 
+                shared_imu_map.trigger();
+                imu_state = shared_imu_map.getBuffer();
+                imu_time_prev = imu_state->timestamp;
             }
 
-            // // request a transition only if the desired state has changed
-            // if (shared_desired_state.state != shared_desired_state_prev.state){
-            //     request_transition(shared_desired_state.state);
-            //     shared_desired_state_prev.state = shared_desired_state.state;
-            //     std::cout << "The desired state has changed to: " << std::to_string(shared_desired_state.state) << std::endl;
-            // }
-
-
-            // calc position guess
-            // drive_system.calcDeadRec(imu_state.angles.yaw);
-            // drive_system.getDRAbsolute(dr_pos.x, dr_pos.y);
-
-            // pos = slam_state.position;
-            // // determine which position to use
-            // if (slam_state.tracking_state){
-            //     actual_state.positionStatus = (int)PositionState::SLAM;
-            //     drive_system.requestDRReset();
-            // } else {
-            //     actual_state.positionStatus = (int)PositionState::DEAD_RECKONING;
-            //     drive_system.getDRReletive(rel_x, rel_y);
-            //     pos.x += rel_x;
-            //     pos.y += rel_y;
-            // } 
-
+            // Dead Reckoning
+            if (get_time_nano_chrono() - last_dead_reckoning > dead_reckoning_loop)
+            {
+                drive_system.calculateDeadReckoning();
+                last_dead_reckoning = get_time_nano_chrono();
+            }
 
             // if ((get_time_nano() - last_publish) > publish_loop){
             //     // shared_actual_map.setData(shared_actual_state);                    
@@ -200,19 +182,19 @@ int main(int argc, char *argv[])
             //     last_publish = get_time_nano();
             // }
             
-            // if ((get_time_nano() - last_run) > main_loop)
-            // {
-            //     auto loop_dur_in_seconds = (get_time_nano() - last_run) / 1000000.0;
-            //     auto main_loop_in_seconds = main_loop / 1000000000.0;
-            //     logger->pushEvent("[MAIN] Main loop over time. actual: " + std::to_string(loop_dur_in_seconds) + " s should be: " + std::to_string(main_loop_in_seconds) + " s");
-            // } 
-            // else
-            // {
-                std::this_thread::sleep_for(std::chrono::nanoseconds(main_loop - (get_time_nano() - last_run)));
-            // }
+            if ((get_time_nano_chrono() - last_run) > main_loop)
+            {
+                float loop_dur = nano_to_uint64(get_time_nano_chrono() - last_run) / 1000000000.0;
+                float main_loop_in_seconds = nano_to_uint64(main_loop) / 1000000000.0;
+                logger->pushEvent("[MAIN] Main loop over time. actual: " + std::to_string(loop_dur) + " s should be: " + std::to_string(main_loop_in_seconds) + " s");
+            } 
+            else
+            {
+                std::this_thread::sleep_for(std::chrono::nanoseconds(main_loop - (get_time_nano_chrono() - last_run)));
+            }
         }
 
-	    fsm_handle::dispatch(SHUTDOWN());
+	    // fsm_handle::dispatch(SHUTDOWN());
         drive_system.stopThread();
         imu.stopThread();
 

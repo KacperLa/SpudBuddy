@@ -60,14 +60,14 @@ void calcDesiredYaw(position_t actual, position_t desired, float & desired_yaw)
 
     
     
-bool Controller::calculateOutput(driveSystemState_t drive_state, imuData_t imu, trackingState_t tracking, systemDesired_t command, controllerSettings_t controller_settings, float& outputLeft, float& outputRight)
+bool Controller::calculateOutput(driveSystemState_t drive_state, imuData_t imu, positionSystem_t tracking, systemDesired_t command, controllerSettings_t controller_settings, float& outputLeft, float& outputRight)
 {
     // Positon error
     float position_error;   
     calcPositionError(tracking.position, command.position, position_error);
 
     if (fabs(position_error) < controller_settings.dead_zone_pos && 
-        tracking.is_tracking == false)
+        tracking.status == false)
     {
         position_error = 0;
     }

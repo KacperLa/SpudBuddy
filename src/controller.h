@@ -12,7 +12,7 @@ public:
     Controller();
     ~Controller();
 
-    bool calculateOutput(driveSystemState_t drive_state, imuData_t imu, trackingState_t tracking, systemDesired_t command, controllerSettings_t controller_settings, float& outputLeft, float& outputRight);
+    bool calculateOutput(driveSystemState_t drive_state, imuData_t imu, positionSystem_t tracking, systemDesired_t command, controllerSettings_t controller_settings, float& outputLeft, float& outputRight);
 
     void get_settings(controllerSettings_t & settings);
     void set_settings(const controllerSettings_t & settings);

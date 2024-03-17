@@ -15,3 +15,4 @@ sudo setcap cap_sys_nice+ep build/bin/ron_core
 
 # Copy python lib to server folder 
 cp build/lib/SDataLib.cpython-39-aarch64-linux-gnu.so server/SDataLib.so
+cp build/lib/SDataLib.cpython-39-aarch64-linux-gnu.so drake/SDataLib.so
