@@ -496,19 +496,19 @@ def generate():
     jpeg = TurboJPEG()
 
     while True:
-        if not camera_reader.getData(camera_frame):
-            print("Failed to get camera data")
-            continue
+        camera_reader.waitOnStateChange(camera_frame);
+        # if not camera_reader.getData(camera_frame):
+        #     print("Failed to get camera data")
+        #     continue
        
         # Convert camera_frame to numpy array and remove last channel
         im = np.array(camera_frame, copy=False)
-
         im = np.delete(im, -1, 2)
 
         img_encode = jpeg.encode(im, quality=50)
         
         yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + img_encode + b'\r\n')
-        time.sleep(.05)
+        # time.sleep(.05)
 
 @app.route("/map_stream")
 def map_stream():

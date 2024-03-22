@@ -102,12 +102,17 @@ void ZEDReader::loop() {
 
 	const auto& resolution = zed.getCameraInformation().camera_configuration.resolution;
     // create a sl::Mat with a pointer to the shared memory
-    
-    camera_feed_t* camera_buffer_ptr;
-    
+        
     sl::Mat point_cloud;
     
-    sl::Mat image; 
+    // set resolution in each sdata buffer
+    for (int i = 0; i < 3; i++)
+    {
+        shared_camera_feed.getBuffer()->rows = 720;
+        shared_camera_feed.getBuffer()->cols = 1280;
+        shared_camera_feed.getBuffer()->channels = 4;
+        shared_camera_feed.trigger();
+    }
 
     // Open the ZED device
     if (open() != 1) {
@@ -120,12 +125,13 @@ void ZEDReader::loop() {
 
         if (zed.grab() == ERROR_CODE::SUCCESS)
         {
-            zed.retrieveImage(image, VIEW::LEFT, MEM::CPU, resolution);
-            // camera_feed_t camera_feed_1;
-            const void* dataPtr = image.getPtr<sl::uchar1>(sl::MEM::CPU);
-            // size_t dataSizeBytes = image_3.getSizeBytes(sl::MEM::CPU);
-
-            std::memcpy(&shared_camera_feed.getBuffer()->frame, dataPtr, sizeof(shared_camera_feed.getBuffer()->frame));
+            sl::Mat image(1280,
+                          720,
+                          MAT_TYPE::U8_C4, 
+                          shared_camera_feed.getBuffer()->frame,
+                          5120,
+                          sl::MEM::CPU);
+            zed.retrieveImage(image, VIEW::LEFT, MEM::CPU);
             shared_camera_feed.trigger();
 
             // Get the position of the camera in a fixed reference frame (the World Frame)
