@@ -15,7 +15,7 @@
 #include "shared_structs.h"
 
 #include "drivers/ODriveCAN/ODriveCAN.h"
-#include<ronThread.h>
+#include <ronThread.h>
 #include <sdata.h>
 
 class driveSystem : public ronThread

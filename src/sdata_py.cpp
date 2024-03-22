@@ -12,8 +12,10 @@ void bindSData(py::module& m, const std::string& name) {
         .def("getData", &SData<T>::getData)
         .def("setData", &SData<T>::setData)
         .def("waitOnStateChange", &SData<T>::waitOnStateChange)
-        .def("isMemoryMapped", &SData<T>::isMemoryMapped);
-}
+        .def("isMemoryMapped", &SData<T>::isMemoryMapped)
+        .def("getBufferIndex", &SData<T>::getBufferIndex);
+        
+}      
 
 PYBIND11_MODULE(SDataLib, m) {
 
@@ -92,9 +94,31 @@ PYBIND11_MODULE(SDataLib, m) {
         .def_readwrite("y", &JoystickState::y)
         .def_readwrite("time", &JoystickState::time);
 
-    // py::class_<camera_feed_t>(m, "camera_feed_t")
-    //     .def(py::init<>())
-    //     .def_readwrite("frame", &camera_feed_t::frame)
+
+    py::class_<camera_feed_t>(m, "camera_feed_t", pybind11::buffer_protocol())
+        .def(py::init<>())
+        .def("dump_data", &camera_feed_t::dump_data)
+        .def("getPx", &camera_feed_t::getPx)    
+        .def_buffer([](camera_feed_t& im) -> pybind11::buffer_info {
+            return pybind11::buffer_info(
+                // Pointer to buffer
+                im.frame,
+                // Size of one scalar
+                sizeof(unsigned char),
+                // Python struct-style format descriptor
+                pybind11::format_descriptor<unsigned char>::format(),
+                // Number of dimensions
+                3,
+                // Buffer dimensions
+                { im.rows, im.cols, im.channels },
+                // Strides (in bytes) for each index
+                {
+                    sizeof(unsigned char) * im.channels * im.cols,
+                    sizeof(unsigned char) * im.channels,
+                    sizeof(unsigned char)
+                }
+            );
+        });
 
     py::class_<DriveState>(m, "DriveState")
         .def(py::init<>())

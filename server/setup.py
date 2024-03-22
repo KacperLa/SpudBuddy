@@ -14,6 +14,8 @@ setup(
         'flask-socketio',
         'simple-websocket',
         'opencv-python',
-        'posix_ipc'
+        'posix_ipc', 
+        'Pillow',
+        'PyTurboJPEG'
         ]
 )

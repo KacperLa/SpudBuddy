@@ -1,5 +1,7 @@
 #include <cstring> 
 #include <common.h>
+#include <iostream>
+#include <array>
 
 #ifndef SHARED_STRUCTS_H
 #define SHARED_STRUCTS_H
@@ -41,12 +43,23 @@ struct imuData_t
 
 struct camera_feed_t
 {
-    std::uint8_t frame[2764800]; // zed HD720 image is 1280x720x3 thats a total of 2764800 bytes
+    unsigned char frame[3686400] {0};  // zed HD720 image is 1280x720x4 thats a total of 2764800 bytes
+    int rows {720};
+    int cols {1280};
+    int channels {4};
 
     // fill the struct with zeros
-    camera_feed_t() noexcept { std::memset(this, 0, sizeof(camera_feed_t)); }
-};
+    // camera_feed_t() noexcept { std::memset(this->frame, 0, sizeof(camera_feed_t)); }
+    unsigned char getPx(int x) { return static_cast<unsigned char>(frame[x]); }
 
+    void dump_data()
+    {
+        for (int i = 0; i < 300; i++)
+        {
+            std::cout << std::to_string(frame[i]) << "\n";
+        }
+    }
+};
 struct position_t
 {
     float x;

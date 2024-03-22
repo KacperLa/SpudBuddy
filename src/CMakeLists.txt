@@ -32,8 +32,6 @@ pybind11_add_module( SDataLib MODULE
             sdata_py.cpp
             )
 
-target_link_libraries(SDataLib PRIVATE sdata)
-
 if(BUILD_FOR_SIM)
     add_executable(ron_core 
         main.cpp
@@ -57,8 +55,6 @@ if(BUILD_FOR_SIM)
         ${CMAKE_THREAD_LIBS_INIT}
         ${PYTHON_LIBRARIES}
         msgpack11
-        sdata
-        ${SDATA_LIBRARIES}
     )
 else()
     add_executable(ron_core 
@@ -84,8 +80,6 @@ else()
         ${ZED_LIBS}
         ${PYTHON_LIBRARIES}
         msgpack11
-        sdata
-        ${SDATA_LIBRARIES}
     )
 endif()
 

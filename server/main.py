@@ -2,7 +2,6 @@
 
 import copy
 from email import message
-# import click
 from git_commands import *
 from flask import Flask, send_file, request,render_template, current_app, g, abort
 from flask.cli import with_appcontext
@@ -22,6 +21,8 @@ from flask_socketio import SocketIO
 import cv2
 import SDataLib
 import math
+from PIL import Image
+from turbojpeg import TurboJPEG, TJFLAG_PROGRESSIVE, TJFLAG_FASTUPSAMPLE, TJFLAG_FASTDCT
 
 DEVNULL = open(os.devnull, 'w')
 
@@ -57,9 +58,13 @@ MAP_NAME_SETTINGS = '/tmp/robot_settings'
 MAP_NAME_IMU  = 'robot_imu'
 MAP_NAME_DRIVE_SYSTEM = 'robot_drive_system'
 MAP_NAME_TRACKING = 'robot_tracking'
+MAP_NAME_CAMERA = 'robot_camera'
 
 app = Flask(__name__)
 socketio = SocketIO(app)
+
+camera_reader = SDataLib.SDataCameraFeed(MAP_NAME_CAMERA, False)
+camera_frame = SDataLib.camera_feed_t()
 
 imu_reader = SDataLib.SDataIMU(MAP_NAME_IMU, False)
 imu_state  = SDataLib.imuData_t()
@@ -73,8 +78,8 @@ actual_state  = SDataLib.systemActual_t()
 drive_reader = SDataLib.SDataDriveSystemState(MAP_NAME_DRIVE_SYSTEM, False)
 drive_state  = SDataLib.driveSystemState_t()
 
-tracking_reader = SDataLib.SDataTrackingState(MAP_NAME_TRACKING, False)
-tracking_state  = SDataLib.trackingState_t()
+tracking_reader = SDataLib.SDataPositionSystem(MAP_NAME_TRACKING, False)
+tracking_state  = SDataLib.positionSystem_t()
 
 @app.route("/")
 def home():
@@ -99,24 +104,24 @@ def generate_data():
             print("Failed to get tracking data")
             continue
 
-        data_json['actual']["positionDeadReckoning_x"] = drive_state.position.x
-        data_json['actual']["positionDeadReckoning_y"] = drive_state.position.y
-        data_json['actual']["positionDeadReckoning_z"] = drive_state.position.z
-        data_json['actual']["positionSlam_x"] = tracking_state.position.x
-        data_json['actual']["positionSlam_y"] = tracking_state.position.y
-        data_json['actual']["positionSlam_z"] = tracking_state.position.z
-        data_json['actual']["positionStatus"] = tracking_state.is_tracking
-        data_json['actual']["orientation_yaw"] = imu_state.angles.yaw
-        data_json['actual']["orientation_pitch"] = imu_state.angles.pitch
-        data_json['actual']["orientation_roll"] = imu_state.angles.roll
-        data_json['actual']["angular_velocity_yaw"] = imu_state.rates.gyro_yaw
-        data_json['actual']["angular_velocity_pitch"] = imu_state.rates.gyro_pitch
-        data_json['actual']["angular_velocity_roll"] = imu_state.rates.gyro_roll
-        # data_json['actual']["velocity"] = actual_state.robot.velocity
-        data_json['actual']["voltage_0"] = drive_state.getAxis(2).vBusVoltage
-        data_json['actual']["state"] = actual_state.state
-        data_json['actual']["right_arm_joint_1"] = (drive_state.getAxis(3).position / 10) * math.pi * 2
-        data_json['actual']["left_arm_joint_1"]  = (drive_state.getAxis(2).position / 10) * math.pi * 2
+        # data_json['actual']["positionDeadReckoning_x"] = drive_state.position.x
+        # data_json['actual']["positionDeadReckoning_y"] = drive_state.position.y
+        # data_json['actual']["positionDeadReckoning_z"] = drive_state.position.z
+        # data_json['actual']["positionSlam_x"] = tracking_state.position.x
+        # data_json['actual']["positionSlam_y"] = tracking_state.position.y
+        # data_json['actual']["positionSlam_z"] = tracking_state.position.z
+        # data_json['actual']["positionStatus"] = tracking_state.is_tracking
+        # data_json['actual']["orientation_yaw"] = imu_state.angles.yaw
+        # data_json['actual']["orientation_pitch"] = imu_state.angles.pitch
+        # data_json['actual']["orientation_roll"] = imu_state.angles.roll
+        # data_json['actual']["angular_velocity_yaw"] = imu_state.rates.gyro_yaw
+        # data_json['actual']["angular_velocity_pitch"] = imu_state.rates.gyro_pitch
+        # data_json['actual']["angular_velocity_roll"] = imu_state.rates.gyro_roll
+        # # data_json['actual']["velocity"] = actual_state.robot.velocity
+        # data_json['actual']["voltage_0"] = drive_state.getAxis(2).vBusVoltage
+        # data_json['actual']["state"] = actual_state.state
+        # data_json['actual']["right_arm_joint_1"] = (drive_state.getAxis(3).position / 10) * math.pi * 2
+        # data_json['actual']["left_arm_joint_1"]  = (drive_state.getAxis(2).position / 10) * math.pi * 2
 
         yield f"data: {json.dumps(data_json)}\n\n"
         time.sleep(.1)
@@ -462,22 +467,48 @@ def view_stream():
 
 @app.route("/video_feed_0")
 def video_feed_0():
-	return Response(generate(0), mimetype = "multipart/x-mixed-replace; boundary=frame")
+	return Response(generate(), mimetype = "multipart/x-mixed-replace; boundary=frame")
 
 @app.route("/video_feed_1")
 def video_feed_1():
 	return Response(generate(), mimetype = "multipart/x-mixed-replace; boundary=frame")
 
+def saveframe(img):
+    # img = cv2.imdecode(img,-1)
+    image = Image.fromarray(img, 'RGBA')
+
+    # Save the image
+    image.save('output.png')
+    # cv2.imwrite((fileName+".jpg"), img)
+    #     #with open((fileName+".jpg"),"wb+") as fd:
+    #     #    fd.write(img)
+    #     self.updateMetadata((fileName+".jpg"), imu_data, waypoint, index, dt, flipped)
+    #     if self.saveTumb:
+    #         thumb = cv2.resize(img, tuple(self.camConfig['thumbSize']))
+    #         if self.camModel == "5880":
+    #             img = self.apply_filter(thumb) 
+    #         cv2.imwrite((fileName+"-thumb.jpg"), thumb)
+    # else:
+    #     app_log.error("Image not reacived")
+    # sys.exit()
+
 def generate():
+    jpeg = TurboJPEG()
+
     while True:
-        pass
-        # socks = dict(poller.poll(0))
-        # if sock in socks and socks[sock] == zmq.POLLIN:
-        #     data = sock.recv(zmq.NOBLOCK)
-        #     yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + data + b'\r\n')
-        # else:
-        #     time.sleep(.05)
-        #     continue
+        if not camera_reader.getData(camera_frame):
+            print("Failed to get camera data")
+            continue
+       
+        # Convert camera_frame to numpy array and remove last channel
+        im = np.array(camera_frame, copy=False)
+
+        im = np.delete(im, -1, 2)
+
+        img_encode = jpeg.encode(im, quality=50)
+        
+        yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + img_encode + b'\r\n')
+        time.sleep(.05)
 
 @app.route("/map_stream")
 def map_stream():

@@ -9,7 +9,7 @@ SET(CMAKE_CXX_STANDARD 20)
 SET(CMAKE_STANDARD_REQUIRES ON)
 
 # Set the Compilation flags.
-SET(CMAKE_CXX_FLAGS "-std=gnu++2a -pthread -pg -O3 -g")
+SET(CMAKE_CXX_FLAGS "-std=gnu++2a -pthread -pg -g")
 
 option(BUILD_FOR_SIM "An option for custom build" OFF)
 

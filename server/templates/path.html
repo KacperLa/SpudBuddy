@@ -40,6 +40,21 @@
 			.list-group-item {
 				cursor: default;
 			}
+
+			#media_div
+            {
+                position: fixed;
+                bottom: 100px;
+                left: 50px;
+                width:300px;
+                height:300px;
+                margin:50px
+            }
+
+			.responsive_img  {
+				width: 100%;
+				height: auto;
+			}
 		</style>
 	</head>
 	<body>
@@ -216,6 +231,10 @@
 				  </div>
 				</div>
 			  </div>
+		</div>
+
+		<div id="media_div">
+			<img src="{{ url_for('video_feed_0') }}" class="responsive_img">
 		</div>
 
 		<script>
@@ -668,6 +687,26 @@
                     joySocket.emit('js', JSON.stringify(js_data));
                 }
             }, 100);
+
+			var media_settings = {
+				horizontalOffset: 10,
+				horizontal: true,
+				initialBreak: 'bottom',
+				clickBottomOpen: false,
+				breaks: {
+				top: { enabled: true, height: window.innerHeight - 10 },
+				bottom: { enabled: true, height: 170 },
+				middle: { enabled: false }
+				},
+				// fitHeight:true,
+				topperOverflow: false,
+				buttonDestroy: false,
+				showDraggable: false,
+				upperThanTop: true
+			};
+
+			const media = new CupertinoPane('.cupertino-media', media_settings);
+			await media.present({animate: true});
 
 			var settings = {
 				initialBreak: 'bottom',
