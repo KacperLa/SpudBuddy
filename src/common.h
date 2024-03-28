@@ -35,6 +35,8 @@ const std::string shared_drive_system_file {"robot_drive_system"};
 const std::string shared_desired_file {"robot_desired"};
 const std::string shared_settings_file {"robot_settings"};
 const std::string shared_camera_feed_file {"robot_camera"};
+const std::string shared_point_cloud_file {"robot_point_cloud"};
+
 const std::string shared_dead_reckoning_file {"robot_dead_reckoning"};
 
 const std::string shared_imu_file      {"robot_imu"};

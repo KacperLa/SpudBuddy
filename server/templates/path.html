@@ -6,7 +6,6 @@
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='three.js/examples/main.css') }}">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
-        <script src="{{ url_for('static', filename='joy.js') }}"></script>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
@@ -21,19 +20,7 @@
 			a {
 				color: #08f;
 			}
-            #joy2Div
-            {
-                position: fixed;
-                bottom: 100px;
-                right: 50px;
-                width:300px;
-                height:300px;
-                margin:50px
-            }
-            #joystick
-            {
-                border: 1px solid #FF0000;
-            }
+            
 			.pane {
 				max-width: 95% !important;
 			}
@@ -41,20 +28,7 @@
 				cursor: default;
 			}
 
-			#media_div
-            {
-                position: fixed;
-                bottom: 100px;
-                left: 50px;
-                width:300px;
-                height:300px;
-                margin:50px
-            }
-
-			.responsive_img  {
-				width: 100%;
-				height: auto;
-			}
+			
 		</style>
 	</head>
 	<body>
@@ -110,220 +84,9 @@
 		
 		<div id="container"></div>
 
-		<div id="joystickCard" style="display: block">
-            <div id="joy2Div"></div>
-        </div>
+		<div id="joystickCard"></div>
+		<div id="video_div"></div>
 
-		<div class="cupertino-pane">
-			<div class="row">
-				<div class="col-2">
-				  <div class="list-group" id="myList" role="tablist">
-					<a class="list-group-item list-group-item-action active" id="list-status"   data-toggle="list" role="tab" aria-controls="Status">Status</a>
-					<a class="list-group-item list-group-item-action"        id="list-pid"      data-toggle="list" role="tab" aria-controls="PID">PID</a>
-					<a class="list-group-item list-group-item-action"        id="list-logs"     data-toggle="list" role="tab" aria-controls="Logs">Logs</a>
-					<a class="list-group-item list-group-item-action"        id="list-settings" data-toggle="list" role="tab" aria-controls="settings">Settings</a>
-				  </div>
-				</div>
-				<div class="col-10">
-				  <div class="tab-content" id="nav-tabContent">
-					<div class="tab-pane fade show active" id="list-status-info" role="tabpanel" aria-labelledby="list-status">status stuff</div>
-					<div class="tab-pane fade" id="list-pid-info" role="tabpanel" aria-labelledby="list-pid">
-						<form> 
-							<div class="form-group row">
-								<div class="form-group mx-1 col-md-2 my-auto">Pitch:</div>
-								<div class="form-group mx-1 my-auto">P</div>
-								<div class="form-group mx-1 col-md-2 my-auto">
-									<input type="text" class="form-control" id="pP" value="0">
-								</div>
-								<div class="form-group mx-1 my-auto">D</div>
-								<div class="form-group mx-1 col-md-2 my-auto">
-									<input type="text" class="form-control" id="pD" value="0">
-								</div>
-							</div>
-							<div class="form-group row">
-								<div class="form-group mx-1 col-md-2 my-auto">Velocity:</div>
-								<div class="form-group mx-1 my-auto">P</div>
-								<div class="form-group mx-1 col-md-2 my-auto">
-									<input type="text" class="form-control" id="vP" value="0">
-								</div>
-								<div class="form-group mx-1 my-auto">I</div>
-								<div class="form-group mx-1 col-md-2 my-auto">
-									<input type="text" class="form-control" id="vI" value="0">
-								</div>
-								<div class="form-group mx-1 my-auto">D</div>
-								<div class="form-group mx-1 col-md-2 my-auto">
-									<input type="text" class="form-control" id="vD" value="0">
-								</div>
-							</div>
-							<div class="form-group row">
-								<div class="form-group mx-1 col-md-2 my-auto">Yaw:</div>
-								<div class="form-group mx-1 my-auto">P</div>
-								<div class="form-group mx-1 col-md-2 my-auto">
-									<input type="text" class="form-control" id="yP" value="0">
-								</div>
-								<div class="form-group mx-1 my-auto">D</div>
-								<div class="form-group mx-1 col-md-2 my-auto">
-									<input type="text" class="form-control" id="yD" value="0">
-								</div>
-							</div>
-		
-							<div class="form-group row">
-								<div class="form-group mx-1 col-md-4 my-auto">Balance Point:</div>
-								<div class="form-group mx-1 my-auto">Pitch</div>
-								<div class="form-group mx-1 col-md-2 my-auto">
-									<input type="text" class="form-control" id="pitchZero" value="0">
-								</div>
-							</div>
-		
-							<div class="form-group row">
-								<div class="form-group mx-1 col-md-2 my-auto">Position:</div>
-								<div class="form-group mx-1 my-auto">P</div>
-								<div class="form-group mx-1 col-md-2 my-auto">
-									<input type="text" class="form-control" id="dP" value="0">
-								</div>
-								<div class="form-group mx-1 my-auto">I</div>
-								<div class="form-group mx-1 col-md-2 my-auto">
-									<input type="text" class="form-control" id="dI" value="0">
-								</div>
-								<div class="form-group mx-1 my-auto">D</div>
-								<div class="form-group mx-1 col-md-2 my-auto">
-									<input type="text" class="form-control" id="dD" value="0">
-								</div>
-							</div>
-							<div class="form-group row">
-								<div class="form-group mx-1 col-md-2 my-auto">Orientation:</div>
-								<div class="form-group mx-1 my-auto">P</div>
-								<div class="form-group mx-1 col-md-2 my-auto">
-									<input type="text" class="form-control" id="oP" value="0">
-								</div>
-								<div class="form-group mx-1 my-auto">I</div>
-								<div class="form-group mx-1 col-md-2 my-auto">
-									<input type="text" class="form-control" id="oI" value="0">
-								</div>
-								<div class="form-group mx-1 my-auto">D</div>
-								<div class="form-group mx-1 col-md-2 my-auto">
-									<input type="text" class="form-control" id="oD" value="0">
-								</div>
-							</div>
-
-							<div class="form-group row">
-								<div class="form-group mx-1 col-md-4 my-auto">Position Dead Zone:</div>
-								<div class="form-group mx-1 my-auto">m</div>
-								<div class="form-group mx-1 col-md-2 my-auto">
-									<input type="text" class="form-control" id="deadZone" value="0">
-								</div>
-							</div>
-
-							<div class="form-group row">
-								<div class="form-group mx-auto my-auto">     
-									<button class="btn btn-success" type="button" onclick="sendCoreReq()">
-										GET
-									</button> 
-									<button class="btn btn-success" type="button" onclick="sendCorePIDSet()">
-										SET
-									</button>
-								</div>
-							</div>
-						</form>
-					</div>
-					<div class="tab-pane fade" id="list-logs-info" role="tabpanel" aria-labelledby="list-log">log stuff</div>
-					<div class="tab-pane fade" id="list-settings-info" role="tabpanel" aria-labelledby="list-settings">setting stuff</div>
-				  </div>
-				</div>
-			  </div>
-		</div>
-
-		<div id="media_div">
-			<img src="{{ url_for('video_feed_0') }}" class="responsive_img">
-		</div>
-
-		<script>
-			function sendCorePIDSet() {
-				console.log("hello");
-              	let xhr = new XMLHttpRequest();
-              	let url = "/request_settings";
-          
-              	xhr.open("POST", url, true);
-          
-              	xhr.setRequestHeader("Content-Type", "application/json");
-          
-				xhr.onreadystatechange = function () {
-					console.log(this.responseText)
-				};
-
-				var data = JSON.stringify({"settings": {
-												"pP": document.getElementById('pP').value,
-												"pitchZero": document.getElementById('pitchZero').value,
-												"pI": "0",
-												"pD": document.getElementById('pD').value,
-												"vP": document.getElementById('vP').value,
-												"vI": document.getElementById('vI').value,
-												"vD": document.getElementById('vD').value,
-												"yP": document.getElementById('yP').value,
-												"yI": "0",
-												"yD": document.getElementById('yD').value,
-												"oP": document.getElementById('oP').value,
-												"oI": document.getElementById('oI').value,
-												"oD": document.getElementById('oD').value,	
-												"dP": document.getElementById('dP').value,
-												"dI": document.getElementById('dI').value,
-												"dD": document.getElementById('dD').value,
-												"deadZone": document.getElementById('deadZone').value
-												}
-											});
-            	xhr.send(data);
-           	}
-
-			function sendCoreReq(){
-            	let xhr = new XMLHttpRequest();
-                let url = "/request_settings";
-           
-                xhr.open("GET", url, true);
-           
-                xhr.setRequestHeader("Content-Type", "application/json");
-           
-                xhr.onreadystatechange = function () {
-                    console.log(this.responseText)
-                    if (xhr.readyState === 4 && xhr.status === 200) {
-                        var data = JSON.parse(this.responseText);
-                        console.log(data)
-                        document.getElementById('pP').value = data['settings']['pP'];
-                        document.getElementById('pD').value = data['settings']['pD'];
-                        document.getElementById('vP').value = data['settings']['vP'];
-						document.getElementById('vI').value = data['settings']['vI'];
-						document.getElementById('vD').value = data['settings']['vD'];
-						document.getElementById('yP').value = data['settings']['yP'];
-						document.getElementById('yD').value = data['settings']['yD'];
-						document.getElementById('pitchZero').value = data['settings']['pitchZero'];
-						document.getElementById('dP').value = data['settings']['dP'];
-						document.getElementById('dI').value = data['settings']['dI'];
-						document.getElementById('dD').value = data['settings']['dD'];
-						document.getElementById('oP').value = data['settings']['oP'];
-						document.getElementById('oI').value = data['settings']['oI'];
-						document.getElementById('oD').value = data['settings']['oD'];
-						document.getElementById('deadZone').value = data['settings']['deadZone'];
-                    }
-                };
-                xhr.send();
-            }
-			
-			function requestState(state){
-                let xhr = new XMLHttpRequest();
-                let url = "/request_state?state=" + state;
-            
-                xhr.open("GET", url, true);
-            
-                xhr.setRequestHeader("Content-Type", "application/json");
-            
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState === 4 && xhr.status === 200) {
-                        console.log(this.responseText);
-                    }
-                };
-                xhr.send();
-            }
-		</script>
-		
 		<script type="importmap">
 			{
 				"imports": {
@@ -333,6 +96,17 @@
 				}
 			}
 		</script>
+
+		<script type="module" >
+			import joystickComponent from "{{ url_for('static', filename='joyComponent.mjs') }}";
+			joystickComponent('joystickCard');
+		</script>
+
+		<script type="module" >
+			import videoComponent from "{{ url_for('static', filename='videoComponent.mjs') }}";
+			videoComponent('video_div');
+		</script>
+
 
 		<script type="module">
 
@@ -448,7 +222,6 @@
 				robot_model.scale.set(100, 100, 100)
 				scene.add(robot_model);
 			};
-
 
 			const dragControls = new PointerURDFDragControls(scene, camera, renderer.domElement);
 
@@ -570,181 +343,104 @@
 				}
 			);
 
-			var source = new EventSource('/data');
-            source.onmessage = function(event) {
-                var data = JSON.parse(event.data);
+			// // Create a new EventSource object
+			// var source = new EventSource('/data');
+            // source.onmessage = function(event) {
+            //     var data = JSON.parse(event.data);
 
-				// matrix x up to y up
-				let transformationMatrix = new THREE.Matrix4();
-				transformationMatrix.set(
-				   -1, 0, 0, 0,
-					0, 0, 1, 0,
-					0, 1, 0, 0,
-					0, 0, 0, 1
-				);
+			// 	// set robot joint agles
+			// 	// from incomming data
+			// 	// but only if the robot is not being manipulated by the user
+			// 	if (!manipulating_robot)
+			// 	{
+			// 		robot_model.setJointValue("arm_right_joint_1", data["actual"]["right_arm_joint_1"]);
+			// 		robot_model.setJointValue("arm_left_joint_1", 	data["actual"]["left_arm_joint_1"]);
+			// 	}
 
-				// multiply the rotation matrix by the robot's position
-				let new_pos = new THREE.Vector3(data["actual"]["positionSlam_x"], data["actual"]["positionSlam_y"], data["actual"]["positionSlam_z"]);
-				new_pos.applyMatrix4(transformationMatrix);
-
-				// Create an Euler object and convert to a Quaternion
-				const euler = new THREE.Euler(data["actual"]["orientation_roll"], data["actual"]["orientation_pitch"], data["actual"]["orientation_yaw"], 'ZYX');
-				const quaternion = new THREE.Quaternion().setFromEuler(euler);
-				const rotationMatrix = new THREE.Matrix4().makeRotationFromQuaternion(quaternion);
-				rotationMatrix.premultiply(transformationMatrix);
-				const transformedQuaternion = new THREE.Quaternion().setFromRotationMatrix(rotationMatrix);
-				const transformedEuler = new THREE.Euler().setFromQuaternion(transformedQuaternion, 'XYZ');
-
-				// set the base_link position and rotation to the new position and rotation
-				robot_model.links["base_link"].position.set(new_pos.x*100, new_pos.y*100, new_pos.z*100);
-				robot_model.links["base_link"].rotation.set(transformedEuler.x, transformedEuler.y, transformedEuler.z);
-
-				ronPointer.rotation.set( 0,
-										 transformedEuler.z,
-										 0);
-				ronPointer.position.set(new_pos.x*100,
-										0,
-										new_pos.z*100);
-	
-				// set robot joint agles
-				// from incomming data
-				// but only if the robot is not being manipulated by the user
-				if (!manipulating_robot)
-				{
-					robot_model.setJointValue("arm_right_joint_1", data["actual"]["right_arm_joint_1"]);
-					robot_model.setJointValue("arm_left_joint_1", 	data["actual"]["left_arm_joint_1"]);
-				}
-
-				// if voltage is not null, set the battery icon to the correct voltage
-				if (data["actual"]["voltage_0"] != null)
-				{
-					document.getElementById('ron-battery').innerHTML = data["actual"]["voltage_0"].toFixed(2) + " V";
-				}
-				// console.log(data["actual"]["orientation_yaw"], data["actual"]["orientation_pitch"], data["actual"]["orientation_roll"])
-				let statusText = "Status: UNKNOWN";
-                switch(data["actual"]['state']) {
-                    case 1:
-                        statusText = "Status:  IDLE  ";
-                        break;
-                    case 2:
-                        statusText = "Status: RUNNING";
-                        break;
-                    case 3:
-                        statusText = "Status:  ERROR ";
-                        break;
-                    default:
-                        statusText = "Status: UNKNOWN";
-                }
-                document.getElementById("status").innerHTML = statusText;
+			// 	// if voltage is not null, set the battery icon to the correct voltage
+			// 	if (data["actual"]["voltage_0"] != null)
+			// 	{
+			// 		document.getElementById('ron-battery').innerHTML = data["actual"]["voltage_0"].toFixed(2) + " V";
+			// 	}
+			// 	// console.log(data["actual"]["orientation_yaw"], data["actual"]["orientation_pitch"], data["actual"]["orientation_roll"])
+			// 	let statusText = "Status: UNKNOWN";
+            //     switch(data["actual"]['state']) {
+            //         case 1:
+            //             statusText = "Status:  IDLE  ";
+            //             break;
+            //         case 2:
+            //             statusText = "Status: RUNNING";
+            //             break;
+            //         case 3:
+            //             statusText = "Status:  ERROR ";
+            //             break;
+            //         default:
+            //             statusText = "Status: UNKNOWN";
+            //     }
+            //     document.getElementById("status").innerHTML = statusText;
                 
+			// 	renderer.render( scene, camera );
+            // }
 
-				localization
-				let localizationText     = "Status: UNKNOWN       ";
-                switch(data["actual"]['positionStatus']) {
-                    case 1:
-						localizationText = "Status: DEAD RECKONING";
-                        break;
-                    case 2:
-						localizationText = "Status: SLAM          ";
-                        break;
-                    case 3:
-						localizationText = "Status: GPS           ";
-                        break;
-                    default:
-						localizationText = "Status: UNKNOWN       ";
-                }
-                document.getElementById("localization").innerHTML = localizationText;
-                
-				renderer.render( scene, camera );
-      
-            }
+        
+			// Start listening for messages once the page has loaded
+			var pos_source = new EventSource('/position_data');
+			window.onload = function() {
+        		pos_source.onmessage = function(event) {
+                	var data = JSON.parse(event.data);
+					console.log(data);
+					// matrix x up to y up
+					// let transformationMatrix = new THREE.Matrix4();
+					// transformationMatrix.set(
+					// -1, 0, 0, 0,
+					// 	0, 0, 1, 0,
+					// 	0, 1, 0, 0,
+					// 	0, 0, 0, 1
+					// );
 
-            function hideJoystick() {
-                var joystickCard = document.getElementById("joystickCard");
-                if (joystickCard.style.display === "none") {
-                    joystickCard.style.display = "block";
-                } else {
-                    joystickCard.style.display = "none";
-                }
-            }
-            var joy2Param = { "title": "joystick", "autoReturnToCenter": true };
-            var joy = new JoyStick('joy2Div', joy2Param);
-            var joystickCard = document.getElementById("joystickCard");
+					// multiply the rotation matrix by the robot's position
+					let new_pos = new THREE.Vector3(data["slam"]["position_x"], data["slam"]["position_y"], data["slam"]["position_z"]);
+					// new_pos.applyMatrix4(transformationMatrix);
+					console.log(new_pos)
+					// // Create an Euler object and convert to a Quaternion
+					// const euler = new THREE.Euler(data["slam"]["roll"], data["slam"]["pitch"], data["slam"]["yaw"], 'ZYX');
+					// const quaternion = new THREE.Quaternion().setFromEuler(euler);
+					// const rotationMatrix = new THREE.Matrix4().makeRotationFromQuaternion(quaternion);
+					// rotationMatrix.premultiply(transformationMatrix);
+					// const transformedQuaternion = new THREE.Quaternion().setFromRotationMatrix(rotationMatrix);
+					// const transformedEuler = new THREE.Euler().setFromQuaternion(transformedQuaternion, 'XYZ');
 
-            var joySocket = io();
-            joySocket.on('connect', function() {
-                joySocket.emit('joystick event', {data: 'I\'m connected!'});
-            });
-            setInterval(function() {
-                var joystickCard = document.getElementById("joystickCard");
-                if (joystickCard.style.display === "block"){
-                      var js_data = {
-                        x: joy.GetX(),
-                        y: joy.GetY(),
-                        timestamp: Date.now()
-                    };
-                    // console.log(js_data);
-                    joySocket.emit('js', JSON.stringify(js_data));
-                }
-            }, 100);
+					// set the base_link position and rotation to the new position and rotation
+					robot_model.links["base_link"].position.set(new_pos.x*100, new_pos.y*100, new_pos.z*100);
+					// robot_model.links["base_link"].rotation.set(transformedEuler.x, transformedEuler.y, transformedEuler.z);
 
-			var media_settings = {
-				horizontalOffset: 10,
-				horizontal: true,
-				initialBreak: 'bottom',
-				clickBottomOpen: false,
-				breaks: {
-				top: { enabled: true, height: window.innerHeight - 10 },
-				bottom: { enabled: true, height: 170 },
-				middle: { enabled: false }
-				},
-				// fitHeight:true,
-				topperOverflow: false,
-				buttonDestroy: false,
-				showDraggable: false,
-				upperThanTop: true
-			};
-
-			const media = new CupertinoPane('.cupertino-media', media_settings);
-			await media.present({animate: true});
-
-			var settings = {
-				initialBreak: 'bottom',
-				clickBottomOpen: false,
-				breaks: {
-					top: { enabled: true, height: window.innerHeight - 10 },
-					bottom: { enabled: true, height: 100 },
-					middle: { enabled: true, height: 500, bounce: true }
-				},
-				// fitHeight:true,
-				draggableOver: false,
-				showDraggable: false,
-				topperOverflow: false,
- 				upperThanTop: true,
-				buttonDestroy: false
-			};
-			const drawer = new CupertinoPane('.cupertino-pane', settings);
-			drawer.present({ animated: true });
-
-			const tabs = document.querySelectorAll('#myList a');
-
-			tabs.forEach(tab => {
-				tab.addEventListener('click', event => {
-					event.preventDefault();
-					tabs.forEach(tab => {
-						if (tab.classList.contains('active')){
-							tab.classList.remove('active');
-							const oldID = tab.getAttribute('id');
-							let oldElement = document.getElementById(oldID+"-info");
-							oldElement.classList.remove('show', 'active');
-						}
-					})
-					event.target.classList.add('active');
-					const tabId = event.target.getAttribute('id');
-
-					document.getElementById(tabId+"-info").classList.add('show', 'active');
-				});
-			});
+					// ronPointer.rotation.set( 0,
+					// 						transformedEuler.z,
+					// 						0);
+					ronPointer.position.set(new_pos.x*100,
+											0,
+											new_pos.z*100);
+		
+					// localization
+					let localizationText  = "Status: UNKNOWN       ";
+					switch(data['position_status']) {
+						case 1:
+							localizationText = "Status: DEAD RECKONING";
+							break;
+						case 2:
+							localizationText = "Status: SLAM          ";
+							break;
+						case 3:
+							localizationText = "Status: GPS           ";
+							break;
+						default:
+							localizationText = "Status: UNKNOWN       ";
+					}
+					document.getElementById("localization").innerHTML = localizationText;
+					
+					renderer.render( scene, camera );
+				}
+			}
 
           	function init() {
 
@@ -791,7 +487,6 @@
 				renderer.shadowMap.enabled = true;
 				container.appendChild( renderer.domElement );
 
-				
 				const gui = new GUI();
 
 				gui.add( params, 'uniform' ).onChange( render );
@@ -1002,58 +697,47 @@
 			}
 
 			function load( new_positions ) {
-
 				while ( new_positions.length > positions.length ) {
-
 					addPoint();
-
 				}
 
 				while ( new_positions.length < positions.length ) {
-
 					removePoint();
-
 				}
 
 				for ( let i = 0; i < positions.length; i ++ ) {
-
 					positions[ i ].copy( new_positions[ i ] );
-
 				}
-
 				updateSplineOutline();
-
 			}
 
 			function render() {
-
 				splines.uniform.mesh.visible = params.uniform;
 				splines.centripetal.mesh.visible = params.centripetal;
 				splines.chordal.mesh.visible = params.chordal;
 				renderer.render( scene, camera );
+			}
+
+			function onPointerDown( event ) {
+
+				onDownPosition.x = event.clientX;
+				onDownPosition.y = event.clientY;
 
 			}
 
-			// function onPointerDown( event ) {
+			function onPointerUp( event ) {
 
-			// 	onDownPosition.x = event.clientX;
-			// 	onDownPosition.y = event.clientY;
+				onUpPosition.x = event.clientX;
+				onUpPosition.y = event.clientY;
 
-			// }
+				if ( onDownPosition.distanceTo( onUpPosition ) === 0 ) {
 
-			// function onPointerUp( event ) {
+					transformControl.detach();
+					render();
 
-			// 	onUpPosition.x = event.clientX;
-			// 	onUpPosition.y = event.clientY;
+				}
 
-			// 	if ( onDownPosition.distanceTo( onUpPosition ) === 0 ) {
-
-			// 		transformControl.detach();
-			// 		render();
-
-			// 	}
-
-			// }
+			}
 
 			function onPointerClick(event) {
 				// event.preventDefault();
@@ -1136,28 +820,18 @@
 				const intersects = raycaster.intersectObjects( splineHelperObjects, false );
 
 				if ( intersects.length > 0 ) {
-
 					const object = intersects[ 0 ].object;
-
 					if ( object !== transformControl.object ) {
-
 						transformControl.attach( object );
-
 					}
-
 				}
-
 			}
 
 			function onWindowResize() {
-
 				camera.aspect = window.innerWidth / window.innerHeight;
 				camera.updateProjectionMatrix();
-
 				renderer.setSize( window.innerWidth, window.innerHeight );
-
 				render();
-
 			}
 
 		</script>

@@ -415,3 +415,5 @@ var JoyStick = (function(container, parameters, callback)
         return getCardinalDirection();
     };
 });
+
+export { JoyStick };

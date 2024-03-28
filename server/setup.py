@@ -9,13 +9,13 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'Flask',
-        'numpy',
+        'flask[async]',
+        'numpy==1.19.3',
         'flask-socketio',
         'simple-websocket',
         'opencv-python',
-        'posix_ipc', 
-        'Pillow',
-        'PyTurboJPEG'
+        'PyTurboJPEG',
+        'aiortc',
+        'aiohttp',
         ]
 )

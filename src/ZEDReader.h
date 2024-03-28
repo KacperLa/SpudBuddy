@@ -7,6 +7,7 @@
 #include <iostream>
 #include <atomic>
 #include <thread>
+#include <cuda_runtime.h>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -44,6 +45,7 @@ protected:
 
     SData<positionSystem_t> shared_tracking_state;
     SData<camera_feed_t>   shared_camera_feed;
+    // SData<pointCloud_t>   shared_point_cloud;
 
     imuData_t imu_state;
 };

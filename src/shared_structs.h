@@ -2,6 +2,9 @@
 #include <common.h>
 #include <iostream>
 #include <array>
+// #include "NvJpegEncoder.h"
+#include <iostream>
+#include <vector>
 
 #ifndef SHARED_STRUCTS_H
 #define SHARED_STRUCTS_H
@@ -44,22 +47,87 @@ struct imuData_t
 struct camera_feed_t
 {
     unsigned char frame[3686400] {0};  // zed HD720 image is 1280x720x4 thats a total of 2764800 bytes
-    int rows {720};
-    int cols {1280};
+    int rows {640};
+    int cols {480};
     int channels {4};
 
     // fill the struct with zeros
     // camera_feed_t() noexcept { std::memset(this->frame, 0, sizeof(camera_feed_t)); }
-    unsigned char getPx(int x) { return static_cast<unsigned char>(frame[x]); }
-
-    void dump_data()
-    {
-        for (int i = 0; i < 300; i++)
-        {
-            std::cout << std::to_string(frame[i]) << "\n";
-        }
-    }
+    
 };
+
+// struct pointCloud_t
+// {
+//     unsigned char frame[640*10*3*4] {0};  // zed HD720 image is 1280x720x4 thats a total of 2764800 bytes
+//     int rows {640};
+//     int cols {10};
+//     int channels {3};
+
+//     // fill the struct with zeros
+//     pointCloud_t() noexcept { std::memset(this->frame, 0, sizeof(pointCloud_t)); }
+// };
+
+
+// class jpegEncoder
+// {
+// public:
+//     // Constructor 
+//     jpegEncoder(int width, int height, int quality) :
+//         encoder(NvJPEGEncoder::createJPEGEncoder("default_encoder")),
+//         width(width),
+//         height(height),
+//         quality(quality),
+//         frameSize(width * height * 4)
+//     {
+//         if (!encoder)
+//         {
+//             std::cerr << "Failed to create NvJPEGEncoder" << std::endl;
+//             return 1;
+//         }
+//     }
+
+//     // Destructor
+//     ~jpegEncoder()
+//     {
+//         delete encoder;
+//     }
+
+//     void convertToJpeg(unsigned char* buffer)
+//     {
+//         void* rgbBuffer = nullptr;
+//         convertRGBAtoRGB(buffer, rgbBuffer);
+
+//         // Now encode the RGB frame
+//         std::vector<unsigned char> jpegBuffer;
+//         encoder->encodeFromFd((int)(uintptr_t)rgbBuffer, JCS_RGB, jpegBuffer, frameSize);
+//     }
+
+//     void convertRGBAtoRGB(void* rgbaBuffer, size_t frameSize, void* rgbBuffer)
+//     {
+//         // Perform the conversion from RGBA to RGB
+//         // Using a Cuda kernel
+
+
+//     }
+
+//     int getJpegSize()
+//     {
+//         return jpegBuffer.size();
+//     }
+
+// private:
+
+//     NvJPEGEncoder* encoder;
+//     int width;
+//     int height;
+//     int quality;
+//     int frameSize;
+
+//     // jpeg buffer
+//     unsigned char* jpegBuffer;
+    
+// }
+
 struct position_t
 {
     float x;

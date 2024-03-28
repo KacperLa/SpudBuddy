@@ -9,6 +9,7 @@ ZEDReader::ZEDReader(const std::string& areaFile, const std::string name, Log* l
     ronThread(name, logger, false),
     shared_tracking_state(shared_tracking_state_file,  true),
     shared_camera_feed(shared_camera_feed_file, true)
+    // shared_point_cloud(shared_point_cloud_file, true)
 {
     m_areaFile = areaFile;
 }
@@ -100,19 +101,38 @@ void ZEDReader::loop() {
 
     sl::Translation camera_pose;  
 
-	const auto& resolution = zed.getCameraInformation().camera_configuration.resolution;
-    // create a sl::Mat with a pointer to the shared memory
-        
     sl::Mat point_cloud;
     
     // set resolution in each sdata buffer
     for (int i = 0; i < 3; i++)
     {
-        shared_camera_feed.getBuffer()->rows = 720;
-        shared_camera_feed.getBuffer()->cols = 1280;
+        shared_camera_feed.getBuffer()->rows = 480;
+        shared_camera_feed.getBuffer()->cols = 640;
         shared_camera_feed.getBuffer()->channels = 4;
         shared_camera_feed.trigger();
     }
+
+    // // set resolution in each sdata buffer
+    // for (int i = 0; i < 3; i++)
+    // {
+    //     shared_point_cloud.getBuffer()->rows = 640;
+    //     shared_point_cloud.getBuffer()->cols = 10;
+    //     shared_point_cloud.getBuffer()->channels = 3;
+    //     shared_point_cloud.trigger();
+    // }
+
+    // // custom resolution based on sdata size
+    sl::Resolution resolution(shared_camera_feed.getBuffer()->cols, shared_camera_feed.getBuffer()->rows);
+    size_t stride_length = shared_camera_feed.getBuffer()->cols * shared_camera_feed.getBuffer()->channels;// * sizeof(float);
+
+    // // allocate GPU memory
+    // unsigned char* d_buffer;
+    // size_t size = 640 * 640 * sizeof(unsigned char) * 4;
+    // cudaMalloc(&d_buffer, size);
+
+    // cudaIpcMemHandle_t handle;
+    // cudaIpcGetMemHandle(&handle, d_buffer);
+
 
     // Open the ZED device
     if (open() != 1) {
@@ -125,20 +145,30 @@ void ZEDReader::loop() {
 
         if (zed.grab() == ERROR_CODE::SUCCESS)
         {
-            sl::Mat image(1280,
-                          720,
+            sl::Mat image(640,
+                          480,
                           MAT_TYPE::U8_C4, 
                           shared_camera_feed.getBuffer()->frame,
-                          5120,
+                          stride_length,
                           sl::MEM::CPU);
-            zed.retrieveImage(image, VIEW::LEFT, MEM::CPU);
+         
+            zed.retrieveImage(image, VIEW::LEFT, MEM::CPU, resolution);
             shared_camera_feed.trigger();
+
+            // sl::Mat point_cloud(640,
+            //               10,
+            //               MAT_TYPE::F32_C3, 
+            //               shared_camera_feed.getBuffer()->frame,
+            //               stride_length,
+            //               sl::MEM::CPU);   
+
+            // zed.retrieveMeasure(point_cloud, MEASURE::XYZ, MEM::CPU, resolution);
+
 
             // Get the position of the camera in a fixed reference frame (the World Frame)
             tracking_state = zed.getPosition(camera_path, REFERENCE_FRAME::WORLD);
-
             tracking_data.status = (tracking_state == POSITIONAL_TRACKING_STATE::OK);
-
+            
             camera_pose = camera_path.getTranslation();
             tracking_data.position = {  camera_pose.tx, 
                                         camera_pose.ty, 

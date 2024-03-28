@@ -33,6 +33,8 @@ PYBIND11_MODULE(SDataLib, m) {
     bindSData<driveSystemState_t>(m, "SDataDriveSystemState");
     // Bind SData for camera_feed_t
     bindSData<camera_feed_t>(m, "SDataCameraFeed");
+    // // Bind SData for point_cloud_t
+    // bindSData<pointCloud_t>(m, "SDataPointCloud");
 
     py::class_<angles_t>(m, "angles_t")
         .def(py::init<>())
@@ -97,8 +99,6 @@ PYBIND11_MODULE(SDataLib, m) {
 
     py::class_<camera_feed_t>(m, "camera_feed_t", pybind11::buffer_protocol())
         .def(py::init<>())
-        .def("dump_data", &camera_feed_t::dump_data)
-        .def("getPx", &camera_feed_t::getPx)    
         .def_buffer([](camera_feed_t& im) -> pybind11::buffer_info {
             return pybind11::buffer_info(
                 // Pointer to buffer
@@ -119,6 +119,29 @@ PYBIND11_MODULE(SDataLib, m) {
                 }
             );
         });
+
+    // py::class_<pointCloud_t>(m, "pointCloud_t", pybind11::buffer_protocol())
+    //     .def(py::init<>())
+    //     .def_buffer([](pointCloud_t& im) -> pybind11::buffer_info {
+    //         return pybind11::buffer_info(
+    //             // Pointer to buffer
+    //             im.frame,
+    //             // Size of one scalar
+    //             sizeof(float),
+    //             // Python struct-style format descriptor
+    //             pybind11::format_descriptor<float>::format(),
+    //             // Number of dimensions
+    //             3,
+    //             // Buffer dimensions
+    //             { im.rows, im.cols, im.channels },
+    //             // Strides (in bytes) for each index
+    //             {
+    //                 sizeof(float) * im.channels * im.cols,
+    //                 sizeof(float) * im.channels,
+    //                 sizeof(float)
+    //             }
+    //         );
+    //     });
 
     py::class_<DriveState>(m, "DriveState")
         .def(py::init<>())

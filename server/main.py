@@ -21,8 +21,8 @@ from flask_socketio import SocketIO
 import cv2
 import SDataLib
 import math
-from PIL import Image
 from turbojpeg import TurboJPEG, TJFLAG_PROGRESSIVE, TJFLAG_FASTUPSAMPLE, TJFLAG_FASTDCT
+import aiortc
 
 DEVNULL = open(os.devnull, 'w')
 
@@ -59,15 +59,11 @@ MAP_NAME_IMU  = 'robot_imu'
 MAP_NAME_DRIVE_SYSTEM = 'robot_drive_system'
 MAP_NAME_TRACKING = 'robot_tracking'
 MAP_NAME_CAMERA = 'robot_camera'
+MAP_NAME_PC = 'robot_point_cloud'
 
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-camera_reader = SDataLib.SDataCameraFeed(MAP_NAME_CAMERA, False)
-camera_frame = SDataLib.camera_feed_t()
-
-imu_reader = SDataLib.SDataIMU(MAP_NAME_IMU, False)
-imu_state  = SDataLib.imuData_t()
 
 command_writer = SDataLib.SDataSystemDesired(MAP_NAME_COMMAND, True)
 command_state  = SDataLib.systemDesired_t()
@@ -78,9 +74,6 @@ actual_state  = SDataLib.systemActual_t()
 drive_reader = SDataLib.SDataDriveSystemState(MAP_NAME_DRIVE_SYSTEM, False)
 drive_state  = SDataLib.driveSystemState_t()
 
-tracking_reader = SDataLib.SDataPositionSystem(MAP_NAME_TRACKING, False)
-tracking_state  = SDataLib.positionSystem_t()
-
 @app.route("/")
 def home():
     return render_template('path.html')
@@ -88,43 +81,84 @@ def home():
 def generate_data():
     data_json = config['robotState']
     while True:
+        pass
+        # if not imu_reader.getData(imu_state):
+        #     print("Failed to get imu data")
+        #     continue
+        
+        # if not actual_reader.getData(actual_state):
+        #     print("Failed to get actual data")
+        #     continue
+
+        # if not drive_reader.getData(drive_state):
+        #     print("Failed to get drive data")
+        #     continue
+
+        # if not tracking_reader.getData(tracking_state):
+        #     print("Failed to get tracking data")
+        #     continue
+
+        # # data_json['actual']["positionDeadReckoning_x"] = drive_state.position.x
+        # # data_json['actual']["positionDeadReckoning_y"] = drive_state.position.y
+        # # data_json['actual']["positionDeadReckoning_z"] = drive_state.position.z
+        # # data_json['actual']["positionSlam_x"] = tracking_state.position.x
+        # # data_json['actual']["positionSlam_y"] = tracking_state.position.y
+        # # data_json['actual']["positionSlam_z"] = tracking_state.position.z
+        # # data_json['actual']["positionStatus"] = tracking_state.is_tracking
+        # # data_json['actual']["orientation_yaw"] = imu_state.angles.yaw
+        # # data_json['actual']["orientation_pitch"] = imu_state.angles.pitch
+        # # data_json['actual']["orientation_roll"] = imu_state.angles.roll
+        # # data_json['actual']["angular_velocity_yaw"] = imu_state.rates.gyro_yaw
+        # # data_json['actual']["angular_velocity_pitch"] = imu_state.rates.gyro_pitch
+        # # data_json['actual']["angular_velocity_roll"] = imu_state.rates.gyro_roll
+        # # # data_json['actual']["velocity"] = actual_state.robot.velocity
+        # # data_json['actual']["voltage_0"] = drive_state.getAxis(2).vBusVoltage
+        # # data_json['actual']["state"] = actual_state.state
+        # # data_json['actual']["right_arm_joint_1"] = (drive_state.getAxis(3).position / 10) * math.pi * 2
+        # # data_json['actual']["left_arm_joint_1"]  = (drive_state.getAxis(2).position / 10) * math.pi * 2
+
+        # yield f"data: {json.dumps(data_json)}\n\n"
+        # time.sleep(.1)
+
+def position_generator():
+    tracking_reader = SDataLib.SDataPositionSystem(MAP_NAME_TRACKING, False)
+    tracking_state  = SDataLib.positionSystem_t()
+    imu_reader = SDataLib.SDataIMU(MAP_NAME_IMU, False)
+    imu_state  = SDataLib.imuData_t()
+
+    data_json = {
+        "slam": {
+            "position_x": 0,
+            "position_y": 0,
+            "position_z": 0,
+            "yaw": 0,
+            "pitch": 0,
+            "roll": 0,
+            "position_status": False,
+            "timestamp": 0
+        },
+
+        "position_status": 1
+    }
+
+    while True:
+        tracking_reader.waitOnStateChange(tracking_state)
+
         if not imu_reader.getData(imu_state):
             print("Failed to get imu data")
             continue
+
+        data_json["position_x"] = tracking_state.position.x
+        data_json["position_y"] = tracking_state.position.y
+        data_json["position_z"] = tracking_state.position.z
+        data_json["position_status"] = tracking_state.status
+        data_json["timestamp"] = tracking_state.timestamp
+        data_json["yaw"] = imu_state.angles.yaw
+        data_json["pitch"] = imu_state.angles.pitch
+        data_json["roll"] = imu_state.angles.roll
         
-        if not actual_reader.getData(actual_state):
-            print("Failed to get actual data")
-            continue
-
-        if not drive_reader.getData(drive_state):
-            print("Failed to get drive data")
-            continue
-
-        if not tracking_reader.getData(tracking_state):
-            print("Failed to get tracking data")
-            continue
-
-        # data_json['actual']["positionDeadReckoning_x"] = drive_state.position.x
-        # data_json['actual']["positionDeadReckoning_y"] = drive_state.position.y
-        # data_json['actual']["positionDeadReckoning_z"] = drive_state.position.z
-        # data_json['actual']["positionSlam_x"] = tracking_state.position.x
-        # data_json['actual']["positionSlam_y"] = tracking_state.position.y
-        # data_json['actual']["positionSlam_z"] = tracking_state.position.z
-        # data_json['actual']["positionStatus"] = tracking_state.is_tracking
-        # data_json['actual']["orientation_yaw"] = imu_state.angles.yaw
-        # data_json['actual']["orientation_pitch"] = imu_state.angles.pitch
-        # data_json['actual']["orientation_roll"] = imu_state.angles.roll
-        # data_json['actual']["angular_velocity_yaw"] = imu_state.rates.gyro_yaw
-        # data_json['actual']["angular_velocity_pitch"] = imu_state.rates.gyro_pitch
-        # data_json['actual']["angular_velocity_roll"] = imu_state.rates.gyro_roll
-        # # data_json['actual']["velocity"] = actual_state.robot.velocity
-        # data_json['actual']["voltage_0"] = drive_state.getAxis(2).vBusVoltage
-        # data_json['actual']["state"] = actual_state.state
-        # data_json['actual']["right_arm_joint_1"] = (drive_state.getAxis(3).position / 10) * math.pi * 2
-        # data_json['actual']["left_arm_joint_1"]  = (drive_state.getAxis(2).position / 10) * math.pi * 2
-
+     
         yield f"data: {json.dumps(data_json)}\n\n"
-        time.sleep(.1)
 
 def generate_log_data():
     while True:
@@ -147,6 +181,10 @@ def log_data():
 def data():
     return Response(generate_data(), mimetype='text/event-stream')
 
+
+@app.route('/position_data')
+def position_data():
+    return Response(position_generator(), mimetype='text/event-stream')
 
 @app.route('/tunning')
 def tunning():
@@ -461,17 +499,13 @@ def view_image_gallery(subpath):
 
     return render_template('image_gallery.html', waypoint_list = waypoint_list)
 
-@app.route("/view_stream")
-def view_stream():
-    return render_template('stream.html')
-
-@app.route("/video_feed_0")
-def video_feed_0():
+@app.route("/video_feed")
+def video_feed():
 	return Response(generate(), mimetype = "multipart/x-mixed-replace; boundary=frame")
 
-@app.route("/video_feed_1")
-def video_feed_1():
-	return Response(generate(), mimetype = "multipart/x-mixed-replace; boundary=frame")
+@app.route("/point_cloud")
+def point_cloud():
+    return Response(generate_point_cloud(), mimetype='json/event-stream')
 
 def saveframe(img):
     # img = cv2.imdecode(img,-1)
@@ -494,13 +528,12 @@ def saveframe(img):
 
 def generate():
     jpeg = TurboJPEG()
+    camera_reader = SDataLib.SDataCameraFeed(MAP_NAME_CAMERA, False)
+    camera_frame = SDataLib.camera_feed_t()
 
     while True:
         camera_reader.waitOnStateChange(camera_frame);
-        # if not camera_reader.getData(camera_frame):
-        #     print("Failed to get camera data")
-        #     continue
-       
+
         # Convert camera_frame to numpy array and remove last channel
         im = np.array(camera_frame, copy=False)
         im = np.delete(im, -1, 2)
@@ -508,7 +541,16 @@ def generate():
         img_encode = jpeg.encode(im, quality=50)
         
         yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + img_encode + b'\r\n')
-        # time.sleep(.05)
+
+# def generate_point_cloud():
+#     pc_reader = SDataLib.SDataPointCloud(MAP_NAME_PC, False)
+#     pc_state = SDataLib.pointCloud_t()
+
+#     while True:
+#         pc_reader.waitOnStateChange(pc_state);
+       
+        
+#         yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + img_encode + b'\r\n')
 
 @app.route("/map_stream")
 def map_stream():
@@ -531,9 +573,6 @@ def generate_map():
     #         time.sleep(.05)
     #         continue
 
-@app.route("/video_feed_2")
-def video_feed_2():
-	return Response(generate(2), mimetype = "multipart/x-mixed-replace; boundary=frame")
 
 @app.route("/wifi_configuration/<path:subpath>", methods=['GET', 'POST'])
 def wifi_configuration(subpath):
