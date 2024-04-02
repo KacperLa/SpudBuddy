@@ -28,5 +28,6 @@ source "venv/bin/activate"
 export FLASK_APP=main
 export CONFIG_JSON_FILE=$config_json_file
 
-python main.py $f
+python test.py
+# python main.py $f
 #flask $f

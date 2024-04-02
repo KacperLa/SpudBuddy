@@ -15,9 +15,7 @@ function createPeerConnection() {
         sdpSemantics: 'unified-plan'
     };
 
-    if (document.getElementById('use-stun').checked) {
-        config.iceServers = [{ urls: ['stun:stun.l.google.com:19302'] }];
-    }
+    config.iceServers = [{ urls: ['stun:stun.l.google.com:19302'] }];
 
     pc = new RTCPeerConnection(config);
 
@@ -44,6 +42,28 @@ function createPeerConnection() {
     pc.addEventListener('track', (evt) => {
         if (evt.track.kind == 'video')
             document.getElementById('video').srcObject = evt.streams[0];
+    });
+
+    // listen for data channel
+    pc.addEventListener('datachannel', (evt) => {
+        dc = evt.channel;
+        dc.addEventListener('open', () => {
+            dataChannelLog.textContent += '- open';
+        });
+        dc.addEventListener('close', () => {
+            dataChannelLog.textContent += '- close';
+        });
+        dc.addEventListener('message', (evt) => {
+            // parese json 
+            var data = JSON.parse(evt.data);
+            // update robot position
+            if (data["slam"])
+            {
+                console.log(data["slam"]["position"])
+                updateRobotPosition(data["slam"]);
+            }
+            dataChannelLog.textContent += '> ' + evt.data;
+        });
     });
 
     return pc;
@@ -120,6 +140,30 @@ function start() {
 
     pc.addTransceiver('video', {"direction": "sendrecv"});  
 
+    var parameters = JSON.parse(document.getElementById('datachannel-parameters').value);
+
+    dc = pc.createDataChannel('chat', parameters);
+    dc.addEventListener('close', () => {
+        clearInterval(dcInterval);
+        dataChannelLog.textContent += '- close\n';
+    });
+    dc.addEventListener('open', () => {
+        dataChannelLog.textContent += '- open\n';
+        dcInterval = setInterval(() => {
+            var message = 'ping ' + current_stamp();
+            dataChannelLog.textContent += '> ' + message + '\n';
+            dc.send(message);
+        }, 1000);
+    });
+    dc.addEventListener('message', (evt) => {
+        dataChannelLog.textContent += '< ' + evt.data + '\n';
+
+        if (evt.data.substring(0, 4) === 'pong') {
+            var elapsed_ms = current_stamp() - parseInt(evt.data.substring(5), 10);
+            dataChannelLog.textContent += ' RTT ' + elapsed_ms + ' ms\n';
+        }
+    });
+    
     return negotiate().catch((err) => {
         alert('Could not start negotiation: ' + err);
     });

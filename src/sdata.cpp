@@ -6,7 +6,7 @@ namespace bip = boost::interprocess;
 template <typename T>
 void SData<T>::log(std::string event)
 {
-    std::cout << event << std::endl;
+    std::cout << "[" << mapped_file << "] " << event << std::endl;
 }
 
 template <typename T>
@@ -152,8 +152,8 @@ bool SData<T>::openMap()
 
     if (isProducer)
     {
-        shared_data->producer_futex.store(0, std::memory_order_release);
-        shared_data->consumer_futex.store(0, std::memory_order_release);
+        shared_data->producer_futex.store(1, std::memory_order_release);
+        shared_data->consumer_futex.store(1, std::memory_order_release);
         // shared_data->triple_buffer[0] = T();
         // shared_data->triple_buffer[1] = T();
         // shared_data->triple_buffer[2] = T();

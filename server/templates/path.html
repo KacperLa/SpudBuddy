@@ -4,11 +4,10 @@
 		<title>Path Editor</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='three.js/examples/main.css') }}">
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+		<link type="text/css" rel="stylesheet" href='/static/three.js/examples/main.css'>
+        <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script> -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-
         <style>
 			overflow: hidden;
 			body {
@@ -64,7 +63,13 @@
 				
                 <ul class="nav mx-1">
 					<a class="nav-item mx-1">
+                        <button class="btn btn-success btn-lg" type="button" onclick="start()">
+							CONNECT
+						</button>
+                    </a>
+					<a class="nav-item mx-1">
 						<div class="btn-group btn-group-lg" role="group">
+								
 							<button class="btn btn-success" type="button" onclick="requestState(1)">
 								Start
 							</button> 
@@ -87,44 +92,77 @@
 		<div id="joystickCard"></div>
 		<div id="video_div"></div>
 
+		
+		<h2>Options</h2>
+		<div class="option">
+			<input id="use-datachannel" checked="checked" type="checkbox"/>
+			<label for="use-datachannel">Use datachannel</label>
+			<select id="datachannel-parameters">
+				<option value='{"ordered": true}'>Ordered, reliable</option>
+				<option value='{"ordered": false, "maxRetransmits": 0}'>Unordered, no retransmissions</option>
+				<option value='{"ordered": false, "maxPacketLifetime": 500}'>Unordered, 500ms lifetime</option>
+			</select>
+		</div>
+		
+		
+		
+		<h2>State</h2>
+		<p>
+			ICE gathering state: <span id="ice-gathering-state"></span>
+		</p>
+		<p>
+			ICE connection state: <span id="ice-connection-state"></span>
+		</p>
+		<p>
+			Signaling state: <span id="signaling-state"></span>
+		</p>
+		
+	
+		<h2>Data channel</h2>
+		<pre id="data-channel" style="height: 200px;"></pre>
+		
+		<h2>SDP</h2>
+		
+		<h3>Offer</h3>
+		<pre id="offer-sdp"></pre>
+		
+		<h3>Answer</h3>
+		<pre id="answer-sdp"></pre>
+		
+
+
 		<script type="importmap">
 			{
 				"imports": {
-					"three": "{{ url_for('static', filename='three.js/build/three.module.js') }}",
+					"three": "/static/three.js/build/three.module.js",
 					"three/addons/": "./jsm/",
-					"urdf-loaders": "{{ url_for('static', filename='urdf-loaders/javascript/src/URDFLoader.js') }}"
+					"urdf-loaders": "/static/urdf-loaders/javascript/src/URDFLoader.js"
 				}
 			}
 		</script>
 
 		<script type="module" >
-			import joystickComponent from "{{ url_for('static', filename='joyComponent.mjs') }}";
+			import joystickComponent from '/static/joyComponent.mjs';
 			joystickComponent('joystickCard');
-		</script>
 
-		<script type="module" >
-			import videoComponent from "{{ url_for('static', filename='videoComponent.mjs') }}";
+			import videoComponent from '/static/videoComponent.mjs';
 			videoComponent('video_div');
-		</script>
-
-
-		<script type="module">
 
 			import * as THREE from 'three';
 			import * as URDF from 'urdf-loaders';
 
-			import { GUI } from "{{ url_for('static', filename='three.js/examples/jsm/libs/lil-gui.module.min.js') }}";
+			import { GUI } from '/static/three.js/examples/jsm/libs/lil-gui.module.min.js';
 
-            import { OrbitControls } from "{{ url_for('static', filename='three.js/examples/jsm/controls/OrbitControls.js') }}";
-			import { TransformControls } from "{{ url_for('static', filename='three.js/examples/jsm/controls/TransformControls.js') }}";
-			// import { STLLoader } from "{{ url_for('static', filename='three.js/examples/jsm/loaders/STLLoader.js') }}";
-			import { LoadingManager } from "{{ url_for('static', filename='three.js/src/loaders/LoadingManager.js') }}";
+            import { OrbitControls } from '/static/three.js/examples/jsm/controls/OrbitControls.js';
+			import { TransformControls } from '/static/three.js/examples/jsm/controls/TransformControls.js';
+			// import { STLLoader } from "//static/three.js/examples/jsm/loaders/STLLoader.js";
+			import { LoadingManager } from '/static/three.js/src/loaders/LoadingManager.js';
 
-			import URDFLoader from "{{ url_for('static', filename='urdf-loaders/javascript/src/URDFLoader.js') }}";
-			import { PointerURDFDragControls } from  "{{ url_for('static', filename='urdf-loaders/javascript/src/URDFDragControls.js') }}";
-			import { OBJLoader } from "{{ url_for('static', filename='three.js/examples/jsm/loaders/OBJLoader.js') }}";
-			import { SVGLoader } from "{{ url_for('static', filename='three.js/examples/jsm/loaders/SVGLoader.js') }}";
-			import { CupertinoPane } from "{{ url_for('static', filename='panes/dist/cupertino-pane.esm.min.js') }}";
+			import URDFLoader from '/static/urdf-loaders/javascript/src/URDFLoader.js';
+			import { PointerURDFDragControls } from  '/static/urdf-loaders/javascript/src/URDFDragControls.js';
+			import { OBJLoader } from '/static/three.js/examples/jsm/loaders/OBJLoader.js';
+			import { SVGLoader } from '/static/three.js/examples/jsm/loaders/SVGLoader.js';
+			import { CupertinoPane } from '/static/panes/dist/cupertino-pane.esm.min.js';
 
 			import {
 				WebGLRenderer,
@@ -159,7 +197,7 @@
 
 			const manager = new LoadingManager();
 			const robot_urdf_loader = new URDFLoader(manager);
-			robot_urdf_loader.load("{{ url_for('static', filename='RON/urdf/RON.urdf') }}", result => {
+			robot_urdf_loader.load("/static/RON/urdf/RON.urdf", result => {
 
 				robot_model = result;
 
@@ -196,7 +234,7 @@
 			scene.add( plane );
 
 			const textureLoader = new THREE.TextureLoader();
-			const texture = textureLoader.load("{{ url_for('static', filename='mesh_tex.png') }}");
+			const texture = textureLoader.load("/static/mesh_tex.png");
 
 			// Create a material using the texture
 			const material = new THREE.MeshStandardMaterial({ map: texture });
@@ -204,11 +242,8 @@
 			let ronPointer = new THREE.Group();
 
 			var manipulating_robot = false;
-			var jointsDesiredSocket = io();
-            jointsDesiredSocket.on('connect', function() {
-				console.log("connected to jointsDesiredSocket");
-            });
-           
+			
+        
 			// wait until all the geometry has loaded to add the model to the scene
 			manager.onLoad = () => {
 				console.log("robot loaded");
@@ -289,7 +324,7 @@
 			const RON_Pointer_loader = new SVGLoader();
 
 			RON_Pointer_loader.load(
-				"{{ url_for('static', filename='ronTop.svg') }}",
+				"/static/ronTop.svg",
 				function ( data ) {
 					const paths = data.paths;
 					for ( let i = 0; i < paths.length; i ++ ) {
@@ -324,7 +359,7 @@
 
 			const loader = new OBJLoader();
 			loader.load(
-				"{{ url_for('static', filename='mesh.obj') }}",
+				"/static/mesh.obj",
 				function ( object ) {
 					object.traverse(function (child) {
 					if (child instanceof THREE.Mesh) {
@@ -382,65 +417,8 @@
 			// 	renderer.render( scene, camera );
             // }
 
-        
-			// Start listening for messages once the page has loaded
-			var pos_source = new EventSource('/position_data');
-			window.onload = function() {
-        		pos_source.onmessage = function(event) {
-                	var data = JSON.parse(event.data);
-					console.log(data);
-					// matrix x up to y up
-					// let transformationMatrix = new THREE.Matrix4();
-					// transformationMatrix.set(
-					// -1, 0, 0, 0,
-					// 	0, 0, 1, 0,
-					// 	0, 1, 0, 0,
-					// 	0, 0, 0, 1
-					// );
 
-					// multiply the rotation matrix by the robot's position
-					let new_pos = new THREE.Vector3(data["slam"]["position_x"], data["slam"]["position_y"], data["slam"]["position_z"]);
-					// new_pos.applyMatrix4(transformationMatrix);
-					console.log(new_pos)
-					// // Create an Euler object and convert to a Quaternion
-					// const euler = new THREE.Euler(data["slam"]["roll"], data["slam"]["pitch"], data["slam"]["yaw"], 'ZYX');
-					// const quaternion = new THREE.Quaternion().setFromEuler(euler);
-					// const rotationMatrix = new THREE.Matrix4().makeRotationFromQuaternion(quaternion);
-					// rotationMatrix.premultiply(transformationMatrix);
-					// const transformedQuaternion = new THREE.Quaternion().setFromRotationMatrix(rotationMatrix);
-					// const transformedEuler = new THREE.Euler().setFromQuaternion(transformedQuaternion, 'XYZ');
-
-					// set the base_link position and rotation to the new position and rotation
-					robot_model.links["base_link"].position.set(new_pos.x*100, new_pos.y*100, new_pos.z*100);
-					// robot_model.links["base_link"].rotation.set(transformedEuler.x, transformedEuler.y, transformedEuler.z);
-
-					// ronPointer.rotation.set( 0,
-					// 						transformedEuler.z,
-					// 						0);
-					ronPointer.position.set(new_pos.x*100,
-											0,
-											new_pos.z*100);
-		
-					// localization
-					let localizationText  = "Status: UNKNOWN       ";
-					switch(data['position_status']) {
-						case 1:
-							localizationText = "Status: DEAD RECKONING";
-							break;
-						case 2:
-							localizationText = "Status: SLAM          ";
-							break;
-						case 3:
-							localizationText = "Status: GPS           ";
-							break;
-						default:
-							localizationText = "Status: UNKNOWN       ";
-					}
-					document.getElementById("localization").innerHTML = localizationText;
-					
-					renderer.render( scene, camera );
-				}
-			}
+			
 
           	function init() {
 
@@ -834,7 +812,65 @@
 				render();
 			}
 
+			function updateRobotPosition(data)
+			{
+				console.log(data);
+				// matrix x up to y up
+				// let transformationMatrix = new THREE.Matrix4();
+				// transformationMatrix.set(
+				// -1, 0, 0, 0,
+				// 	0, 0, 1, 0,
+				// 	0, 1, 0, 0,
+				// 	0, 0, 0, 1
+				// );
+
+				// multiply the rotation matrix by the robot's position
+				let new_pos = new THREE.Vector3(data["position"]["x"], data["position"]["y"], data["position"]["z"]);
+				// new_pos.applyMatrix4(transformationMatrix);
+				console.log(new_pos)
+				// // Create an Euler object and convert to a Quaternion
+				const euler = new THREE.Euler(data["orientation"]["yaw"], data["orientation"]["pitch"], data["orientation"]["roll"], 'YXZ');
+				// const quaternion = new THREE.Quaternion().setFromEuler(euler);
+				// const rotationMatrix = new THREE.Matrix4().makeRotationFromQuaternion(quaternion);
+				// rotationMatrix.premultiply(transformationMatrix);
+				// const transformedQuaternion = new THREE.Quaternion().setFromRotationMatrix(rotationMatrix);
+				// const transformedEuler = new THREE.Euler().setFromQuaternion(transformedQuaternion, 'XYZ');
+
+				// set the base_link position and rotation to the new position and rotation
+				robot_model.links["base_link"].position.set(new_pos.x*100, new_pos.y*100, new_pos.z*100);
+				robot_model.links["base_link"].rotation.set(euler.x-(Math.PI/2), euler.y, euler.z);
+
+				ronPointer.rotation.set(0,
+										euler.z,
+										0);
+				ronPointer.position.set(new_pos.x*100,
+										0,
+										new_pos.z*100);
+	
+				// localization
+				let localizationText  = "Status: UNKNOWN       ";
+				switch(data['position_status']) {
+					case 1:
+						localizationText = "Status: DEAD RECKONING";
+						break;
+					case 2:
+						localizationText = "Status: SLAM          ";
+						break;
+					case 3:
+						localizationText = "Status: GPS           ";
+						break;
+					default:
+						localizationText = "Status: UNKNOWN       ";
+				}
+				document.getElementById("localization").innerHTML = localizationText;
+				
+				renderer.render( scene, camera );
+			}
+
+			window.updateRobotPosition = updateRobotPosition;
 		</script>
+
+		<script src="./client.js"></script>	
 
 	</body>
 </html>

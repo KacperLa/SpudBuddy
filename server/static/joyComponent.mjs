@@ -15,10 +15,6 @@ function joystickComponent(constainerId) {
     var joyParam = { "title": "joystick", "autoReturnToCenter": true };
     var joy = new JoyStick(constainerId, joyParam);
 
-    var joySocket = io();
-    joySocket.on('connect', function() {
-        joySocket.emit('joystick event', {data: 'I\'m connected!'});
-    });
 
     setInterval(function()
         {
@@ -27,7 +23,7 @@ function joystickComponent(constainerId) {
                 y: joy.GetY(),
                 timestamp: Date.now()
             };
-            joySocket.emit('js', JSON.stringify(js_data));
+            // joySocket.emit('js', JSON.stringify(js_data));
         }, 100
     );
 }

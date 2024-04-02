@@ -1,7 +1,7 @@
 function videoComponent(constainerId) {  
     // add style to the passed container
     var container = document.getElementById(constainerId);
-    container.innerHTML = "<img src='video_feed' style='width: 100%; height: auto;'>";
+    container.innerHTML = "<video id='video' autoplay='true' playsinline='true' style='width: 100%; height: auto;'></video>";
 
 
     container.style.position = "fixed";
