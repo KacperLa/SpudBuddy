@@ -5,6 +5,12 @@ import { Canvas, useThree  } from '@react-three/fiber'
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import * as THREE from "three";
 import reportWebVitals from './reportWebVitals';
+import Button from 'react-bootstrap/Button';
+import Dropdown from 'react-bootstrap/Dropdown';
+import DropdownButton from 'react-bootstrap/DropdownButton';
+import Container from 'react-bootstrap/Container';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
 
 // import css styles
 import './index.css';
@@ -45,17 +51,44 @@ function App() {
     setYPos(0);
   }
 
-  //useEffect(
-  //  () => {
-  //    console.log("X: ", xPos, "Y: ", yPos)
-  //    
-  //  }, 
-  //  [xPos, yPos]
-  //);
+  return ( 
+    <>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+          crossorigin="anonymous"
+        />
 
-  return (
-    <div id="fullscreen-container">
-      {/* <Canvas>
+      </head>
+      <body>
+        <div class="fixed-top">
+          <Container>
+            <Row md={4}>
+          <Col>
+          <DropdownButton id="dropdown-basic-button" title="Mode: ">
+          <Dropdown.Item variant="info">Path Follow: </Dropdown.Item>{' '}
+          <Dropdown.Item variant="info">Go to Point</Dropdown.Item>{' '}
+          <Dropdown.Item variant="warning">Manual</Dropdown.Item>{' '}
+          </DropdownButton>
+          </Col>
+              <Col>
+                <Button variant="info">STATUS: UNKNOWN</Button>{' '}
+              </Col>
+              <Col>
+                <Button variant="info">Battery</Button>{' '}
+              </Col>
+          <Col>
+          <Button variant="danger">STOP</Button>{' '}
+          </Col>
+          </Row>
+          </Container>
+
+        </div>
+    
+        <div id="fullscreen-container">
+          <Canvas>
       <color attach="background" args={['#202020']} />
         <CameraController />
         <ambientLight intensity={1} />
@@ -74,10 +107,12 @@ function App() {
         <gridHelper args={[200, 200]} position={[0,0,0]} opacity={1} >
       
         </gridHelper>
-      </Canvas> */}
-      <WebRTCComponent joyXY={[xPos, yPos]}  />
-      <Joy handleMove={handleMove} handleStop={handleStop} />
-    </div>
+      </Canvas>
+          {/* <WebRTCComponent joyXY={[xPos, yPos]} /> */}
+          <Joy handleMove={handleMove} handleStop={handleStop} />
+        </div>
+      </body>
+    </>
   )
 };
 

@@ -18,6 +18,7 @@ function WebRTCComponent(props) {
                     y: props.joyXY[1],
                     timestamp: Date.now()
                 };
+                // console.log(joy);
                 dc.send(JSON.stringify(joy));
             }
         },
@@ -44,10 +45,7 @@ function WebRTCComponent(props) {
 
         // add transceiver and data channel
         newPc.addTransceiver('video', { direction: 'recvonly' });
-        const newDc = newPc.createDataChannel('robot');
-
-
-
+        const newDc = newPc.createDataChannel('status_feed');
 
         newPc.addEventListener('track', (evt) => {
             if (evt.track.kind === 'video') {
@@ -69,6 +67,11 @@ function WebRTCComponent(props) {
             const logs = dataChannelLog.current;
             logs.push(evt.data);
             dataChannelLog.current = logs; // Not re-rendering on log update for performance
+        });
+
+        dataChannel.addEventListener('open', (evt) => {
+            console.log('Data channel is open!')
+            dataChannel.send('Hello from client!');
         });
     };
 
