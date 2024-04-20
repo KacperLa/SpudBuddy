@@ -63,6 +63,11 @@
 				
                 <ul class="nav mx-1">
 					<a class="nav-item mx-1">
+                        <button class="btn btn-success btn-lg" type="button" onclick="requestSpatialMap()">
+							Get Map
+						</button>
+                    </a>
+					<a class="nav-item mx-1">
                         <button class="btn btn-success btn-lg" type="button" onclick="start()">
 							CONNECT
 						</button>
@@ -127,10 +132,10 @@
 		<pre id="offer-sdp"></pre>
 		
 		<h3>Answer</h3>
+		<img id="video_img"> </img>
+
 		<pre id="answer-sdp"></pre>
 		
-
-
 		<script type="importmap">
 			{
 				"imports": {
@@ -142,8 +147,17 @@
 		</script>
 
 		<script type="module" >
+			import importRonWebASM from '/static/ronWebASM.mjs';
+			let inst = importRonWebASM();
+			
+			// run this onece the page is loaded
+			document.addEventListener('DOMContentLoaded', function() {
+				// do something
+				console.log(inst());
+			});
+			
 			import joystickComponent from '/static/joyComponent.mjs';
-			joystickComponent('joystickCard');
+			let getJoyData = joystickComponent('joystickCard');
 
 			import videoComponent from '/static/videoComponent.mjs';
 			videoComponent('video_div');
@@ -223,6 +237,14 @@
 				exportSpline: exportSpline
 			};
 
+			let pointCloudGeometry = null;
+			let pointCloudMaterial = null;
+			let pointCloudPoints = null;
+			const width = 640;
+			const height = 400;
+			const maxPoints = width*height; // Set this to your expected maximum number of points
+
+
 			init();
 			const planeGeometry = new THREE.PlaneGeometry( 2000, 2000 );
 			planeGeometry.rotateX( - Math.PI / 2 );
@@ -242,8 +264,7 @@
 			let ronPointer = new THREE.Group();
 
 			var manipulating_robot = false;
-			
-        
+			        
 			// wait until all the geometry has loaded to add the model to the scene
 			manager.onLoad = () => {
 				console.log("robot loaded");
@@ -444,10 +465,19 @@
 				light.shadow.mapSize.height = 1024;
 				scene.add( light );
 
+				pointCloudGeometry = new THREE.BufferGeometry();
+				const pc_positions = new Float32Array(maxPoints * 3); // 3 vertices per point
+				pointCloudGeometry.setAttribute('position', new THREE.BufferAttribute(pc_positions, 3));
+
+				pointCloudMaterial = new THREE.PointsMaterial({ size: 1 });
+				pointCloudPoints = new THREE.Points(pointCloudGeometry, pointCloudMaterial);
+
+    			scene.add(pointCloudPoints);
+				
 				const planeGeometry = new THREE.PlaneGeometry( 2000, 2000 );
 				planeGeometry.rotateX( - Math.PI / 2 );
 				const planeMaterial = new THREE.ShadowMaterial( { color: 0x000000, opacity: 0.2 } );
-
+				
 				const plane = new THREE.Mesh( planeGeometry, planeMaterial );
 				plane.position.y = 0;
 				plane.receiveShadow = true;
@@ -814,7 +844,7 @@
 
 			function updateRobotPosition(data)
 			{
-				console.log(data);
+				// console.log(data);
 				// matrix x up to y up
 				// let transformationMatrix = new THREE.Matrix4();
 				// transformationMatrix.set(
@@ -825,11 +855,11 @@
 				// );
 
 				// multiply the rotation matrix by the robot's position
-				let new_pos = new THREE.Vector3(data["position"]["x"], data["position"]["y"], data["position"]["z"]);
+				let new_pos = new THREE.Vector3(data['slam']["position"]["x"], data['slam']["position"]["y"], data['slam']["position"]["z"]);
 				// new_pos.applyMatrix4(transformationMatrix);
-				console.log(new_pos)
+				// console.log(new_pos)
 				// // Create an Euler object and convert to a Quaternion
-				const euler = new THREE.Euler(data["orientation"]["yaw"], data["orientation"]["pitch"], data["orientation"]["roll"], 'YXZ');
+				const euler = new THREE.Euler(data['slam']["orientation"]["yaw"], data['slam']["orientation"]["pitch"], data['slam']["orientation"]["roll"], 'YXZ');
 				// const quaternion = new THREE.Quaternion().setFromEuler(euler);
 				// const rotationMatrix = new THREE.Matrix4().makeRotationFromQuaternion(quaternion);
 				// rotationMatrix.premultiply(transformationMatrix);
@@ -867,9 +897,106 @@
 				renderer.render( scene, camera );
 			}
 
+			function getJoyStick(data)
+			{
+				return getJoyData();
+			}
+
+			// function captureFrameAndCreatePointCloud(videoElement, focalLength, baseline) {
+			// 	const width = 640; // Assuming fixed width for simplicity
+			// 	const height = 400; // Assuming fixed height for simplicity
+			// 	const halfWidth = width / 2;
+			// 	const halfHeight = height / 2;
+			// 	const pointCloud = [];
+
+			// 	// Use a single canvas context to capture and process the frame
+			// 	const canvas = document.createElement('canvas');
+			// 	canvas.width = width;
+			// 	canvas.height = height;
+			// 	const ctx = canvas.getContext('2d');
+			// 	ctx.drawImage(videoElement, 0, 0, width, height);
+
+			// 	// Get the image data directly from the canvas
+			// 	const imageData = ctx.getImageData(0, 0, width, height);
+
+			// 	for (let y = 0; y < height; y++) {
+			// 		for (let x = 0; x < width; x++) {
+			// 			const i = (y * width + x) * 4;
+			// 			const disparity = imageData.data[i];
+			// 			if (disparity === 0) {
+			// 				continue; // Skip points with no disparity (no depth)
+			// 			}
+
+			// 			const depth = (focalLength * baseline) / disparity;
+			// 			const px = (x - halfWidth) * depth / focalLength;
+			// 			const py = (y - halfHeight) * depth / focalLength;
+			// 			const pz = depth;
+
+			// 			pointCloud.push([px, py, pz]);
+			// 		}
+			// 	}
+
+			// 	return pointCloud;
+			// }
+
+			// function updateThreeJSScene(pointCloud) {
+			// 	console.log("updating point cloud");
+			// 	const _pc_positions = pointCloudGeometry.attributes.position.array;
+
+			// 	let i = 0;
+			// 	for (const point of pointCloud) {
+			// 		if (i < maxPoints * 3) {
+			// 			_pc_positions[i++] = point[0];
+			// 			_pc_positions[i++] = point[1];
+			// 			_pc_positions[i++] = point[2];
+			// 		}
+			// 	}
+			// 	pointCloudGeometry.attributes.position.needsUpdate = true;
+			// 	pointCloudGeometry.setDrawRange(0, i);
+
+			// }
+
+			let canvas = document.createElement('canvas');
+			let ctx = canvas.getContext('2d');
+			canvas.width = width;
+			canvas.height = height;
+			const baseline = 7.5;
+			const focalLength = 455.4474182128906;
+
+			function captureFrameAndCreatePointCloud(videoElement) {
+				const halfWidth = width / 2;
+				const halfHeight = height / 2;
+				let i = 0; // Index for the pointCloud buffer
+
+				ctx.drawImage(videoElement, 0, 0, width, height);
+				const imageData = ctx.getImageData(0, 0, width, height);
+				const data = imageData.data;
+				const _pc_positions = pointCloudGeometry.attributes.position.array;
+
+				for (let y = 0; y < height; y++) {
+					for (let x = 0; x < width; x++) {
+						const idx = (y * width + x) * 4;
+						const disparity = data[idx];
+						if (disparity > 0 && i < maxPoints * 3) { // Check for valid disparity and buffer size
+							const depth = (focalLength * baseline) / disparity;
+							_pc_positions[i++] = (x - halfWidth) * depth / focalLength;
+							_pc_positions[i++] = (y - halfHeight) * depth / focalLength;
+							_pc_positions[i++] = depth;
+						}
+					}
+				}
+
+				pointCloudGeometry.attributes.position.needsUpdate = true;
+				pointCloudGeometry.setDrawRange(0, i / 3);
+			}
+
 			window.updateRobotPosition = updateRobotPosition;
+			window.getJoyStick = getJoyStick;
+			window.captureFrameAndCreatePointCloud = captureFrameAndCreatePointCloud;
+
 		</script>
 
+		<script src="/static/path.js"></script>	
 		<script src="./client.js"></script>	
 
 	</body>

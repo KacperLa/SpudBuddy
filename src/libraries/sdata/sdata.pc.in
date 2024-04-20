@@ -1,9 +1,0 @@
-prefix=@CMAKE_INSTALL_PREFIX@
-libdir=${prefix}/lib
-includedir=${prefix}/include
-
-Name: @PROJECT_NAME@
-Description: sdata is a tiny library for sharing data between processes.
-Version: @PROJECT_VERSION@
-Libs: -L${libdir} -lsdata
-Cflags: -I${includedir}

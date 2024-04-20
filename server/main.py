@@ -22,7 +22,18 @@ import cv2
 import SDataLib
 import math
 from turbojpeg import TurboJPEG, TJFLAG_PROGRESSIVE, TJFLAG_FASTUPSAMPLE, TJFLAG_FASTDCT
-import aiortc
+
+import asyncio
+import uuid
+
+from aiortc import MediaStreamTrack, RTCRtpSender, RTCPeerConnection, RTCSessionDescription, VideoStreamTrack, RTCDataChannelParameters
+from av import Packet
+from fractions import Fraction
+
+import depthai as dai
+
+pcs = set()
+
 
 DEVNULL = open(os.devnull, 'w')
 
@@ -121,44 +132,45 @@ def generate_data():
         # time.sleep(.1)
 
 def position_generator():
-    tracking_reader = SDataLib.SDataPositionSystem(MAP_NAME_TRACKING, False)
-    tracking_state  = SDataLib.positionSystem_t()
-    imu_reader = SDataLib.SDataIMU(MAP_NAME_IMU, False)
-    imu_state  = SDataLib.imuData_t()
+    pass
+    # tracking_reader = SDataLib.SDataPositionSystem(MAP_NAME_TRACKING, False)
+    # tracking_state  = SDataLib.positionSystem_t()
+    # imu_reader = SDataLib.SDataIMU(MAP_NAME_IMU, False)
+    # imu_state  = SDataLib.imuData_t()
 
-    data_json = {
-        "slam": {
-            "position_x": 0,
-            "position_y": 0,
-            "position_z": 0,
-            "yaw": 0,
-            "pitch": 0,
-            "roll": 0,
-            "position_status": False,
-            "timestamp": 0
-        },
+    # data_json = {
+    #     "slam": {
+    #         "position_x": 0,
+    #         "position_y": 0,
+    #         "position_z": 0,
+    #         "yaw": 0,
+    #         "pitch": 0,
+    #         "roll": 0,
+    #         "position_status": False,
+    #         "timestamp": 0
+    #     },
 
-        "position_status": 1
-    }
+    #     "position_status": 1
+    # }
 
-    while True:
-        tracking_reader.waitOnStateChange(tracking_state)
+    # while True:
+    #     tracking_reader.waitOnStateChange(tracking_state)
 
-        if not imu_reader.getData(imu_state):
-            print("Failed to get imu data")
-            continue
+    #     if not imu_reader.getData(imu_state):
+    #         print("Failed to get imu data")
+    #         continue
 
-        data_json["position_x"] = tracking_state.position.x
-        data_json["position_y"] = tracking_state.position.y
-        data_json["position_z"] = tracking_state.position.z
-        data_json["position_status"] = tracking_state.status
-        data_json["timestamp"] = tracking_state.timestamp
-        data_json["yaw"] = imu_state.angles.yaw
-        data_json["pitch"] = imu_state.angles.pitch
-        data_json["roll"] = imu_state.angles.roll
+    #     data_json["position_x"] = tracking_state.position.x
+    #     data_json["position_y"] = tracking_state.position.y
+    #     data_json["position_z"] = tracking_state.position.z
+    #     data_json["position_status"] = tracking_state.status
+    #     data_json["timestamp"] = tracking_state.timestamp
+    #     data_json["yaw"] = imu_state.angles.yaw
+    #     data_json["pitch"] = imu_state.angles.pitch
+    #     data_json["roll"] = imu_state.angles.roll
         
      
-        yield f"data: {json.dumps(data_json)}\n\n"
+    #     yield f"data: {json.dumps(data_json)}\n\n"
 
 def generate_log_data():
     while True:
@@ -181,7 +193,6 @@ def log_data():
 def data():
     return Response(generate_data(), mimetype='text/event-stream')
 
-
 @app.route('/position_data')
 def position_data():
     return Response(position_generator(), mimetype='text/event-stream')
@@ -201,6 +212,10 @@ def path():
 @app.route('/ron')
 def ron():
     return render_template('ron.html')
+
+@app.route('/webrtc')
+def webrtc():
+    return render_template('webrtc.html')
 
 @socketio.on('jointDesired')
 def handle_jointsDesired(message):
@@ -254,7 +269,6 @@ def request_settings():
             settings.set(key, actual_state.get(key))
 
     return {"success": True, "settings": settings.get_all()}
-
 
 @app.route("/file_list/<path:subpath>", methods=['GET'])
 def file_list(subpath):
@@ -527,30 +541,160 @@ def saveframe(img):
     # sys.exit()
 
 def generate():
-    jpeg = TurboJPEG()
-    camera_reader = SDataLib.SDataCameraFeed(MAP_NAME_CAMERA, False)
-    camera_frame = SDataLib.camera_feed_t()
+    pass
+    # jpeg = TurboJPEG()
+    # camera_reader = SDataLib.SDataCameraFeed(MAP_NAME_CAMERA, False)
+    # camera_frame = SDataLib.camera_feed_t()
 
-    while True:
-        camera_reader.waitOnStateChange(camera_frame);
+    # while True:
+    #     camera_reader.waitOnStateChange(camera_frame);
 
-        # Convert camera_frame to numpy array and remove last channel
-        im = np.array(camera_frame, copy=False)
-        im = np.delete(im, -1, 2)
+    #     # Convert camera_frame to numpy array and remove last channel
+    #     im = np.array(camera_frame, copy=False)
+    #     im = np.delete(im, -1, 2)
 
-        img_encode = jpeg.encode(im, quality=50)
+    #     img_encode = jpeg.encode(im, quality=50)
         
-        yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + img_encode + b'\r\n')
+    #     yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + img_encode + b'\r\n')
 
-# def generate_point_cloud():
-#     pc_reader = SDataLib.SDataPointCloud(MAP_NAME_PC, False)
-#     pc_state = SDataLib.pointCloud_t()
+def force_codec(pc, sender, forced_codec):
+    kind = forced_codec.split("/")[0]
+    codecs = RTCRtpSender.getCapabilities(kind).codecs
+    transceiver = next(t for t in pc.getTransceivers() if t.sender == sender)
+    transceiver.setCodecPreferences(
+        [codec for codec in codecs if codec.mimeType == forced_codec]
+    )
 
-#     while True:
-#         pc_reader.waitOnStateChange(pc_state);
-       
+class VideoTransformTrack(MediaStreamTrack):
+    """
+    A video stream track that transforms frames from an another track.
+    """
+
+    kind = "video"
+
+    def __init__(self):
+        super().__init__()  # don't forget this!
+        self.pipeline = dai.Pipeline()
+
+        # Define sources and output
+        self.camRgb = self.pipeline.create(dai.node.ColorCamera)
+        self.videoEnc = self.pipeline.create(dai.node.VideoEncoder)
+        self.xout = self.pipeline.create(dai.node.XLinkOut)
+
+        self.xout.setStreamName('h264')
+
+        # Properties
+        self.camRgb.setBoardSocket(dai.CameraBoardSocket.CAM_A)
+        self.camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_720_P)
+        self.videoEnc.setDefaultProfilePreset(25, dai.VideoEncoderProperties.Profile.H264_MAIN)
+        self.videoEnc.setKeyframeFrequency(30)  # Insert a keyframe every 30 frames
+        # self.videoEnc.setQuality(25)
+        self.camRgb.setFps(30)
+
+        # Linking
+        self.camRgb.video.link(self.videoEnc.input)
+        self.videoEnc.bitstream.link(self.xout.input)
+
+        self.device = dai.Device(self.pipeline)
+        self.q = self.device.getOutputQueue(name="h264", maxSize=1, blocking=True)
+
+        self.pts = 0
+
+    def __del__(self):
+        self.device.close()
+
+    async def recv(self):
+        packet = None
+        # Emptying queue
+        while packet is None:
+            if self.q.has():        
+                packet = Packet(self.q.get().getData())
+                packet.pts = self.pts
+                packet.time_base = Fraction(1, 30) 
+                self.pts += 1
+            else:
+                await asyncio.sleep(0.01)
         
-#         yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + img_encode + b'\r\n')
+        return packet
+
+def offer():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    future = asyncio.run_coroutine_threadsafe(offer_async(), loop)
+    return future.result()
+
+# Route to handle the offer request
+@app.route('/offer', methods=['POST'])
+def offer_route():
+    return offer()
+
+async def offer_async():
+    print("offer")
+    params = await request.json
+    offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
+
+    pc = RTCPeerConnection()
+    pc_id = "PeerConnection(%s)" % uuid.uuid4()
+    pcs.add(pc)
+
+    track = pc.addTrack(
+                    VideoTransformTrack()
+                )
+    
+    force_codec(pc, track, "video/H264")    
+
+
+    def log_info(msg, *args):
+        print(pc_id + " " + msg, *args)
+
+    # log_info("Created for %s", request.remote)
+
+    @pc.on("datachannel")
+    def on_datachannel(channel):
+        @channel.on("message")
+        def on_message(message):
+            if isinstance(message, str) and message.startswith("ping"):
+                channel.send("pong" + message[4:])
+
+    @pc.on("connectionstatechange")
+    async def on_connectionstatechange():
+        log_info("Connection state is %s", pc.connectionState)
+        if pc.connectionState == "failed":
+            await pc.close()
+            pcs.discard(pc)
+
+    @pc.on("track")
+    def on_track(track):
+        log_info("Track %s received", track.kind)
+
+        @track.on("ended")
+        async def on_ended():
+            log_info("Track %s ended", track.kind)
+
+    # handle offer
+    await pc.setRemoteDescription(offer)
+
+    # send answer
+    answer = await pc.createAnswer()
+    await pc.setLocalDescription(answer)
+
+    return {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
+
+# async def on_shutdown(app):
+#     # close peer connections
+#     coros = [pc.close() for pc in pcs]
+#     await asyncio.gather(*coros)
+#     pcs.clear()
+
+    
+
+
+
+
+
+
+
 
 @app.route("/map_stream")
 def map_stream():
@@ -1036,5 +1180,5 @@ def action(subpath):
 
 if __name__=='__main__':
     print("HELLO")
-    socketio.run(app, host="0.0.0.0", port=5000, debug=False, use_reloader=False)
-    #app.run(host="0.0.0.0", port=8080, debug=True, threaded=True)
+    # socketio.run(app, host="0.0.0.0", port=5000, debug=False, use_reloader=False)
+    app.run(host="0.0.0.0", port=5000, debug=True, threaded=True)

@@ -1,9 +1,11 @@
 
-#include <sdata.h>
+#include <libraries/sdata/include/sdata.hpp>
 #include <shared_structs.h>
 #include "libraries/pybind11/include/pybind11/pybind11.h"
 
 namespace py = pybind11;    
+
+using namespace sdata;
 
 template<typename T>
 void bindSData(py::module& m, const std::string& name) {
@@ -104,18 +106,18 @@ PYBIND11_MODULE(SDataLib, m) {
                 // Pointer to buffer
                 im.frame,
                 // Size of one scalar
-                sizeof(unsigned char),
+                sizeof(unsigned short),
                 // Python struct-style format descriptor
-                pybind11::format_descriptor<unsigned char>::format(),
+                pybind11::format_descriptor<unsigned short>::format(),
                 // Number of dimensions
                 3,
                 // Buffer dimensions
                 { im.rows, im.cols, im.channels },
                 // Strides (in bytes) for each index
                 {
-                    sizeof(unsigned char) * im.channels * im.cols,
-                    sizeof(unsigned char) * im.channels,
-                    sizeof(unsigned char)
+                    sizeof(unsigned short) * im.channels * im.cols,
+                    sizeof(unsigned short) * im.channels,
+                    sizeof(unsigned short)
                 }
             );
         });

@@ -47,15 +47,16 @@ bool ZEDReader::open() {
         return false;
     }
 
-    // SpatialMappingParameters mapping_parameters;
-    // mapping_parameters.save_texture = true;  // Scene texture will be recorded
-    // returned_state = zed.enableSpatialMapping(mapping_parameters);
-    // if (returned_state != ERROR_CODE::SUCCESS)
-    // {
-    //     log("Enabling spatial mapping failed");
-    //     zed.close();
-    //     return false;
-    // }
+    SpatialMappingParameters mapping_parameters;
+    mapping_parameters.save_texture = true;  // Scene texture will be recorded
+    mapping_parameters.max_memory_usage = 512;  // 512 MB
+    returned_state = zed.enableSpatialMapping(mapping_parameters);
+    if (returned_state != ERROR_CODE::SUCCESS)
+    {
+        log("Enabling spatial mapping failed");
+        zed.close();
+        return false;
+    }
 
     return true;
 }
@@ -106,9 +107,9 @@ void ZEDReader::loop() {
     // set resolution in each sdata buffer
     for (int i = 0; i < 3; i++)
     {
-        shared_camera_feed.getBuffer()->rows = 480;
-        shared_camera_feed.getBuffer()->cols = 640;
-        shared_camera_feed.getBuffer()->channels = 4;
+        shared_camera_feed.getBuffer()->rows = 200;
+        shared_camera_feed.getBuffer()->cols = 300;
+        shared_camera_feed.getBuffer()->channels = 1;
         shared_camera_feed.trigger();
     }
 
@@ -145,14 +146,15 @@ void ZEDReader::loop() {
 
         if (zed.grab() == ERROR_CODE::SUCCESS)
         {
-            sl::Mat image(640,
-                          480,
-                          MAT_TYPE::U8_C4, 
+            sl::Mat image(300,
+                          200,
+                          MAT_TYPE::U16_C1, 
                           shared_camera_feed.getBuffer()->frame,
                           stride_length,
                           sl::MEM::CPU);
          
-            zed.retrieveImage(image, VIEW::LEFT, MEM::CPU, resolution);
+            // zed.retrieveImage(image, VIEW::LEFT, MEM::CPU, resolution);
+            zed.retrieveMeasure(image, MEASURE::DEPTH_U16_MM); // Retrieve depth
             shared_camera_feed.trigger();
 
             // sl::Mat point_cloud(640,

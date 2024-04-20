@@ -16,7 +16,9 @@
 
 #include "drivers/ODriveCAN/ODriveCAN.h"
 #include <ronThread.h>
-#include <sdata.h>
+
+#include <libraries/sdata/include/sdata.hpp>
+using namespace sdata;
 
 class driveSystem : public ronThread
 {

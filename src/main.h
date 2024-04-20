@@ -6,7 +6,9 @@
 #include <sched.h>
 
 #include <joystick.h>
-#include <sdata.h>
+#include <libraries/sdata/include/sdata.hpp>
+using namespace sdata;
+
 #include "driveSystem.h"
 #include "shared_structs.h"
 #include<loggerThreaded.h>

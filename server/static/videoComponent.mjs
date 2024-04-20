@@ -12,5 +12,4 @@ function videoComponent(constainerId) {
     container.style.margin = "50px";
 
 }
-
 export default videoComponent;

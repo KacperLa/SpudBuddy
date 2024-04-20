@@ -47,9 +47,9 @@ struct imuData_t
 struct camera_feed_t
 {
     unsigned char frame[3686400] {0};  // zed HD720 image is 1280x720x4 thats a total of 2764800 bytes
-    int rows {640};
-    int cols {480};
-    int channels {4};
+    int rows {300};
+    int cols {200};
+    int channels {1};
 
     // fill the struct with zeros
     // camera_feed_t() noexcept { std::memset(this->frame, 0, sizeof(camera_feed_t)); }

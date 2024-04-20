@@ -10,22 +10,17 @@ function joystickComponent(constainerId) {
     container.style.height = "300px";
     container.style.margin = "50px";
 
-    console.log("joystickComponent: ", constainerId);
-
     var joyParam = { "title": "joystick", "autoReturnToCenter": true };
     var joy = new JoyStick(constainerId, joyParam);
 
-
-    setInterval(function()
-        {
-            var js_data = {
-                x: joy.GetX(),
-                y: joy.GetY(),
-                timestamp: Date.now()
-            };
-            // joySocket.emit('js', JSON.stringify(js_data));
-        }, 100
-    );
+    function getJoyData() {
+        return {
+            x: joy.GetX(),
+            y: joy.GetY(),
+            timestamp: Date.now()
+        };
+    }
+    return getJoyData;
 }
 
 export default joystickComponent;

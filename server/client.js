@@ -57,12 +57,12 @@ function createPeerConnection() {
             // parese json 
             var data = JSON.parse(evt.data);
             // update robot position
-            if (data["slam"])
+            if (data["position"])
             {
-                console.log(data["slam"]["position"])
-                updateRobotPosition(data["slam"]);
+                updateRobotPosition(data["position"]);
             }
-            dataChannelLog.textContent += '> ' + evt.data;
+            captureFrameAndCreatePointCloud(document.getElementById('video'))
+            
         });
     });
 
@@ -126,7 +126,6 @@ function negotiate() {
 function start() {
     pc = createPeerConnection();
 
-
     var time_start = null;
 
     const current_stamp = () => {
@@ -149,11 +148,18 @@ function start() {
     });
     dc.addEventListener('open', () => {
         dataChannelLog.textContent += '- open\n';
-        dcInterval = setInterval(() => {
-            var message = 'ping ' + current_stamp();
-            dataChannelLog.textContent += '> ' + message + '\n';
-            dc.send(message);
-        }, 1000);
+        // dcInterval = setInterval(() => {
+        //     var message = 'ping ' + current_stamp();
+        //     dataChannelLog.textContent += '> ' + message + '\n';
+        //     dc.send(message);
+        // }, 1000);
+
+        // send joystick data
+        setInterval(function()
+        {
+            dc.send(JSON.stringify(getJoyStick()));
+        }, 100
+        );
     });
     dc.addEventListener('message', (evt) => {
         dataChannelLog.textContent += '< ' + evt.data + '\n';
@@ -167,6 +173,11 @@ function start() {
     return negotiate().catch((err) => {
         alert('Could not start negotiation: ' + err);
     });
+}
+
+function send(message) {
+    dc.send(message);
+    dataChannelLog.textContent += '> ' + message + '\n';
 }
 
 function stop() {
@@ -255,4 +266,40 @@ function sdpFilterCodec(kind, codec, realSdp) {
 
 function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+}
+
+function captureFrame(videoElement) {
+    const canvas = document.createElement('canvas');
+    const width =  640;//videoElement.width;
+    const height = 400;//videoElement.height;
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(videoElement, 0, 0, width, height);
+    return ctx.getImageData(0, 0, width, height);
+}
+
+function disparityToPointCloud(disparityImage, focalLength, baseline, width, height) {
+    const pointCloud = [];
+    const halfWidth = width / 2;
+    const halfHeight = height / 2;
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const i = (y * width + x) * 4;
+            const disparity = disparityImage.data[i];
+            if (disparity === 0) {
+                continue; // Skip points with no disparity (no depth)
+            }
+
+            const depth = (focalLength * baseline) / disparity;
+            const px = (x - halfWidth) * depth / focalLength;
+            const py = (y - halfHeight) * depth / focalLength;
+            const pz = depth;
+
+            pointCloud.push([px, py, pz]);
+        }
+    }
+
+    return pointCloud;
 }

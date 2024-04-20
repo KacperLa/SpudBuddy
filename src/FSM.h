@@ -6,7 +6,8 @@
 #include "controller.h"
 #include "driveSystem.h"
 #include <shared_structs.h>
-#include <sdata.h>
+#include <libraries/sdata/include/sdata.hpp>
+using namespace sdata;
 
 #include<logger.h>
 

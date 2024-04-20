@@ -16,7 +16,10 @@
 #include<ronThread.h>
 #include <shared_structs.h>
 
-#include <sdata.h>
+#include <libraries/sdata/include/sdata.hpp>
+
+using namespace sdata;
+
 #include <sl/Camera.hpp>
 
 using namespace sl;
