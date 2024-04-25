@@ -1,11 +1,12 @@
 import { Joystick } from 'react-joystick-component';
 import React from 'react'
 import './joy.css';
+import background_svg from "./assets/joy.svg";
 
 function Joy(props) {
     return (
     <div id='joy'>
-        <Joystick size={100 } sticky={false} baseColor="red" stickColor="blue" move={props.handleMove} stop={props.handleStop}></Joystick>
+        <Joystick stickSize={50}  size={125} sticky={false} baseImage={background_svg} stickColor="black" move={props.handleMove} stop={props.handleStop}></Joystick>
     </div>
   );
 }

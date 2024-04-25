@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient gradientUnits="userSpaceOnUse" cx="50" cy="50" r="50" id="gradient-1" spreadMethod="pad">
+      <stop offset="0" style="stop-color: rgb(84.706% 84.706% 84.706%)"/>
+      <stop offset="1" style="stop-color: rgb(48.42% 48.42% 48.42%)"/>
+    </radialGradient>
+  </defs>
+  <ellipse style="fill: url('#gradient-1'); stroke: rgb(242, 242, 242); fill-opacity: 0.47;" cx="50" cy="50" rx="50" ry="50" transform="matrix(0.9999999999999999, 0, 0, 0.9999999999999999, 0, 0)"/>
+  <path d="M 50 10 L 60 18 L 40 18 L 50 10 Z" style="stroke-width: 2px; stroke-linecap: round; stroke-linejoin: round; fill: rgb(255, 255, 255); stroke: rgb(255, 255, 255);" transform="matrix(0.9999999999999999, 0, 0, 0.9999999999999999, 0, 0)"/>
+  <path d="M 56.64 7.13 L 66.64 15.13 L 46.64 15.13 L 56.64 7.13 Z" style="stroke-width: 2px; stroke-linecap: round; stroke-linejoin: round; fill: rgb(255, 255, 255); stroke: rgb(255, 255, 255); transform-origin: 56.625001px 11.124997px;" transform="matrix(0, -1, -1, 0, 29.379999160767, 38.890001296997)"/>
+  <path d="M -56.61 7.13 L -46.61 15.13 L -66.61 15.13 L -56.61 7.13 Z" style="stroke-width: 2px; stroke-linecap: round; stroke-linejoin: round; fill: rgb(255, 255, 255); stroke: rgb(255, 255, 255); transform-origin: -56.610002px 11.13px;" transform="matrix(0, 1, 1, 0, 72.220002174377, 38.869998931885)"/>
+  <path d="M 50 80 L 60 88 L 40 88 L 50 80 Z" style="stroke-width: 2px; stroke-linecap: round; stroke-linejoin: round; fill: rgb(255, 255, 255); stroke: rgb(255, 255, 255); transform-origin: 50px 84px;" transform="matrix(-1, 0, 0, -1, 0, 0)"/>
+</svg>

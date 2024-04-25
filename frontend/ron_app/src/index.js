@@ -8,9 +8,15 @@ import reportWebVitals from './reportWebVitals';
 import Button from 'react-bootstrap/Button';
 import Dropdown from 'react-bootstrap/Dropdown';
 import DropdownButton from 'react-bootstrap/DropdownButton';
+import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons'
+import { faCarBattery } from '@fortawesome/free-solid-svg-icons'
+import { faSignal } from '@fortawesome/free-solid-svg-icons'
+import { faPowerOff } from '@fortawesome/free-solid-svg-icons'
 
 // import css styles
 import './index.css';
@@ -64,27 +70,79 @@ function App() {
       </head>
       <body>
         <div class="fixed-top">
-          <Container>
-            <Row md={4}>
-          <Col>
-          <DropdownButton id="dropdown-basic-button" title="Mode: ">
-          <Dropdown.Item variant="info">Path Follow: </Dropdown.Item>{' '}
-          <Dropdown.Item variant="info">Go to Point</Dropdown.Item>{' '}
-          <Dropdown.Item variant="warning">Manual</Dropdown.Item>{' '}
-          </DropdownButton>
+            <Row style={{padding: '4px'}}>
+              <Col sx={12}>
+                <Row>
+                  <Col>
+                    <Row>
+                      <Col>
+                        <Dropdown>
+                          <Dropdown.Toggle variant="outline-light" id="dropdown-basic">
+                            Mode Selection 
+                          </Dropdown.Toggle>
+
+                          <Dropdown.Menu>
+                            <Dropdown.Item >Keep Location</Dropdown.Item>
+                            <Dropdown.Item >Manual Drive</Dropdown.Item>
+                            <Dropdown.Item >Path Follow</Dropdown.Item>
+                            <Dropdown.Item >Autonomous Explore</Dropdown.Item>
+                          </Dropdown.Menu>
+                        </Dropdown>
+                      </Col>
+                      <Col>
+                        <ButtonGroup aria-label="Speed Selection">
+                          <Button variant="outline-light">Slow</Button>
+                          <Button variant="success">Normal</Button>
+                          <Button variant="outline-light">Fast</Button>
+                        </ButtonGroup>
+                      </Col>
+                    </Row>
+                                
+                  </Col>
+                  <Col xs={3}>
+                    <Row style={{padding: '0px'}}>
+                      <Col style={{padding: '0px 2px'}}>
+                        <Button variant="outline-light" style={{width:'100%'}}>
+                          <FontAwesomeIcon icon={faLocationCrosshairs}/>
+                        </Button>
+                      </Col>
+                      <Col style={{padding: '0px 2px'}}>
+                        <Button variant="outline-light" style={{width:'100%'}}>
+                          <FontAwesomeIcon icon={faCarBattery}/>
+                        </Button>
+                      </Col>
+                      <Col style={{padding: '0px 2px'}}>
+                        <Button variant="outline-light" style={{width:'100%'}}>
+                          <FontAwesomeIcon icon={faSignal}/>
+                        </Button>
+                      </Col>
+                      <Col style={{padding: '0px 2px'}}>
+                        <Button variant="outline-light" style={{width:'100%'}}>
+                          <FontAwesomeIcon icon={faPowerOff}/>
+                        </Button>
+                      </Col>
+                    </Row>
+                  </Col>
+                  
+                </Row>
+              </Col>
+              <Col xs={2} style={{padding: '0px 15px'}}>
+                <Button variant="danger" style={{width: '100%'}}>
+                  ESTOP
+                </Button>
+              </Col>
+              
+
+          {/* <Col>
+          
           </Col>
               <Col>
-                <Button variant="info">STATUS: UNKNOWN</Button>{' '}
               </Col>
               <Col>
                 <Button variant="info">Battery</Button>{' '}
               </Col>
-          <Col>
-          <Button variant="danger">STOP</Button>{' '}
-          </Col>
+          */}
           </Row>
-          </Container>
-
         </div>
     
         <div id="fullscreen-container">
