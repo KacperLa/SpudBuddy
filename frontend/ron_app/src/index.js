@@ -70,14 +70,14 @@ function App() {
       </head>
       <body>
         <div class="fixed-top">
-            <Row style={{padding: '4px'}}>
+          <Row style={{padding: '4px'}}>
               <Col sx={12}>
                 <Row>
                   <Col>
                     <Row>
                       <Col>
                         <Dropdown>
-                          <Dropdown.Toggle variant="outline-light" id="dropdown-basic">
+                          <Dropdown.Toggle size="lg" variant="outline-light" id="dropdown-basic">
                             Mode Selection 
                           </Dropdown.Toggle>
 
@@ -91,9 +91,9 @@ function App() {
                       </Col>
                       <Col>
                         <ButtonGroup aria-label="Speed Selection">
-                          <Button variant="outline-light">Slow</Button>
+                          <Button size="lg" variant="outline-light">Slow</Button>
                           <Button variant="success">Normal</Button>
-                          <Button variant="outline-light">Fast</Button>
+                          <Button size="lg" variant="outline-light">Fast</Button>
                         </ButtonGroup>
                       </Col>
                     </Row>
@@ -102,22 +102,22 @@ function App() {
                   <Col xs={3}>
                     <Row style={{padding: '0px'}}>
                       <Col style={{padding: '0px 2px'}}>
-                        <Button variant="outline-light" style={{width:'100%'}}>
+                        <Button size="lg" variant="outline-light" style={{width:'100%'}}>
                           <FontAwesomeIcon icon={faLocationCrosshairs}/>
                         </Button>
                       </Col>
                       <Col style={{padding: '0px 2px'}}>
-                        <Button variant="outline-light" style={{width:'100%'}}>
+                        <Button size="lg" variant="outline-light" style={{width:'100%'}}>
                           <FontAwesomeIcon icon={faCarBattery}/>
                         </Button>
                       </Col>
                       <Col style={{padding: '0px 2px'}}>
-                        <Button variant="outline-light" style={{width:'100%'}}>
+                        <Button size="lg" variant="outline-light" style={{width:'100%'}}>
                           <FontAwesomeIcon icon={faSignal}/>
                         </Button>
                       </Col>
                       <Col style={{padding: '0px 2px'}}>
-                        <Button variant="outline-light" style={{width:'100%'}}>
+                        <Button size="lg" variant="outline-light" style={{width:'100%'}}>
                           <FontAwesomeIcon icon={faPowerOff}/>
                         </Button>
                       </Col>
@@ -127,7 +127,7 @@ function App() {
                 </Row>
               </Col>
               <Col xs={2} style={{padding: '0px 15px'}}>
-                <Button variant="danger" style={{width: '100%'}}>
+                <Button size="lg" variant="danger" style={{width: '100%'}}>
                   ESTOP
                 </Button>
               </Col>

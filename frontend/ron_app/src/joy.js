@@ -6,7 +6,7 @@ import background_svg from "./assets/joy.svg";
 function Joy(props) {
     return (
     <div id='joy'>
-        <Joystick stickSize={50}  size={125} sticky={false} baseImage={background_svg} stickColor="black" move={props.handleMove} stop={props.handleStop}></Joystick>
+        <Joystick stickSize={90}  size={200} sticky={false} baseImage={background_svg} stickColor="black" move={props.handleMove} stop={props.handleStop}></Joystick>
     </div>
   );
 }
