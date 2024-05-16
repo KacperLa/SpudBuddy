@@ -1,12 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { faSignal } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import Button from 'react-bootstrap/Button';
+
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Popover from 'react-bootstrap/Popover';
+import ButtonGroup from 'react-bootstrap/ButtonGroup';
+
 
 function WebRTCComponent(props) {
     const [pc, setPc] = useState(null);
     const [dc, setDc] = useState(null);
+    const [dcInterval, setDcInterval] = useState(null);
     const [offerSDP, setOfferSDP] = useState('');
     const [answerSDP, setAnswerSDP] = useState('');
-    const videoRef = useRef(null);
     const dataChannelLog = useRef([]);
+    const [pingInterval, setPingInterval] = useState(null);
 
     useEffect(
         () => {
@@ -23,6 +32,24 @@ function WebRTCComponent(props) {
             }
         },
         [props.joyXY]
+    );
+
+    useEffect(
+        () => {
+            // console.log("component X: ", props.joyXY[0], "Y: ", props.joyXY[1])
+            if (dc !== null)
+            {
+                const zoom_json = {
+                    type: "camera",
+                    zoom: props.zoom_level,
+                    //position: props.joyXY[1],
+                    timestamp: Date.now()
+                };
+                // console.log(joy);
+                dc.send("JSON"+JSON.stringify(zoom_json));
+            }
+        },
+        [props.zoom_level]
     );
 
 
@@ -49,7 +76,7 @@ function WebRTCComponent(props) {
 
         newPc.addEventListener('track', (evt) => {
             if (evt.track.kind === 'video') {
-                videoRef.current.srcObject = evt.streams[0];
+                props.video_ref.current.srcObject = evt.streams[0];
             }
         });
 
@@ -63,15 +90,42 @@ function WebRTCComponent(props) {
     };
 
     const setupDataChannelListeners = (dataChannel) => {
+        let time_start = null;
+        const current_stamp = () => {
+            if (time_start === null) {
+                time_start = new Date().getTime();
+                return 0;
+            } else {
+                return new Date().getTime() - time_start;
+            }
+        };
+
         dataChannel.addEventListener('message', (evt) => {
-            const logs = dataChannelLog.current;
-            logs.push(evt.data);
-            dataChannelLog.current = logs; // Not re-rendering on log update for performance
+            if (evt.data.substring(0, 4) === 'pong') {
+                var elapsed_ms = current_stamp() - parseInt(evt.data.substring(5), 10);
+                console.log(' RTT ' + elapsed_ms + ' ms');
+                setPingInterval(elapsed_ms);
+            } else {
+                console.log('Received message:', evt.data);
+                const logs = dataChannelLog.current;
+                logs.push(evt.data);
+                dataChannelLog.current = logs; // Not re-rendering on log update for performance
+            }
+        });
+
+        dataChannel.addEventListener('close', () => {
+            setDcInterval(null);
         });
 
         dataChannel.addEventListener('open', (evt) => {
-            console.log('Data channel is open!')
+            console.log('Data channel is open!');
             dataChannel.send('Hello from client!');
+            let dcInterval = setInterval(() => {
+                var message = 'ping ' + current_stamp();
+                dataChannelLog.textContent += '> ' + message + '\n';
+                dataChannel.send(message);
+            }, 1000);
+            setDcInterval(dcInterval);
         });
     };
 
@@ -119,18 +173,41 @@ function WebRTCComponent(props) {
 
     return (
         <div>
-            <video ref={videoRef} autoPlay style={{ width: '100%' }} />
-            <div>
-                <textarea value={offerSDP} readOnly />
-                <textarea value={answerSDP} readOnly />
-            </div>
-            <button onClick={negotiate}>Negotiate</button>
-            <button onClick={() => stop(pc)}>Stop</button>
-            <ul>
-                {dataChannelLog.current.map((log, index) => (
-                    <li key={index}>{log}</li>
-                ))}
-            </ul>
+            {/* <video ref={videoRef} autoPlay style={{ width: '100%' }} /> */}
+        
+            <>
+                <OverlayTrigger
+                    trigger="click"
+                    key="bottom"
+                    placement="bottom"
+                    overlay={
+                        <Popover id={`popover-positioned-buttom`}>
+                        <Popover.Header as="h3">{`Robot Connection`}</Popover.Header>
+                        <Popover.Body>
+                            <div>
+                                <p>Ping: {pingInterval} ms</p>
+                                <textarea value={offerSDP} readOnly />
+                                <textarea value={answerSDP} readOnly />
+                            </div>
+                            <ButtonGroup aria-label="Connection">
+                                <Button variant="success" onClick={negotiate}>Connect</Button>
+                                <Button variant="danger" onClick={() => stop(pc)}>Disconnect</Button>
+                            </ButtonGroup>
+                            <ul>
+                                {dataChannelLog.current.map((log, index) => (
+                                    <li key={index}>{log}</li>
+                                ))}
+                            </ul>
+
+                        </Popover.Body>
+                        </Popover>
+                        }
+                    >
+                    <Button size="lg" variant="outline-light" style={{width:'100%'}}>
+                        <FontAwesomeIcon icon={faSignal}/>
+                    </Button>
+                </OverlayTrigger>
+            </>
         </div>
     );
 }

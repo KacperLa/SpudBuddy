@@ -1,15 +1,12 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import ReactDOM from 'react-dom/client';
 import { createRoot } from 'react-dom/client'
 import { Canvas, useThree  } from '@react-three/fiber'
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import * as THREE from "three";
 import reportWebVitals from './reportWebVitals';
 import Button from 'react-bootstrap/Button';
 import Dropdown from 'react-bootstrap/Dropdown';
-import DropdownButton from 'react-bootstrap/DropdownButton';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
-import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -17,6 +14,7 @@ import { faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons'
 import { faCarBattery } from '@fortawesome/free-solid-svg-icons'
 import { faSignal } from '@fortawesome/free-solid-svg-icons'
 import { faPowerOff } from '@fortawesome/free-solid-svg-icons'
+import { faEye } from '@fortawesome/free-solid-svg-icons'
 
 // import css styles
 import './index.css';
@@ -24,8 +22,8 @@ import './index.css';
 // import custom components
 import Joy from './joy.js';
 import WebRTCComponent from './connection.js';
-
-
+import ThreeView from './threeView.js';
+import FloatingPictureInPicture from './videoView.js'
 
 const CameraController = () => {
   const { camera, gl } = useThree();
@@ -44,32 +42,47 @@ const CameraController = () => {
   };
   
 function App() {
-  const [xPos, setXPos] = useState(0);
-  const [yPos, setYPos] = useState(0);
-  
+  // define xPos and yPos as a array of two elements
+  const [pos, setPos] = useState([0, 0]);
+  const [zoom, setZoom] = useState(false);
+
+
+  const videoRef = useRef(null);
+  const threeRef = useRef(null);
+
   function handleMove(event) {
-    setXPos(event.x);
-    setYPos(event.y);
+    setPos([event.x, event.y]);
   }
   
   function handleStop(event) {
-    setXPos(0);
-    setYPos(0);
+    setPos([0, 0]);
   }
+
+  function swapViews() {
+    // get by id the fullscreen-container
+    const container = document.getElementById('fullscreen-container');
+    // get by id the pip
+    const pip = document.getElementById('pip');
+    // if the container is not null, then swap the views
+    if (container) {
+      // get the current display style of the container
+      const display = container.style.display;
+      // if the display is none, then set the display to block
+      if (display === 'none') {
+        container.style.display = 'block';
+        pip.style.display = 'none';
+      } else {
+        container.style.display = 'none';
+        pip.style.display = 'block';
+      }
+    }
+
+  }
+
 
   return ( 
     <>
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
-          crossorigin="anonymous"
-        />
-
-      </head>
-      <body>
-        <div class="fixed-top">
+        <div className="fixed-top" style={{zIndex: 10000}}>
           <Row style={{padding: '4px'}}>
               <Col sx={12}>
                 <Row>
@@ -101,6 +114,11 @@ function App() {
                   </Col>
                   <Col xs={3}>
                     <Row style={{padding: '0px'}}>
+                    <Col style={{padding: '0px 2px'}}>
+                        <Button size="lg" onClick={swapViews} variant="outline-light" style={{width:'100%'}}>
+                          <FontAwesomeIcon icon={faEye}/>
+                        </Button>
+                      </Col>
                       <Col style={{padding: '0px 2px'}}>
                         <Button size="lg" variant="outline-light" style={{width:'100%'}}>
                           <FontAwesomeIcon icon={faLocationCrosshairs}/>
@@ -112,9 +130,7 @@ function App() {
                         </Button>
                       </Col>
                       <Col style={{padding: '0px 2px'}}>
-                        <Button size="lg" variant="outline-light" style={{width:'100%'}}>
-                          <FontAwesomeIcon icon={faSignal}/>
-                        </Button>
+                        <WebRTCComponent joyXY={pos} zoom_level={zoom} video_ref={videoRef} />
                       </Col>
                       <Col style={{padding: '0px 2px'}}>
                         <Button size="lg" variant="outline-light" style={{width:'100%'}}>
@@ -131,45 +147,17 @@ function App() {
                   ESTOP
                 </Button>
               </Col>
-              
-
-          {/* <Col>
-          
-          </Col>
-              <Col>
-              </Col>
-              <Col>
-                <Button variant="info">Battery</Button>{' '}
-              </Col>
-          */}
           </Row>
         </div>
-    
-        <div id="fullscreen-container">
-          <Canvas>
-      <color attach="background" args={['#202020']} />
-        <CameraController />
-        <ambientLight intensity={1} />
-        <directionalLight color="red" position={[0, 0, 5]} />
-        <mesh>
-          <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial color="orange" />
-        </mesh>
         
-        <mesh position={[0, 0, 0]}>
-          <planeGeometry args={[100, 100]} />
-          <shadowMaterial color={"black"} opacity={1} />
-          <planeGeometry rotateX={(-Math.PI / 2)}/>
-        </mesh>
 
-        <gridHelper args={[200, 200]} position={[0,0,0]} opacity={1} >
-      
-        </gridHelper>
-      </Canvas>
-          {/* <WebRTCComponent joyXY={[xPos, yPos]} /> */}
-          <Joy handleMove={handleMove} handleStop={handleStop} />
+        <div id="fullscreen-container">
+            <ThreeView />
         </div>
-      </body>
+          <Joy handleMove={handleMove} handleStop={handleStop} />
+          <FloatingPictureInPicture id="pip" setZoom={setZoom} content={
+            <video ref={videoRef} autoPlay style={{ margin: '0px', padding: '0px', width: '100%', borderRadius: '15px' }} />
+          } />
     </>
   )
 };

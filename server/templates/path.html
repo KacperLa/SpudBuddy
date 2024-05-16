@@ -206,8 +206,8 @@
 			const onDownPosition = new THREE.Vector2();
 
 			// Load robot
-			let robot_model;
-			let robot = new THREE.Group();
+			let ThreeView;
+			let robot_model = new THREE.Group();
 
 			const manager = new LoadingManager();
 			const robot_urdf_loader = new URDFLoader(manager);

@@ -21,3 +21,6 @@
 [submodule "src/libraries/pybind11"]
 	path = src/libraries/pybind11
 	url = git@github.com:pybind/pybind11.git
+[submodule "src/libraries/SData"]
+	path = src/libraries/SData
+	url = git@github.com:KacperLa/SData.git

@@ -99,6 +99,7 @@ class VideoTransformTrack(MediaStreamTrack):
         # (3840, 2160)
 
         self.manip.initialConfig.setCropRect(0.0, 0.0, 0.3333, 0.3333)
+        self.manip.initialConfig.setResize(1280, 720)
         self.manip.setMaxOutputFrameSize(1280*720*3)
 
         # Properties
@@ -177,6 +178,20 @@ class VideoTransformTrack(MediaStreamTrack):
     def __del__(self):
         self.device.close()
 
+    async def setCrop(self, crop):
+        # crom is a value of 0 - 100
+        # 0 represents no crop (0.0, 0.0, 1.0, 1.0)
+        # 100 represents full crop  (0.0, 0.0, 0.3333, 0.3333)
+        crop = np.clip(crop, 0, 100)
+        ratio = 0.3333 + ((1.0 - 0.3333)/100) * crop
+
+        crop = (0.0, 0.0, ratio, ratio)
+
+        print("setting Crop", crop)
+
+        self.manip.initialConfig.setCropRect(crop[0], crop[1], crop[2], crop[3])
+        
+
     async def recv(self):
         packet = None
         # Emptying queue
@@ -192,113 +207,113 @@ class VideoTransformTrack(MediaStreamTrack):
         return packet
 
 async def send_data(channel):
-    # pass
-    tracking_reader = SDataLib.SDataPositionSystem(MAP_NAME_TRACKING, False)
-    imu_reader = SDataLib.SDataIMU(MAP_NAME_IMU, False)
+    pass
+    # tracking_reader = SDataLib.SDataPositionSystem(MAP_NAME_TRACKING, False)
+    # imu_reader = SDataLib.SDataIMU(MAP_NAME_IMU, False)
     
-    tracking_state  = SDataLib.positionSystem_t()
-    imu_state  = SDataLib.imuData_t()
+    # tracking_state  = SDataLib.positionSystem_t()
+    # imu_state  = SDataLib.imuData_t()
 
-    drive_reader = SDataLib.SDataDriveSystemState(MAP_NAME_DRIVE_SYSTEM, False)
-    drive_state  = SDataLib.driveSystemState_t()
+    # drive_reader = SDataLib.SDataDriveSystemState(MAP_NAME_DRIVE_SYSTEM, False)
+    # drive_state  = SDataLib.driveSystemState_t()
 
-    camera_reader = SDataLib.SDataCameraFeed(MAP_NAME_CAMERA, False)
-    camera_frame = SDataLib.camera_feed_t()
+    # camera_reader = SDataLib.SDataCameraFeed(MAP_NAME_CAMERA, False)
+    # camera_frame = SDataLib.camera_feed_t()
 
-    data_json = {
-        "image": {
-            "width": 640,
-            "height": 480,
-            "data": {}
-        },
-        "drive_system": [
-            {
-                "velocity": 0,
-                "position": 0,
-                "vBusVoltage": 0,
-                "state": 0,
-                "error": False
-            },
-            {
-                "velocity": 0,
-                "position": 0,
-                "vBusVoltage": 0,
-                "state": 0,
-                "error": False
-            },
-            {
-                "velocity": 0,
-                "position": 0,
-                "vBusVoltage": 0,
-                "state": 0,
-                "error": False
-            },
-            {
-                "velocity": 0,
-                "position": 0,
-                "vBusVoltage": 0,
-                "state": 0,
-                "error": False
-            }
-        ],
-        "position": {
-            "slam": {
-                "position" : {
-                    "x": 0,
-                    "y": 0,
-                    "z": 0
-                },
-                "orientation": {
-                    "yaw": 0,
-                    "pitch": 0,
-                    "roll": 0
-                },
-                "position_status": 2,
-                "timestamp": 0
-            },
-            "position_status": 2
-        }
-    }
+    # data_json = {
+    #     "image": {
+    #         "width": 640,
+    #         "height": 480,
+    #         "data": {}
+    #     },
+    #     "drive_system": [
+    #         {
+    #             "velocity": 0,
+    #             "position": 0,
+    #             "vBusVoltage": 0,
+    #             "state": 0,
+    #             "error": False
+    #         },
+    #         {
+    #             "velocity": 0,
+    #             "position": 0,
+    #             "vBusVoltage": 0,
+    #             "state": 0,
+    #             "error": False
+    #         },
+    #         {
+    #             "velocity": 0,
+    #             "position": 0,
+    #             "vBusVoltage": 0,
+    #             "state": 0,
+    #             "error": False
+    #         },
+    #         {
+    #             "velocity": 0,
+    #             "position": 0,
+    #             "vBusVoltage": 0,
+    #             "state": 0,
+    #             "error": False
+    #         }
+    #     ],
+    #     "position": {
+    #         "slam": {
+    #             "position" : {
+    #                 "x": 0,
+    #                 "y": 0,
+    #                 "z": 0
+    #             },
+    #             "orientation": {
+    #                 "yaw": 0,
+    #                 "pitch": 0,
+    #                 "roll": 0
+    #             },
+    #             "position_status": 2,
+    #             "timestamp": 0
+    #         },
+    #         "position_status": 2
+    #     }
+    # }
 
-    counter = 0
-    timeinterval = 10
+    # counter = 0
+    # timeinterval = 10
 
-    while True:
-        counter += 1
-        await asyncio.sleep(.1)
-        if counter % timeinterval == 0:
-            # get less frequent data
-            if not drive_reader.getData(drive_state):
-                print("Failed to get drive data")
-                continue
+    # while True:
+    #     counter += 1
+    #     await asyncio.sleep(.1)
+    #     if counter % timeinterval == 0:
+    #         # get less frequent data
+    #         if not drive_reader.getData(drive_state):
+    #             print("Failed to get drive data")
+    #             continue
 
-            for i in range(4):
-                axis = drive_state.getAxis(i)
-                data_json["drive_system"][i]["velocity"] = axis.velocity
-                data_json["drive_system"][i]["position"] = axis.position
-                data_json["drive_system"][i]["vBusVoltage"] = axis.vBusVoltage
-                data_json["drive_system"][i]["state"] = axis.state
-                data_json["drive_system"][i]["error"] = axis.error
+    #         for i in range(4):
+    #             axis = drive_state.getAxis(i)
+    #             data_json["drive_system"][i]["velocity"] = axis.velocity
+    #             data_json["drive_system"][i]["position"] = axis.position
+    #             data_json["drive_system"][i]["vBusVoltage"] = axis.vBusVoltage
+    #             data_json["drive_system"][i]["state"] = axis.state
+    #             data_json["drive_system"][i]["error"] = axis.error
 
           
-        if not tracking_reader.getData(tracking_state):
-            print("Failed to get imu data")
-            continue
+    #     if not tracking_reader.getData(tracking_state):
+    #         print("Failed to get imu data")
+    #         continue
 
-        if not imu_reader.getData(imu_state):
-            print("Failed to get imu data")
-            continue
+    #     if not imu_reader.getData(imu_state):
+    #         print("Failed to get imu data")
+    #         continue
 
-        data_json["position"]["slam"]["position"]["x"] = tracking_state.position.x
-        data_json["position"]["slam"]["position"]["y"] = tracking_state.position.y
-        data_json["position"]["slam"]["position"]["z"] = tracking_state.position.z
-        data_json["position"]["slam"]["position_status"] = tracking_state.status
-        data_json["position"]["slam"]["timestamp"] = tracking_state.timestamp
-        data_json["position"]["slam"]["orientation"]["yaw"] = imu_state.angles.yaw
-        data_json["position"]["slam"]["orientation"]["pitch"] = imu_state.angles.pitch
-        data_json["position"]["slam"]["orientation"]["roll"] = imu_state.angles.roll
+    #     data_json["position"]["slam"]["position"]["x"] = tracking_state.position.x
+    #     data_json["position"]["slam"]["position"]["y"] = tracking_state.position.y
+    #     data_json["position"]["slam"]["position"]["z"] = tracking_state.position.z
+    #     data_json["position"]["slam"]["position_status"] = tracking_state.status
+    #     data_json["position"]["slam"]["timestamp"] = tracking_state.timestamp
+    #     data_json["position"]["slam"]["orientation"]["yaw"] = imu_state.angles.yaw
+    #     data_json["position"]["slam"]["orientation"]["pitch"] = imu_state.angles.pitch
+    #     data_json["position"]["slam"]["orientation"]["roll"] = imu_state.angles.roll
         
-        channel.send(json.dumps(data_json))
+    #     channel.send(json.dumps(data_json))
 
 async def index(request):
     content = open(os.path.join(ROOT, "index.html"), "r").read()
@@ -322,8 +337,11 @@ async def offer(request):
     pc_id = "PeerConnection(%s)" % uuid.uuid4()
     pcs.add(pc)
 
+    # add video track
+    video = VideoTransformTrack()
+
     track = pc.addTrack(
-                    VideoTransformTrack()
+                    video
                 )
     
     force_codec(pc, track, "video/H264")    
@@ -339,7 +357,19 @@ async def offer(request):
 
     @channel.on("message")
     async def on_message(message):
+        # if message is ping, respond with pong
         print("async message: ", message)   
+
+        if isinstance(message, str) and message.startswith("ping"):
+            channel.send("pong" + message[4:])
+        elif isinstance(message, str) and message.startswith("JSON"):
+            json_data = json.loads(message[4:])
+            if json_data.get("type") == "camera":
+                # call setCrop in video track
+                await video.setCrop(json_data.get("zoom"))
+                # await robot_command.setJoystick(json_data)
+
+
 
     def log_info(msg, *args):
         print(pc_id + " " + msg, *args)
@@ -352,12 +382,6 @@ async def offer(request):
         @channel.on("open")
         def on_open():
             log_info("poop Data channel is open")
-
-        @channel.on("message")
-        def on_message(message):
-            print("Data channel message: ", message)
-            if isinstance(message, str) and message.startswith("ping"):
-                channel.send("pong" + message[4:])
 
     @pc.on("connectionstatechange")
     async def on_connectionstatechange():
