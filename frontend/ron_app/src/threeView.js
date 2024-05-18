@@ -8,175 +8,184 @@ import { Raycaster } from 'three';
 
 const robotURDFFilePath = '/static/RON/urdf/RON.urdf';
 
-const RobotModel = () => {
-  const robotRef = useRef(null);
+// const RobotModel = ({ robotRef }) => {
+//   const { scene, camera, gl } = useThree();
+
+//   useEffect(() => {
+//     const loader = new URDFLoader();
+//     loader.load(robotURDFFilePath, robot => {
+//       robot.scale.set(10, 10, 10);
+//       robot.traverse(c => {
+//         c.castShadow = true;
+//       });
+//       robotRef.current.add(robot);
+//       scene.add(robotRef.current); // Ensure the robot is added to the scene
+//       console.log('Robot loaded');
+//     });
+
+//     // return () => {
+//     //   scene.remove(robotRef.current); // Clean up the robot from the scene
+//     // };
+//   }, [robotRef, scene]);
+
+//   useEffect(() => {
+//     const dragControls = new PointerURDFDragControls(scene, camera, gl.domElement);
+
+//     dragControls.onHover = joint => {
+//       joint.traverse(c => {
+//         if (c.type === 'Mesh') {
+//           c.material.emissive.set(0xff0000);
+//         }
+//       });
+//     };
+//     dragControls.onUnhover = joint => {
+//       joint.traverse(c => {
+//         if (c.type === 'Mesh') {
+//           c.material.emissive.set(0x000000);
+//         }
+//       });
+//     };
+//     dragControls.updateJoint = (joint, angle) => {
+//       joint.setJointValue(angle);
+//       console.log(`Updated joint ${joint.name} to angle ${angle}`);
+//     };
+
+//     return () => {
+//       dragControls.dispose();
+//     };
+//   }, [camera, gl.domElement, scene]);
+
+//   return <primitive object={new THREE.Object3D()} ref={robotRef} />;
+// };
+
+
+const RobotModel = ({ robotRef }) => {
   const { scene, camera, gl } = useThree();
-
-  const highlightMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-  const standardMaterial  = new THREE.MeshBasicMaterial({ color: 0xa0a0a0 });
-
-  const isJoint = j => j.isURDFJoint && j.jointType !== 'fixed';
-
-  const highlightLinkGeometry = (m, revert) => {
-    if (robotRef.current) {
-      const traverse = c => {
-        if (c.type === 'Mesh') {
-          if (revert) {
-            c.material = standardMaterial;
-          } else {
-            c.material = highlightMaterial;
-          }
-        }
-
-        if (c === m || !isJoint(c)) {
-          for (let i = 0; i < c.children.length; i++) {
-            const child = c.children[i];
-            if (!child.isURDFCollider) {
-              traverse(child);
-            }
-          }
-        }
-      };
-      traverse(m);
-    }
-  };
-
-  const setJointValue = (joint, angle) => {
-    
-    // console.log(robotRef.current)
-    if (robotRef.current) {
-      robotRef.current.traverse(c => {
-        if (c.name === joint) {
-          c.setJointValue(angle);
-        }
-      });
-    }
-  };
 
   useEffect(() => {
     const loader = new URDFLoader();
     loader.load(robotURDFFilePath, robot => {
-      if (robotRef.current) {
-        robot.scale.set(10, 10, 10);
-        robot.traverse(c => {
-          c.castShadow = true;
-        });
-        robotRef.current.add(robot);
-        scene.add(robotRef.current); // Ensure the robot is added to the scene
-        console.log('robotRef is not null');
-      } else {
-        console.log('robotRef is null');
-      }
+      robot.scale.set(10, 10, 10);
+      robot.traverse(c => {
+        c.castShadow = true;
+      });
+
+      robotRef.current = robot; // Assign the robot to the ref
+      scene.add(robot); // Add the robot directly to the scene
+      console.log('Robot loaded');
     });
 
+    return () => scene.remove(robotRef.current); // Clean up
+  }, [robotRef, scene]);
+
+
+  useEffect(() => {
+    const dragControls = new PointerURDFDragControls(scene, camera, gl.domElement);
+
+    dragControls.onHover = joint => {
+      joint.traverse(c => {
+        if (c.type === 'Mesh') {
+          c.material.emissive.set(0x0000ff);
+        }
+      });
+    };
+    dragControls.onUnhover = joint => {
+      joint.traverse(c => {
+        if (c.type === 'Mesh') {
+          c.material.emissive.set(0x000000);
+        }
+      });
+    };
+    dragControls.updateJoint = (joint, angle) => {
+      joint.setJointValue(angle);
+      console.log(`Updated joint ${joint.name} to angle ${angle}`);
+    };
+
     return () => {
-      if (robotRef.current) {
-        scene.remove(robotRef.current); // Clean up the robot from the scene
-      }
+      dragControls.dispose();
     };
-  }, [robotURDFFilePath]);
+  }, [camera, gl.domElement, scene]);
 
-  const dragControls = new PointerURDFDragControls(scene, camera, gl.domElement);
 
-  dragControls.onHover = joint => {
-    highlightLinkGeometry(joint, false);
-  };
-  dragControls.onUnhover = joint => {
-    highlightLinkGeometry(joint, true);
-  };
-  dragControls.updateJoint = (joint, angle) => {
-    setJointValue(joint.name, angle);
-    const joint_data = {
-      joint_name: joint.name,
-      value: angle,
-      timestamp: Date.now()
-    };
-    console.log(joint_data);
-  };
- 
-  return <primitive object={new THREE.Object3D()} ref={robotRef} />;
+  return null; // No need to return an object from here
 };
 
-const CameraController = ({ manipulating_robot }) => {
+const CameraController = () => {
   const { camera, gl } = useThree();
   useEffect(() => {
     const controls = new OrbitControls(camera, gl.domElement);
     controls.mouseButtons = {
       LEFT: null,
       MIDDLE: THREE.MOUSE.ROTATE,
-      RIGHT: THREE.MOUSE.PAN
-    }	
+      RIGHT: THREE.MOUSE.PAN,
+    };
     controls.minDistance = 3;
     controls.maxDistance = 20;
     return () => {
       controls.dispose();
     };
-  }, [camera, gl, manipulating_robot]);
+  }, [camera, gl]);
   return null;
 };
 
+const Sphere = ({ position }) => {
+  return (
+    <mesh position={position}>
+      <sphereGeometry args={[1, 32, 32]} />
+      <meshStandardMaterial color="blue" />
+    </mesh>
+  );
+};
 
-const MarkerController = ({}) => {
-  const { scene, camera, gl } = useThree();
+function ThreeView(props) {
+  const meshRef = useRef();
   const raycaster = new Raycaster();
-  let goToPoint = null;
+  const [spheres, setSpheres] = useState([]);
 
-  function onPointerClick(event) {
-    console.log("onPointerClick");
-    // let pointer = new THREE.Vector2();
-    console.log(scene.getObjectById("plane"))
-    // // event.preventDefault();
-    // if ( event.button !== 0 ) return; 
-    
-    // // Calculate mouse position in normalized device coordinates (-1 to +1) for both components.
-    // pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-    // pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
-  
-    // raycaster.setFromCamera(pointer, camera);
-  
-    // const intersects = raycaster.intersectObject(scene.getObjectByName("plane"));
-  
-    // // If there's an intersection, add a sphere there.
-    // if (intersects.length > 0) {
-    //   const intersectPoint = intersects[0].point;
-    //   if (goToPoint == null) {
-    //     console.log("intersectPoint");
-    //     // goToPoint = addSphere(intersectPoint);
-    //     // scene.add(goToPoint);
-    //   } else {
-    //     // moveSphere(intersectPoint);
-    //   }
-    // }
-    // if (goToPoint != null) {
-    //   console.log(goToPoint.position);
-    //   // sendDesiredPositon(goToPoint.position);
-    // }
+  function onPointerClick(event, planeRef, robotRef) {
+    if (event.button !== 0) return;
+
+    const pointer = new THREE.Vector2(
+      (event.clientX / window.innerWidth) * 2 - 1,
+      -(event.clientY / window.innerHeight) * 2 + 1
+    );
+
+    raycaster.setFromCamera(pointer, event.camera);
+
+    const intersects = raycaster.intersectObjects([planeRef, robotRef], true);
+
+    if (intersects.length > 0) {
+      if (intersects[0].object === planeRef) {
+        const intersectPoint = intersects[0].point;
+        setSpheres(prevSpheres => [...prevSpheres, intersectPoint]);
+      }
+    }
   }
 
-
-  useEffect(() => {
-
-    gl.domElement.addEventListener('mousedown', onPointerClick);
-
-    return () => {
-      gl.domElement.removeEventListener('mousedown', onPointerClick); 
-    };
-
-  }, []);
-  return null;
-};
-
-function ThreeView() {
   return (
     <Canvas>
-      <color attach='background' args={['#202020']} />
+      <color attach="background" args={['#202020']} />
       <CameraController />
-      <MarkerController />
       <ambientLight intensity={1} />
-      <directionalLight color='red' position={[0, 0, 5]} />
+      <directionalLight color="red" position={[0, 0, 5]} />
       <gridHelper args={[200, 200]} position={[0, 0, 0]} opacity={1} />
-      <plane id="plane" attach='geometry' args={[200, 200]} />
-      <RobotModel />
+
+      <mesh
+        ref={meshRef}
+        position={[0, 0, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        receiveShadow
+        onPointerDown={e => onPointerClick(e, meshRef.current, props.robotRef.current)}
+      >
+        <planeGeometry args={[200, 200]} />
+        <meshStandardMaterial color="#F0F0F0" transparent={true} opacity={0.2} />
+      </mesh>
+
+      <RobotModel robotRef={props.robotRef} />
+      
+      {spheres.map((position, index) => (
+        <Sphere key={index} position={position} />
+      ))}
     </Canvas>
   );
 }

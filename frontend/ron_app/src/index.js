@@ -49,6 +49,8 @@ function App() {
 
   const videoRef = useRef(null);
   const threeRef = useRef(null);
+  const robotRef = useRef(null);
+
 
   function handleMove(event) {
     setPos([event.x, event.y]);
@@ -152,7 +154,7 @@ function App() {
         
 
         <div id="fullscreen-container">
-            <ThreeView />
+            <ThreeView robotRef={robotRef}/>
         </div>
           <Joy handleMove={handleMove} handleStop={handleStop} />
           <FloatingPictureInPicture id="pip" setZoom={setZoom} content={
