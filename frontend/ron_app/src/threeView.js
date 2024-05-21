@@ -1,68 +1,94 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import URDFLoader from 'urdf-loader';
 import { PointerURDFDragControls } from 'urdf-loader/src/URDFDragControls';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { Raycaster } from 'three';
+import { CatmullRomLine, PerspectiveCamera } from '@react-three/drei'
+import { useDrag } from '@react-three/drei';
 
 const robotURDFFilePath = '/static/RON/urdf/RON.urdf';
 
-// const RobotModel = ({ robotRef }) => {
-//   const { scene, camera, gl } = useThree();
-
-//   useEffect(() => {
-//     const loader = new URDFLoader();
-//     loader.load(robotURDFFilePath, robot => {
-//       robot.scale.set(10, 10, 10);
-//       robot.traverse(c => {
-//         c.castShadow = true;
-//       });
-//       robotRef.current.add(robot);
-//       scene.add(robotRef.current); // Ensure the robot is added to the scene
-//       console.log('Robot loaded');
-//     });
-
-//     // return () => {
-//     //   scene.remove(robotRef.current); // Clean up the robot from the scene
-//     // };
-//   }, [robotRef, scene]);
-
-//   useEffect(() => {
-//     const dragControls = new PointerURDFDragControls(scene, camera, gl.domElement);
-
-//     dragControls.onHover = joint => {
-//       joint.traverse(c => {
-//         if (c.type === 'Mesh') {
-//           c.material.emissive.set(0xff0000);
-//         }
-//       });
-//     };
-//     dragControls.onUnhover = joint => {
-//       joint.traverse(c => {
-//         if (c.type === 'Mesh') {
-//           c.material.emissive.set(0x000000);
-//         }
-//       });
-//     };
-//     dragControls.updateJoint = (joint, angle) => {
-//       joint.setJointValue(angle);
-//       console.log(`Updated joint ${joint.name} to angle ${angle}`);
-//     };
-
-//     return () => {
-//       dragControls.dispose();
-//     };
-//   }, [camera, gl.domElement, scene]);
-
-//   return <primitive object={new THREE.Object3D()} ref={robotRef} />;
-// };
 
 
-const RobotModel = ({ robotRef }) => {
+const Sphere = ({ sphereRef, position, isDraggingRef }) => {
+  // if (sphereRef.current) {
+  //   return;
+  // }
+  function onPointerDown(event) {
+    isDraggingRef.current = sphereRef.current;
+    event.stopPropagation();
+  }
+
+  function onPointerUp(event) {
+    isDraggingRef.current = null;
+    event.stopPropagation();
+  }
+
+  return (
+    <mesh
+      ref={sphereRef}
+      position={position}
+      onPointerDown={onPointerDown}
+      onPointerUp={onPointerUp}
+    >
+      <sphereGeometry args={[1, 32, 32]} />
+      <meshStandardMaterial color="blue" />
+    </mesh>
+  );
+};
+
+
+const Path = ({ points }) => {
+  const { camera, gl } = useThree();
+  const lineRef = useRef();
+
+ 
+
+  if (points.length < 2) return null;
+
+  
+  console.log(camera)
+
+  return (
+    <CatmullRomLine
+      ref={lineRef}
+      points={points}
+      curveType={"centripetal"}
+      tension={2}
+      lineWidth={0.1}
+      worldUnits = {true}
+    />
+  );
+};
+
+
+function CameraController({ controlsRef }) {
+  const { camera, gl } = useThree();
+
+  useEffect(() => {
+    const controls = new OrbitControls(camera, gl.domElement);
+    controls.minDistance = 3;
+    controls.maxDistance = 20;
+    controlsRef.current = controls;
+    return () => {
+      controls.dispose();
+    };
+  }, [camera, gl]);
+  return (
+    null
+  );
+}
+
+function RobotModel({ robotRef, controlsRef }) {
   const { scene, camera, gl } = useThree();
 
   useEffect(() => {
+    if (robotRef.current) {
+      scene.add(robotRef.current);
+      return;
+    }
+
     const loader = new URDFLoader();
     loader.load(robotURDFFilePath, robot => {
       robot.scale.set(10, 10, 10);
@@ -78,9 +104,16 @@ const RobotModel = ({ robotRef }) => {
     return () => scene.remove(robotRef.current); // Clean up
   }, [robotRef, scene]);
 
-
   useEffect(() => {
     const dragControls = new PointerURDFDragControls(scene, camera, gl.domElement);
+
+    dragControls.onDragStart = function (event) {
+      controlsRef.current.enabled = false;
+    };
+
+    dragControls.onDragEnd = function (event) {
+      controlsRef.current.enabled = true;
+    };
 
     dragControls.onHover = joint => {
       joint.traverse(c => {
@@ -89,6 +122,7 @@ const RobotModel = ({ robotRef }) => {
         }
       });
     };
+
     dragControls.onUnhover = joint => {
       joint.traverse(c => {
         if (c.type === 'Mesh') {
@@ -96,6 +130,7 @@ const RobotModel = ({ robotRef }) => {
         }
       });
     };
+
     dragControls.updateJoint = (joint, angle) => {
       joint.setJointValue(angle);
       console.log(`Updated joint ${joint.name} to angle ${angle}`);
@@ -104,68 +139,67 @@ const RobotModel = ({ robotRef }) => {
     return () => {
       dragControls.dispose();
     };
-  }, [camera, gl.domElement, scene]);
-
+  }, [camera, gl.domElement, scene, controlsRef]);
 
   return null; // No need to return an object from here
-};
-
-const CameraController = () => {
-  const { camera, gl } = useThree();
-  useEffect(() => {
-    const controls = new OrbitControls(camera, gl.domElement);
-    controls.mouseButtons = {
-      LEFT: null,
-      MIDDLE: THREE.MOUSE.ROTATE,
-      RIGHT: THREE.MOUSE.PAN,
-    };
-    controls.minDistance = 3;
-    controls.maxDistance = 20;
-    return () => {
-      controls.dispose();
-    };
-  }, [camera, gl]);
-  return null;
-};
-
-const Sphere = ({ position }) => {
-  return (
-    <mesh position={position}>
-      <sphereGeometry args={[1, 32, 32]} />
-      <meshStandardMaterial color="blue" />
-    </mesh>
-  );
-};
+}
 
 function ThreeView(props) {
   const meshRef = useRef();
-  const raycaster = new Raycaster();
+  const [points, setPoints] = useState([]);
+  const robotRef = useRef();
+  const controlsRef = useRef();
+  const movingSphereRef = useRef();
+  const [sphereRefs, setSpheresRef] = useState([]);
   const [spheres, setSpheres] = useState([]);
 
-  function onPointerClick(event, planeRef, robotRef) {
+  function onPointerClick(event) {
     if (event.button !== 0) return;
-
-    const pointer = new THREE.Vector2(
-      (event.clientX / window.innerWidth) * 2 - 1,
-      -(event.clientY / window.innerHeight) * 2 + 1
+    // setPoints(prevSpheres => [...prevSpheres, event.point]);
+    // setSpheresRef(prevSphereRefs => [...prevSphereRefs, React.createRef()]);
+    
+    const newSphereRef = React.createRef();
+    const newSphere = (
+      <Sphere
+        key={points.length}
+        sphereRef={newSphereRef}
+        position={event.point}
+        isDraggingRef={movingSphereRef}
+      />
     );
+  
+    setPoints(prevSpheres => [...prevSpheres, event.point]);
+    setSpheresRef(prevSphereRefs => [...prevSphereRefs, newSphereRef]);
+    setSpheres(prevSpheres => [...prevSpheres, newSphere]);
+  }
+  
+  // function Spheres({ sphereRefs }) {
+  //   return sphereRefs.map((_ref, index) => (
+  //     <Sphere key={index} sphereRef={_ref} position={points[index]} isDraggingRef={movingSphereRef} />
+  //   ));
+  // }
 
-    raycaster.setFromCamera(pointer, event.camera);
-
-    const intersects = raycaster.intersectObjects([planeRef, robotRef], true);
-
-    if (intersects.length > 0) {
-      if (intersects[0].object === planeRef) {
-        const intersectPoint = intersects[0].point;
-        setSpheres(prevSpheres => [...prevSpheres, intersectPoint]);
-      }
+  function onPointerMove(event) {
+    if (!movingSphereRef.current)
+    {
+      controlsRef.current.enabled = true;
+      return;
     }
+    // console.log("movingSphereRef.current.position", movingSphereRef.current.index)
+    controlsRef.current.enabled = false;
+    movingSphereRef.current.position.copy(event.point);
+    // find index of movingSphereRef in sphereRefs
+    let index = sphereRefs.findIndex(ref => ref.current === movingSphereRef.current);
+    // update point pos in points
+    let newPoints = [...points]; // This creates a new array that is a copy of `points`
+    newPoints[index] = event.point;
+    setPoints(newPoints);
   }
 
   return (
-    <Canvas>
+    <Canvas id="canvas" camera={{position: [1, 1, 7]}}>
       <color attach="background" args={['#202020']} />
-      <CameraController />
+      <CameraController controlsRef={controlsRef} />
       <ambientLight intensity={1} />
       <directionalLight color="red" position={[0, 0, 5]} />
       <gridHelper args={[200, 200]} position={[0, 0, 0]} opacity={1} />
@@ -175,17 +209,19 @@ function ThreeView(props) {
         position={[0, 0, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
         receiveShadow
-        onPointerDown={e => onPointerClick(e, meshRef.current, props.robotRef.current)}
+        onDoubleClick={e => onPointerClick(e)}
+        onPointerMove={e => onPointerMove(e, meshRef.current)}
       >
         <planeGeometry args={[200, 200]} />
         <meshStandardMaterial color="#F0F0F0" transparent={true} opacity={0.2} />
       </mesh>
 
-      <RobotModel robotRef={props.robotRef} />
+      <RobotModel robotRef={robotRef} controlsRef={controlsRef} />
       
-      {spheres.map((position, index) => (
-        <Sphere key={index} position={position} />
-      ))}
+      {/* <Spheres sphereRefs={sphereRefs} /> */}
+      {spheres}
+      <Path points={points} />
+
     </Canvas>
   );
 }
