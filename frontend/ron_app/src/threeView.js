@@ -1,20 +1,18 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import URDFLoader from 'urdf-loader';
 import { PointerURDFDragControls } from 'urdf-loader/src/URDFDragControls';
 import * as THREE from 'three';
+import { BufferAttribute } from "three";
+
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { CatmullRomLine, PerspectiveCamera } from '@react-three/drei'
-import { useDrag } from '@react-three/drei';
+import { PointMaterial } from '@react-three/drei';
 
 const robotURDFFilePath = '/static/RON/urdf/RON.urdf';
 
-
-
 const Sphere = ({ sphereRef, position, isDraggingRef }) => {
-  // if (sphereRef.current) {
-  //   return;
-  // }
+
   function onPointerDown(event) {
     isDraggingRef.current = sphereRef.current;
     event.stopPropagation();
@@ -38,25 +36,19 @@ const Sphere = ({ sphereRef, position, isDraggingRef }) => {
   );
 };
 
-
 const Path = ({ points }) => {
-  const { camera, gl } = useThree();
   const lineRef = useRef();
 
- 
-
   if (points.length < 2) return null;
-
-  
-  console.log(camera)
 
   return (
     <CatmullRomLine
       ref={lineRef}
       points={points}
       curveType={"centripetal"}
-      tension={2}
       lineWidth={0.1}
+      dashed={true}
+      segments={100}
       worldUnits = {true}
     />
   );
@@ -150,13 +142,12 @@ function ThreeView(props) {
   const robotRef = useRef();
   const controlsRef = useRef();
   const movingSphereRef = useRef();
-  const [sphereRefs, setSpheresRef] = useState([]);
   const [spheres, setSpheres] = useState([]);
+  const [pcs, setPCs] = useState([]);
+
 
   function onPointerClick(event) {
     if (event.button !== 0) return;
-    // setPoints(prevSpheres => [...prevSpheres, event.point]);
-    // setSpheresRef(prevSphereRefs => [...prevSphereRefs, React.createRef()]);
     
     const newSphereRef = React.createRef();
     const newSphere = (
@@ -169,32 +160,46 @@ function ThreeView(props) {
     );
   
     setPoints(prevSpheres => [...prevSpheres, event.point]);
-    setSpheresRef(prevSphereRefs => [...prevSphereRefs, newSphereRef]);
     setSpheres(prevSpheres => [...prevSpheres, newSphere]);
   }
   
-  // function Spheres({ sphereRefs }) {
-  //   return sphereRefs.map((_ref, index) => (
-  //     <Sphere key={index} sphereRef={_ref} position={points[index]} isDraggingRef={movingSphereRef} />
-  //   ));
-  // }
-
   function onPointerMove(event) {
     if (!movingSphereRef.current)
     {
       controlsRef.current.enabled = true;
       return;
     }
-    // console.log("movingSphereRef.current.position", movingSphereRef.current.index)
     controlsRef.current.enabled = false;
     movingSphereRef.current.position.copy(event.point);
-    // find index of movingSphereRef in sphereRefs
-    let index = sphereRefs.findIndex(ref => ref.current === movingSphereRef.current);
-    // update point pos in points
-    let newPoints = [...points]; // This creates a new array that is a copy of `points`
+
+    let index = spheres.findIndex(sphere => sphere.props.sphereRef.current === movingSphereRef.current);
+    let newPoints = [...points]; 
     newPoints[index] = event.point;
     setPoints(newPoints);
   }
+
+  const PointCloud = ({ pointCloud }) => {
+    let points = useMemo(() => {
+      console.log("MEMO");
+      return new BufferAttribute(new Float32Array(pointCloud), 3);
+    }, [pointCloud]);
+    
+    return (
+      <points>
+        <bufferGeometry>
+          <bufferAttribute
+            attach={"attributes-position"}
+            {...points}
+          />
+        </bufferGeometry>
+        <pointsMaterial
+          size={5}
+          color={0xff00ff}
+          sizeAttenuation={false}
+        />
+      </points>
+    );
+  };
 
   return (
     <Canvas id="canvas" camera={{position: [1, 1, 7]}}>
@@ -218,9 +223,11 @@ function ThreeView(props) {
 
       <RobotModel robotRef={robotRef} controlsRef={controlsRef} />
       
-      {/* <Spheres sphereRefs={sphereRefs} /> */}
       {spheres}
+
       <Path points={points} />
+      
+      <PointCloud pointCloud={props.pointCloud}/>
 
     </Canvas>
   );

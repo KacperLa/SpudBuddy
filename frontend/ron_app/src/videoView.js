@@ -88,6 +88,8 @@ const FloatingPictureInPicture = (props) => {
                 zIndex: 9999,
                 width: [size.width, 'px'].join(''),
                 cursor: isDragging ? 'grabbing' : 'grab',
+                borderRadius: '15px',
+                outline: "1px solid white",
             }}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -99,7 +101,7 @@ const FloatingPictureInPicture = (props) => {
                 <div style={{
                     position: 'absolute',
                     width: "40px",
-                    right: "-25px",
+                    right: "-20px",
                     bottom: "-20px",
                     padding: "0px 0px",
                     margin: "0px 0px",

@@ -25,27 +25,12 @@ import WebRTCComponent from './connection.js';
 import ThreeView from './threeView.js';
 import FloatingPictureInPicture from './videoView.js'
 
-const CameraController = () => {
-  const { camera, gl } = useThree();
-  useEffect(
-    () => {
-      const controls = new OrbitControls(camera, gl.domElement);
-      controls.minDistance = 3;
-      controls.maxDistance = 20;
-      return () => {
-        controls.dispose();
-      };
-    },
-    [camera, gl]
-    );
-    return null;
-  };
-  
 function App() {
   // define xPos and yPos as a array of two elements
   const [pos, setPos] = useState([0, 0]);
   const [zoom, setZoom] = useState(false);
-
+  const [selectedMode, setSelectedMode] = useState('Mode Selection');
+  const [pointCloud, setPointCloud] = useState(null);
 
   const videoRef = useRef(null);
 
@@ -91,14 +76,14 @@ function App() {
                       <Col>
                         <Dropdown>
                           <Dropdown.Toggle size="lg" variant="outline-light" id="dropdown-basic">
-                            Mode Selection 
+                            {selectedMode} 
                           </Dropdown.Toggle>
 
                           <Dropdown.Menu>
-                            <Dropdown.Item >Keep Location</Dropdown.Item>
-                            <Dropdown.Item >Manual Drive</Dropdown.Item>
-                            <Dropdown.Item >Path Follow</Dropdown.Item>
-                            <Dropdown.Item >Autonomous Explore</Dropdown.Item>
+                            <Dropdown.Item onClick={() => setSelectedMode('Keep Location')}>Keep Location</Dropdown.Item>
+                            <Dropdown.Item onClick={() => setSelectedMode('Manual Drive')}>Manual Drive</Dropdown.Item>
+                            <Dropdown.Item onClick={() => setSelectedMode('Path Follow')}>Path Follow</Dropdown.Item>
+                            <Dropdown.Item onClick={() => setSelectedMode('Autonomous Explore')}>Autonomous Explore</Dropdown.Item>
                           </Dropdown.Menu>
                         </Dropdown>
                       </Col>
@@ -130,7 +115,7 @@ function App() {
                         </Button>
                       </Col>
                       <Col style={{padding: '0px 2px'}}>
-                        <WebRTCComponent joyXY={pos} zoom_level={zoom} video_ref={videoRef} />
+                        <WebRTCComponent joyXY={pos} zoom_level={zoom} video_ref={videoRef} updatePointCloud={setPointCloud} />
                       </Col>
                       <Col style={{padding: '0px 2px'}}>
                         <Button size="lg" variant="outline-light" style={{width:'100%'}}>
@@ -152,7 +137,7 @@ function App() {
         
 
         <div id="fullscreen-container">
-            <ThreeView/>
+            <ThreeView driveMode={selectedMode} pointCloud={pointCloud}/>
         </div>
           <Joy handleMove={handleMove} handleStop={handleStop} />
           <FloatingPictureInPicture id="pip" setZoom={setZoom} content={
