@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { faSignal } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Button from 'react-bootstrap/Button';
-import init, { capture_frame_and_create_point_cloud } from 'ron_pc_wasm/ron_wasm';
 
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Popover from 'react-bootstrap/Popover';
@@ -16,8 +15,7 @@ function WebRTCComponent(props) {
     const [offerSDP, setOfferSDP] = useState('');
     const [answerSDP, setAnswerSDP] = useState('');
     const dataChannelLog = useRef([]);
-    const [pingInterval, setPingInterval] = useState(null);
-    const [pcInterval, setPcInterval] = useState(null);
+    const [pingInterval, setPingInterval] = useState(null);    
 
     useEffect(
         () => {
@@ -65,19 +63,6 @@ function WebRTCComponent(props) {
         };
     }, []);
 
-
-
-
-    const width = 640;
-    const height = 400;
-    const maxPoints = width*height;
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = width;
-    canvas.height = height;
-    const baseline = 0.750;
-    const focalLength = 455.4474182128906;
-
     const createPeerConnection = () => {
         const config = {
             sdpSemantics: 'unified-plan',
@@ -87,23 +72,21 @@ function WebRTCComponent(props) {
 
         // add transceiver and data channel
         newPc.addTransceiver('video', { direction: 'recvonly' });
+        newPc.addTransceiver('video', { direction: 'recvonly' });
         const newDc = newPc.createDataChannel('status_feed');
 
         newPc.addEventListener('track', (evt) => {
+            console.log('Received track:', evt.track);
+            console.log('Received streams:', evt.streams);
             if (evt.track.kind === 'video') {
-                props.video_ref.current.srcObject = evt.streams[0];
+                if (props.video_ref.current.srcObject == null) {
+                    console.log("setting video ref")
+                    props.video_ref.current.srcObject = new MediaStream([evt.track]);
+                } else {
+                    console.log("setting depth ref")
+                    props.depth_ref.current.srcObject = new MediaStream([evt.track]);
+                }
             }
-
-            init().then(() => {
-                let pcInterval = setInterval(() => {
-                    ctx.drawImage(props.video_ref.current, 0, 0, width, height)
-                    const imageData = ctx.getImageData(0, 0, width, height);
-                    const data = new Uint8Array(imageData.data.buffer);
-                    
-                    props.updatePointCloud(capture_frame_and_create_point_cloud(width, height, data, focalLength, baseline, maxPoints));
-                }, 100);
-                setPcInterval(pcInterval);
-            });
         });
 
         newPc.addEventListener('datachannel', (evt) => {
@@ -141,7 +124,6 @@ function WebRTCComponent(props) {
 
         dataChannel.addEventListener('close', () => {
             setDcInterval(null);
-            setPcInterval(null);
         });
 
         dataChannel.addEventListener('open', (evt) => {

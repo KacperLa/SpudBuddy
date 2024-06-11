@@ -4,6 +4,7 @@ import URDFLoader from 'urdf-loader';
 import { PointerURDFDragControls } from 'urdf-loader/src/URDFDragControls';
 import * as THREE from 'three';
 import { BufferAttribute } from "three";
+import init, { capture_frame_and_create_point_cloud } from 'new_ron_wasm_6/ron_wasm';
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { CatmullRomLine, PerspectiveCamera } from '@react-three/drei'
@@ -144,7 +145,8 @@ function ThreeView(props) {
   const movingSphereRef = useRef();
   const [spheres, setSpheres] = useState([]);
   const [pcs, setPCs] = useState([]);
-
+  const [pcInterval, setPcInterval] = useState(null);
+  const [pointCloud, setPointCloud] = useState(null);
 
   function onPointerClick(event) {
     if (event.button !== 0) return;
@@ -178,15 +180,55 @@ function ThreeView(props) {
     setPoints(newPoints);
   }
 
-  const PointCloud = ({ pointCloud }) => {
-    let points = useMemo(() => {
-      console.log("MEMO");
-      return new BufferAttribute(new Float32Array(pointCloud), 3);
-    }, [pointCloud]);
+  const PointCloud = ({ stream }) => {
+    const baseline = 0.750;
+    const focalLength = 455.4474182128906;
+    const width = 640;
+    const height = 400;
+    const maxPoints = 15000;
+
+    let points = new BufferAttribute(new Float32Array(maxPoints*3), 3);
+    let boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1000);
     
+    //willReadFrequently
+    if (pcInterval === null) {
+      init().then(() => {
+        const offscreenCanvas = new OffscreenCanvas(width, height);
+        offscreenCanvas.willReadFrequently = true;
+        const ctx = offscreenCanvas.getContext('2d');
+        offscreenCanvas.width = width;
+        offscreenCanvas.height = height;
+     
+        let pc_interval = setInterval(() => {
+          if (stream.current.srcObject == null) return;
+          ctx.drawImage(stream.current, 0, 0, width, height, 0, 0, width, height);
+          const imageData = ctx.getImageData(0, 0, width, height);
+          const data = new Uint8Array(imageData.data.buffer);
+          
+          setPointCloud(capture_frame_and_create_point_cloud(width, height, data, focalLength, baseline, maxPoints));
+        }, 100);
+      setPcInterval(pc_interval);
+      });
+    };
+    
+    useEffect(() => {
+      if (!pointCloud) return;
+      points.array.set(pointCloud);
+      points.needsUpdate = true;
+      points.updateRanges = {
+        start: 0,
+        count: pointCloud.length / 3
+      };
+    }, [pointCloud]);
+
+
     return (
-      <points>
-        <bufferGeometry>
+      <points
+        frustumCulled={false}
+      >
+        <bufferGeometry
+          boundingSphere={boundingSphere}
+        >
           <bufferAttribute
             attach={"attributes-position"}
             {...points}
@@ -227,7 +269,7 @@ function ThreeView(props) {
 
       <Path points={points} />
       
-      <PointCloud pointCloud={props.pointCloud}/>
+      <PointCloud stream={props.depthStream}/>
 
     </Canvas>
   );

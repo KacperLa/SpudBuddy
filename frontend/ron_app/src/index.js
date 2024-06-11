@@ -30,9 +30,8 @@ function App() {
   const [pos, setPos] = useState([0, 0]);
   const [zoom, setZoom] = useState(false);
   const [selectedMode, setSelectedMode] = useState('Mode Selection');
-  const [pointCloud, setPointCloud] = useState(null);
-
   const videoRef = useRef(null);
+  const depthRef = useRef(null);
 
 
   function handleMove(event) {
@@ -115,7 +114,7 @@ function App() {
                         </Button>
                       </Col>
                       <Col style={{padding: '0px 2px'}}>
-                        <WebRTCComponent joyXY={pos} zoom_level={zoom} video_ref={videoRef} updatePointCloud={setPointCloud} />
+                        <WebRTCComponent joyXY={pos} zoom_level={zoom} depth_ref={depthRef} video_ref={videoRef} />
                       </Col>
                       <Col style={{padding: '0px 2px'}}>
                         <Button size="lg" variant="outline-light" style={{width:'100%'}}>
@@ -137,12 +136,16 @@ function App() {
         
 
         <div id="fullscreen-container">
-            <ThreeView driveMode={selectedMode} pointCloud={pointCloud}/>
+            <ThreeView driveMode={selectedMode} depthStream={videoRef} />
         </div>
           <Joy handleMove={handleMove} handleStop={handleStop} />
           <FloatingPictureInPicture id="pip" setZoom={setZoom} content={
             <video ref={videoRef} autoPlay style={{ margin: '0px', padding: '0px', width: '100%', borderRadius: '15px' }} />
           } />
+          <FloatingPictureInPicture id="pip2" setZoom={setZoom} content={
+            <video ref={depthRef} autoPlay style={{ margin: '0px', padding: '0px', width: '100%', borderRadius: '15px' }} />
+          } />
+
     </>
   )
 };

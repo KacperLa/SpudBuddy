@@ -3,6 +3,8 @@ import json
 import os
 import uuid
 import numpy as np
+import time
+import threading
 
 from aiohttp import web
 from aiortc import MediaStreamTrack, RTCRtpSender, RTCPeerConnection, RTCSessionDescription, VideoStreamTrack, RTCDataChannelParameters
@@ -25,6 +27,8 @@ MAP_NAME_TRACKING = 'robot_tracking'
 MAP_NAME_CAMERA = 'robot_camera'
 MAP_NAME_PC = 'robot_point_cloud'
 MAP_PATH = "./maps/"
+
+depth_packet = None
 
 def force_codec(pc, sender, forced_codec):
     kind = forced_codec.split("/")[0]
@@ -63,7 +67,7 @@ class RobotSettings:
             self.command.state.timestamp = data.get(timestamp, 0)
 
 
-class VideoTransformTrack(MediaStreamTrack):
+class ColorVideoTransformTrack(MediaStreamTrack):
     """
     A video stream track that transforms frames from an another track.
     """
@@ -74,6 +78,8 @@ class VideoTransformTrack(MediaStreamTrack):
         super().__init__()  # don't forget this!
         self.pipeline = dai.Pipeline()
 
+        self.done = False
+
         # Closer-in minimum depth, disparity range is doubled (from 95 to 190):
         extended_disparity = True
         # Better accuracy for longer distance, fractional disparity 32-levels:
@@ -83,75 +89,71 @@ class VideoTransformTrack(MediaStreamTrack):
 
         # Define sources and output
         self.camRgb = self.pipeline.create(dai.node.ColorCamera)
-        # self.monoLeft = self.pipeline.create(dai.node.MonoCamera)
-        # self.monoRight = self.pipeline.create(dai.node.MonoCamera)
+        self.monoLeft = self.pipeline.create(dai.node.MonoCamera)
+        self.monoRight = self.pipeline.create(dai.node.MonoCamera)
 
-        # self.depth = self.pipeline.create(dai.node.StereoDepth)
-        self.videoEnc = self.pipeline.create(dai.node.VideoEncoder)
-        self.xout = self.pipeline.create(dai.node.XLinkOut)
-        self.manip = self.pipeline.create(dai.node.ImageManip)
-        # xout = pipeline.create(dai.node.XLinkOut)
+        self.depth = self.pipeline.create(dai.node.StereoDepth)
+        self.depthEnc = self.pipeline.create(dai.node.VideoEncoder)
+        self.colorEnc = self.pipeline.create(dai.node.VideoEncoder)
+        self.depthOut = self.pipeline.create(dai.node.XLinkOut)
+        self.colorOut = self.pipeline.create(dai.node.XLinkOut)
         self.configIn = self.pipeline.create(dai.node.XLinkIn)
 
-        self.xout.setStreamName('h264')
+        self.depthOut.setStreamName('depth')
+        self.colorOut.setStreamName('color')
+
         self.configIn.setStreamName('config')
 
-        # (3840, 2160)
-
-        self.manip.initialConfig.setCropRect(0.0, 0.0, 0.3333, 0.3333)
-        self.manip.initialConfig.setResize(1280, 720)
-        self.manip.setMaxOutputFrameSize(1280*720*3)
-
         # Properties
-        # self.monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-        # self.monoLeft.setCamera("left")
-        # self.monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-        # self.monoRight.setCamera("right")
-
         self.camRgb.setBoardSocket(dai.CameraBoardSocket.CAM_A)
-        self.camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_4_K)
-        self.videoEnc.setDefaultProfilePreset(25, dai.VideoEncoderProperties.Profile.H264_MAIN)
-        self.videoEnc.setKeyframeFrequency(30)  # Insert a keyframe every 30 frames
+        self.camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
+        
+        self.monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+        self.monoLeft.setCamera("left")
+        self.monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+        self.monoRight.setCamera("right")
+       
+        self.depthEnc.setDefaultProfilePreset(25, dai.VideoEncoderProperties.Profile.H264_MAIN)
+        self.depthEnc.setKeyframeFrequency(30)  # Insert a keyframe every 30 frames
+
+        self.colorEnc.setDefaultProfilePreset(25, dai.VideoEncoderProperties.Profile.H264_MAIN)
+        self.colorEnc.setKeyframeFrequency(30)  # Insert a keyframe every 30 frames
         self.camRgb.setFps(30)
 
         # print camera resolution
-        print(self.camRgb.getResolutionSize())
-        
+        # print(self.camRgb.getResolutionSize())
 
         # Create a node that will produce the depth map (using disparity output as it's easier to visualize depth this way)
-        # self.depth.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_ACCURACY)
+        self.depth.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_ACCURACY)
         # Options: MEDIAN_OFF, KERNEL_3x3, KERNEL_5x5, KERNEL_7x7 (default)
-        # self.depth.initialConfig.setMedianFilter(dai.MedianFilter.KERNEL_7x7)
-        # self.depth.setLeftRightCheck(lr_check)
-        # self.depth.setExtendedDisparity(extended_disparity)
-        # self.depth.setSubpixel(subpixel)
+        self.depth.initialConfig.setMedianFilter(dai.MedianFilter.KERNEL_7x7)
+        self.depth.setLeftRightCheck(lr_check)
+        self.depth.setExtendedDisparity(extended_disparity)
+        self.depth.setSubpixel(subpixel)
 
-        # config = self.depth.initialConfig.get()
-        # config.postProcessing.speckleFilter.enable = True
-        # config.postProcessing.speckleFilter.speckleRange = 50
-        # config.postProcessing.temporalFilter.enable = True
-        # config.postProcessing.spatialFilter.enable = True
-        # config.postProcessing.spatialFilter.holeFillingRadius = 2
-        # config.postProcessing.spatialFilter.numIterations = 1
-        # config.postProcessing.thresholdFilter.minRange = 400
-        # config.postProcessing.thresholdFilter.maxRange = 15000
-        # config.postProcessing.decimationFilter.decimationFactor = 1
+        config = self.depth.initialConfig.get()
+        config.postProcessing.speckleFilter.enable = True
+        config.postProcessing.speckleFilter.speckleRange = 50
+        config.postProcessing.temporalFilter.enable = True
+        config.postProcessing.spatialFilter.enable = True
+        config.postProcessing.spatialFilter.holeFillingRadius = 2
+        config.postProcessing.spatialFilter.numIterations = 1
+        config.postProcessing.thresholdFilter.minRange = 400
+        config.postProcessing.thresholdFilter.maxRange = 15000
+        config.postProcessing.decimationFilter.decimationFactor = 1
 
-        # self.depth.initialConfig.set(config)
-        # self.depth.initialConfig.setConfidenceThreshold(80)
+        self.depth.initialConfig.set(config)
+        self.depth.initialConfig.setConfidenceThreshold(80)
 
         # Linking
-        # self.monoLeft.out.link(self.depth.left)
-        # self.monoRight.out.link(self.depth.right)
-        # self.depth.disparity.link(self.videoEnc.input)
-        
-        self.camRgb.video.link(self.manip.inputImage)
-        self.manip.out.link(self.videoEnc.input)
-        self.videoEnc.bitstream.link(self.xout.input)
+        self.monoLeft.out.link(self.depth.left)
+        self.monoRight.out.link(self.depth.right)
 
-        # self.configIn.out.link(self.manip.inputConfig)
-        # self.camRgb.video.link(self.videoEnc.input)
+        self.depth.disparity.link(self.depthEnc.input)
+        self.depthEnc.bitstream.link(self.depthOut.input)
 
+        self.camRgb.video.link(self.colorEnc.input)
+        self.colorEnc.bitstream.link(self.colorOut.input)
 
         self.device = dai.Device(self.pipeline)
 
@@ -171,33 +173,38 @@ class VideoTransformTrack(MediaStreamTrack):
         # print(f"Focal Length X: {focal_length_x}")
         # print(f"Focal Length Y: {focal_length_y}")
 
-        self.q = self.device.getOutputQueue(name="h264", maxSize=1, blocking=True)
+        self.depth_q = self.device.getOutputQueue(name="depth", maxSize=1, blocking=True)
+        self.color_q = self.device.getOutputQueue(name="color", maxSize=1, blocking=True)
+
+        # spin off a thread to create depth frame
+        threading.Thread(target=self.create_depth_frame, daemon=True).start()
 
         self.pts = 0
 
+    def create_depth_frame(self):
+        global depth_packet
+        pts = 0
+        while not self.done:
+            if self.depth_q.has():
+                packet = Packet(self.depth_q.get().getData())
+                packet.pts = pts
+                packet.time_base = Fraction(1, 30) 
+                pts += 1
+                depth_packet = packet
+            else:
+                time.sleep(0.01)
+
+
     def __del__(self):
+        self.done = True
         self.device.close()
-
-    async def setCrop(self, crop):
-        # crom is a value of 0 - 100
-        # 0 represents no crop (0.0, 0.0, 1.0, 1.0)
-        # 100 represents full crop  (0.0, 0.0, 0.3333, 0.3333)
-        crop = np.clip(crop, 0, 100)
-        ratio = 0.3333 + ((1.0 - 0.3333)/100) * crop
-
-        crop = (0.0, 0.0, ratio, ratio)
-
-        print("setting Crop", crop)
-
-        self.manip.initialConfig.setCropRect(crop[0], crop[1], crop[2], crop[3])
-        
 
     async def recv(self):
         packet = None
         # Emptying queue
         while packet is None:
-            if self.q.has():        
-                packet = Packet(self.q.get().getData())
+            if self.color_q.has():        
+                packet = Packet(self.color_q.get().getData())
                 packet.pts = self.pts
                 packet.time_base = Fraction(1, 30) 
                 self.pts += 1
@@ -205,6 +212,25 @@ class VideoTransformTrack(MediaStreamTrack):
                 await asyncio.sleep(0.01)
         
         return packet
+
+class DepthVideoTransformTrack(MediaStreamTrack):
+    """
+    A video stream track that transforms frames from an another track.
+    """
+
+    kind = "video"
+
+    def __init__(self):
+        super().__init__()  # don't forget this!
+
+    async def recv(self):
+        global depth_packet
+        while depth_packet is None:
+            await asyncio.sleep(0.01)
+
+        temp = depth_packet
+        depth_packet = None
+        return temp
 
 async def send_data(channel):
     pass
@@ -327,7 +353,6 @@ async def path_html(request):
     content = open(os.path.join(ROOT, "templates/path.html"), "r").read()
     return web.Response(content_type="text/html", text=content)
 
-
 async def offer(request):
     print("got offer")
     params = await request.json()
@@ -338,13 +363,14 @@ async def offer(request):
     pcs.add(pc)
 
     # add video track
-    video = VideoTransformTrack()
+    color_video = ColorVideoTransformTrack()
+    depth_video = DepthVideoTransformTrack()    
 
-    track = pc.addTrack(
-                    video
-                )
+    color_track = pc.addTrack(color_video)
+    depth_track = pc.addTrack(depth_video)
     
-    force_codec(pc, track, "video/H264")    
+    force_codec(pc, color_track, "video/H264")    
+    force_codec(pc, depth_track, "video/H264")    
 
     # add data track
     channel = pc.createDataChannel("status_feed")
@@ -366,7 +392,7 @@ async def offer(request):
             json_data = json.loads(message[4:])
             if json_data.get("type") == "camera":
                 # call setCrop in video track
-                await video.setCrop(json_data.get("zoom"))
+                pass
                 # await robot_command.setJoystick(json_data)
 
 
