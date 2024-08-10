@@ -22,8 +22,6 @@ import './index.css';
 // import custom components
 import Joy from './joy.js';
 import WebRTCComponent from './connection.js';
-import ThreeView from './threeView.js';
-import FloatingPictureInPicture from './videoView.js'
 
 function App() {
   // define xPos and yPos as a array of two elements
@@ -42,26 +40,31 @@ function App() {
     setPos([0, 0]);
   }
 
-  function swapViews() {
-    // get by id the fullscreen-container
-    const container = document.getElementById('fullscreen-container');
-    // get by id the pip
-    const pip = document.getElementById('pip');
-    // if the container is not null, then swap the views
-    if (container) {
-      // get the current display style of the container
-      const display = container.style.display;
-      // if the display is none, then set the display to block
-      if (display === 'none') {
-        container.style.display = 'block';
-        pip.style.display = 'none';
-      } else {
-        container.style.display = 'none';
-        pip.style.display = 'block';
-      }
-    }
+  const connect = async () => {
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [
+        {
+          namePrefix: "FarmBot",
+        },
+      ],
+      // Philips Hue Light Control Service
+      optionalServices: [0x181A],
+    });
+    const server = await device.gatt?.connect();
+      
+    const service = await server.getPrimaryService(
+      0x181A
+    );
 
-  }
+    // set a call back function to handle the data
+    service.getCharacteristic(0x2A6E).then(characteristic => {
+      characteristic.startNotifications();
+      characteristic.addEventListener('characteristicvaluechanged', (event) => {
+        console.log("evnet:", event.target.value.getUint8(0));
+      });
+    }); 
+  };
+
 
 
   return ( 
@@ -99,7 +102,7 @@ function App() {
                   <Col xs={3}>
                     <Row style={{padding: '0px'}}>
                     <Col style={{padding: '0px 2px'}}>
-                        <Button size="lg" onClick={swapViews} variant="outline-light" style={{width:'100%'}}>
+                        <Button size="lg" onClick={connect} variant="outline-light" style={{width:'100%'}}>
                           <FontAwesomeIcon icon={faEye}/>
                         </Button>
                       </Col>
@@ -135,16 +138,9 @@ function App() {
         </div>
         
 
-        <div id="fullscreen-container">
-            <ThreeView driveMode={selectedMode} depthStream={videoRef} />
+        <div id="fullscreen-container" style={{color: 'black', background: 'black'}}>
+            <Joy handleMove={handleMove} handleStop={handleStop} />
         </div>
-          <Joy handleMove={handleMove} handleStop={handleStop} />
-          <FloatingPictureInPicture id="pip" setZoom={setZoom} content={
-            <video ref={videoRef} autoPlay style={{ margin: '0px', padding: '0px', width: '100%', borderRadius: '15px' }} />
-          } />
-          <FloatingPictureInPicture id="pip2" setZoom={setZoom} content={
-            <video ref={depthRef} autoPlay style={{ margin: '0px', padding: '0px', width: '100%', borderRadius: '15px' }} />
-          } />
 
     </>
   )
