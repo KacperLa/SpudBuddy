@@ -1,5 +1,6 @@
 import React, {useState, useEffect, useRef} from 'react';
 import ReactDOM from 'react-dom/client';
+
 import { createRoot } from 'react-dom/client'
 import { Canvas, useThree  } from '@react-three/fiber'
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
@@ -11,9 +12,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons'
-import { faCarBattery } from '@fortawesome/free-solid-svg-icons'
 import { faSignal } from '@fortawesome/free-solid-svg-icons'
-import { faPowerOff } from '@fortawesome/free-solid-svg-icons'
 import { faEye } from '@fortawesome/free-solid-svg-icons'
 
 // import css styles
@@ -21,15 +20,15 @@ import './index.css';
 
 // import custom components
 import Joy from './joy.js';
-import WebRTCComponent from './connection.js';
+import ConnectivityComponent from './connection.js';
+import ThreeView from './threeView.js';
+import OptionsView from './optionsView.js';
 
 function App() {
   // define xPos and yPos as a array of two elements
-  const [pos, setPos] = useState([0, 0]);
+  const [robotPos, setPos] = useState([0, 0]);
   const [zoom, setZoom] = useState(false);
   const [selectedMode, setSelectedMode] = useState('Mode Selection');
-  const videoRef = useRef(null);
-  const depthRef = useRef(null);
 
 
   function handleMove(event) {
@@ -39,33 +38,6 @@ function App() {
   function handleStop(event) {
     setPos([0, 0]);
   }
-
-  const connect = async () => {
-    const device = await navigator.bluetooth.requestDevice({
-      filters: [
-        {
-          namePrefix: "FarmBot",
-        },
-      ],
-      // Philips Hue Light Control Service
-      optionalServices: [0x181A],
-    });
-    const server = await device.gatt?.connect();
-      
-    const service = await server.getPrimaryService(
-      0x181A
-    );
-
-    // set a call back function to handle the data
-    service.getCharacteristic(0x2A6E).then(characteristic => {
-      characteristic.startNotifications();
-      characteristic.addEventListener('characteristicvaluechanged', (event) => {
-        console.log("evnet:", event.target.value.getUint8(0));
-      });
-    }); 
-  };
-
-
 
   return ( 
     <>
@@ -102,7 +74,7 @@ function App() {
                   <Col xs={3}>
                     <Row style={{padding: '0px'}}>
                     <Col style={{padding: '0px 2px'}}>
-                        <Button size="lg" onClick={connect} variant="outline-light" style={{width:'100%'}}>
+                        <Button size="lg" variant="outline-light" style={{width:'100%'}}>
                           <FontAwesomeIcon icon={faEye}/>
                         </Button>
                       </Col>
@@ -112,17 +84,7 @@ function App() {
                         </Button>
                       </Col>
                       <Col style={{padding: '0px 2px'}}>
-                        <Button size="lg" variant="outline-light" style={{width:'100%'}}>
-                          <FontAwesomeIcon icon={faCarBattery}/>
-                        </Button>
-                      </Col>
-                      <Col style={{padding: '0px 2px'}}>
-                        <WebRTCComponent joyXY={pos} zoom_level={zoom} depth_ref={depthRef} video_ref={videoRef} />
-                      </Col>
-                      <Col style={{padding: '0px 2px'}}>
-                        <Button size="lg" variant="outline-light" style={{width:'100%'}}>
-                          <FontAwesomeIcon icon={faPowerOff}/>
-                        </Button>
+                        {/* <ConnectivityComponent joyXY={pos} /> */}
                       </Col>
                     </Row>
                   </Col>
@@ -137,10 +99,41 @@ function App() {
           </Row>
         </div>
         
-
         <div id="fullscreen-container" style={{color: 'black', background: 'black'}}>
-            <Joy handleMove={handleMove} handleStop={handleStop} />
+          <ThreeView />
         </div>
+        <OptionsView
+          position={{top: '80px', left: '30px'}}
+          content={
+            <ButtonGroup aria-label="Speed Selection">
+                <Button size="lg" variant="outline-light">Plants</Button>
+                <Button size="lg" variant="outline-light">Readings</Button>
+            </ButtonGroup>
+          }
+        />
+        <OptionsView
+          position={{bottom: '50px', left: '50px'}}
+          content={
+            <div
+              style={
+                {
+                  color: 'white',
+                }
+              }
+            >
+              <Col style={{padding: '10px 30px'}}>
+                <Row>
+                  Current Mode: {robotPos[0]} X {robotPos[1]} Y
+                </Row>
+                <Row>
+                  Current Position:
+                </Row>
+              </Col>
+            </div>
+          }
+        />
+
+        <Joy handleMove={handleMove} handleStop={handleStop} />
 
     </>
   )

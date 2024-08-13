@@ -1,16 +1,12 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import URDFLoader from 'urdf-loader';
-import { PointerURDFDragControls } from 'urdf-loader/src/URDFDragControls';
+
 import * as THREE from 'three';
 import { BufferAttribute } from "three";
-import init, { capture_frame_and_create_point_cloud } from 'new_ron_wasm_6/ron_wasm';
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { CatmullRomLine, PerspectiveCamera } from '@react-three/drei'
 import { PointMaterial } from '@react-three/drei';
-
-const robotURDFFilePath = '/static/RON/urdf/RON.urdf';
 
 const Sphere = ({ sphereRef, position, isDraggingRef }) => {
 
@@ -55,6 +51,43 @@ const Path = ({ points }) => {
   );
 };
 
+const Farm = ({ size }) => {
+  const farmRef = useRef();
+
+  if (size[0] == 0 || size[1] == 0 ) return null;
+
+  const onPointerClick = (event) => {
+    console.log("Farm clicked");
+  }
+
+  return (
+    <mesh
+        ref={farmRef}
+        position={[0+size[0]/2, 0, 0+size[1]/2]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        receiveShadow
+        onDoubleClick={e => onPointerClick(e)}
+        // onPointerMove={e => onPointerMove(e, meshRef.current)}
+      >
+        <planeGeometry args={size} />
+        <meshStandardMaterial color="#F0F010" transparent={true} opacity={0.2} />
+      </mesh>
+  );
+};
+
+const SpudBuddy = ({ position }) => {
+  const spudRef = useRef();
+
+  return (
+    <mesh
+      ref={spudRef}
+      position={position}
+    >
+      <sphereGeometry args={[.25, 32, 32]} />
+      <meshStandardMaterial color="red" />
+    </mesh>
+  );
+};
 
 function CameraController({ controlsRef }) {
   const { camera, gl } = useThree();
@@ -63,6 +96,14 @@ function CameraController({ controlsRef }) {
     const controls = new OrbitControls(camera, gl.domElement);
     controls.minDistance = 3;
     controls.maxDistance = 20;
+
+    controls.enableRotate = false;
+
+    // set camera rototation
+    camera.rotation.x = -3.14/2;
+    camera.rotation.y = 0;
+    camera.rotation.z = 0;
+
     controlsRef.current = controls;
     return () => {
       controls.dispose();
@@ -71,70 +112,6 @@ function CameraController({ controlsRef }) {
   return (
     null
   );
-}
-
-function RobotModel({ robotRef, controlsRef }) {
-  const { scene, camera, gl } = useThree();
-
-  useEffect(() => {
-    if (robotRef.current) {
-      scene.add(robotRef.current);
-      return;
-    }
-
-    const loader = new URDFLoader();
-    loader.load(robotURDFFilePath, robot => {
-      robot.scale.set(10, 10, 10);
-      robot.traverse(c => {
-        c.castShadow = true;
-      });
-
-      robotRef.current = robot; // Assign the robot to the ref
-      scene.add(robot); // Add the robot directly to the scene
-      console.log('Robot loaded');
-    });
-
-    return () => scene.remove(robotRef.current); // Clean up
-  }, [robotRef, scene]);
-
-  useEffect(() => {
-    const dragControls = new PointerURDFDragControls(scene, camera, gl.domElement);
-
-    dragControls.onDragStart = function (event) {
-      controlsRef.current.enabled = false;
-    };
-
-    dragControls.onDragEnd = function (event) {
-      controlsRef.current.enabled = true;
-    };
-
-    dragControls.onHover = joint => {
-      joint.traverse(c => {
-        if (c.type === 'Mesh') {
-          c.material.emissive.set(0x0000ff);
-        }
-      });
-    };
-
-    dragControls.onUnhover = joint => {
-      joint.traverse(c => {
-        if (c.type === 'Mesh') {
-          c.material.emissive.set(0x000000);
-        }
-      });
-    };
-
-    dragControls.updateJoint = (joint, angle) => {
-      joint.setJointValue(angle);
-      console.log(`Updated joint ${joint.name} to angle ${angle}`);
-    };
-
-    return () => {
-      dragControls.dispose();
-    };
-  }, [camera, gl.domElement, scene, controlsRef]);
-
-  return null; // No need to return an object from here
 }
 
 function ThreeView(props) {
@@ -168,10 +145,10 @@ function ThreeView(props) {
   function onPointerMove(event) {
     if (!movingSphereRef.current)
     {
-      controlsRef.current.enabled = true;
+      // controlsRef.current.enabled = true;
       return;
     }
-    controlsRef.current.enabled = false;
+    // controlsRef.current.enabled = false;
     movingSphereRef.current.position.copy(event.point);
 
     let index = spheres.findIndex(sphere => sphere.props.sphereRef.current === movingSphereRef.current);
@@ -180,97 +157,26 @@ function ThreeView(props) {
     setPoints(newPoints);
   }
 
-  const PointCloud = ({ stream }) => {
-    const baseline = 0.750;
-    const focalLength = 455.4474182128906;
-    const width = 640;
-    const height = 400;
-    const maxPoints = 15000;
-
-    let points = new BufferAttribute(new Float32Array(maxPoints*3), 3);
-    let boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1000);
-    
-    //willReadFrequently
-    if (pcInterval === null) {
-      init().then(() => {
-        const offscreenCanvas = new OffscreenCanvas(width, height);
-        offscreenCanvas.willReadFrequently = true;
-        const ctx = offscreenCanvas.getContext('2d');
-        offscreenCanvas.width = width;
-        offscreenCanvas.height = height;
-     
-        let pc_interval = setInterval(() => {
-          if (stream.current.srcObject == null) return;
-          ctx.drawImage(stream.current, 0, 0, width, height, 0, 0, width, height);
-          const imageData = ctx.getImageData(0, 0, width, height);
-          const data = new Uint8Array(imageData.data.buffer);
-          
-          setPointCloud(capture_frame_and_create_point_cloud(width, height, data, focalLength, baseline, maxPoints));
-        }, 100);
-      setPcInterval(pc_interval);
-      });
-    };
-    
-    useEffect(() => {
-      if (!pointCloud) return;
-      points.array.set(pointCloud);
-      points.needsUpdate = true;
-      points.updateRanges = {
-        start: 0,
-        count: pointCloud.length / 3
-      };
-    }, [pointCloud]);
-
-
-    return (
-      <points
-        frustumCulled={false}
-      >
-        <bufferGeometry
-          boundingSphere={boundingSphere}
-        >
-          <bufferAttribute
-            attach={"attributes-position"}
-            {...points}
-          />
-        </bufferGeometry>
-        <pointsMaterial
-          size={5}
-          color={0xff00ff}
-          sizeAttenuation={false}
-        />
-      </points>
-    );
-  };
-
   return (
-    <Canvas id="canvas" camera={{position: [1, 1, 7]}}>
+    <Canvas id="canvas" camera={{position: [0, 10, 0]}}>
       <color attach="background" args={['#202020']} />
       <CameraController controlsRef={controlsRef} />
       <ambientLight intensity={1} />
-      <directionalLight color="red" position={[0, 0, 5]} />
-      <gridHelper args={[200, 200]} position={[0, 0, 0]} opacity={1} />
-
-      <mesh
-        ref={meshRef}
+      <gridHelper
+        args={[200, 200]}
         position={[0, 0, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        receiveShadow
-        onDoubleClick={e => onPointerClick(e)}
-        onPointerMove={e => onPointerMove(e, meshRef.current)}
-      >
-        <planeGeometry args={[200, 200]} />
-        <meshStandardMaterial color="#F0F0F0" transparent={true} opacity={0.2} />
-      </mesh>
+        opacity={100}
+        color="white"
+        colorCenterLine="yellow"
+      />
 
-      <RobotModel robotRef={robotRef} controlsRef={controlsRef} />
-      
       {spheres}
+
+      <Farm size={[10,3]} />
+      <SpudBuddy position={[0, 0, 0]} />
 
       <Path points={points} />
       
-      <PointCloud stream={props.depthStream}/>
-
     </Canvas>
   );
 }

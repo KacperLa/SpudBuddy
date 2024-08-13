@@ -8,7 +8,33 @@ import Popover from 'react-bootstrap/Popover';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 
 
-function WebRTCComponent(props) {
+const connect = async () => {
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [
+        {
+          namePrefix: "FarmBot",
+        },
+      ],
+      // Philips Hue Light Control Service
+      optionalServices: [0x181A],
+    });
+    const server = await device.gatt?.connect();
+      
+    const service = await server.getPrimaryService(
+      0x181A
+    );
+
+    // set a call back function to handle the data
+    service.getCharacteristic(0x2A6E).then(characteristic => {
+      characteristic.startNotifications();
+      characteristic.addEventListener('characteristicvaluechanged', (event) => {
+        console.log("evnet:", event.target.value.getUint8(0));
+      });
+    }); 
+  };
+
+
+function ConnectivityComponent(props) {
     const [pc, setPc] = useState(null);
     const [dc, setDc] = useState(null);
     const [dcInterval, setDcInterval] = useState(null);
@@ -221,4 +247,4 @@ function WebRTCComponent(props) {
     );
 }
 
-export default WebRTCComponent;
+export default ConnectivityComponent;
