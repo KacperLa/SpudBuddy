@@ -16,6 +16,29 @@ function ConnectivityComponent(props) {
     const dataChannelLog = useRef([]);
     const [pingInterval, setPingInterval] = useState(null);    
 
+    // when prop.desriedPos changes, send the new desired position to the robot
+    useEffect(() => {
+        if (server) {
+            const fetchDeviceInfoService = async () => {
+                try {
+                    const deviceInfoService = await server.getPrimaryService(0x181A); // Device Information
+                    console.log(deviceInfoService);
+
+                    const characteristic = await deviceInfoService.getCharacteristic('5bfd1e3d-e9e6-4272-b3fe-0be36b98fb9c');
+                    await characteristic.writeValue(new Uint16Array(props.desiredPos));
+                    console.log(new Uint16Array(props.desiredPos));
+                    console.log("Sent desired position to robot:", props.desiredPos);
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            };
+
+            fetchDeviceInfoService();
+        } else {
+            console.log("Server not connected");
+        }
+    }, [props.desiredPos, server]);
+
     const createConnection = async () => {
         const device = await navigator.bluetooth.requestDevice({
             filters: [
@@ -28,6 +51,16 @@ function ConnectivityComponent(props) {
         
         const newServer = await device.gatt?.connect();
 
+        // print all characteristics
+        const services = await newServer.getPrimaryServices();
+        services.forEach(async service => {
+            const characteristics = await service.getCharacteristics();
+            console.log('Service: ' + service.uuid);
+            characteristics.forEach(characteristic => {
+                console.log('Characteristic: ' + characteristic.uuid);
+            });
+        });
+        
         try {
             // const tempService = await newServer.getPrimaryService(0x181A); // Environmental Sensing
             const deviceInfoService = await newServer.getPrimaryService(0x181A); // Device Information

@@ -13,6 +13,7 @@ function OptionsView(props) {
                     top: props.position.top,
                     bottom: props.position.bottom,
                     left: props.position.left,
+                    right: props.position.right,
                     zIndex: 9999,
                     // width: `${window.innerWidth / 4}px`,
                     borderRadius: '10px',

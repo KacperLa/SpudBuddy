@@ -15,6 +15,9 @@ import { faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons'
 import { faSignal } from '@fortawesome/free-solid-svg-icons'
 import { faEye } from '@fortawesome/free-solid-svg-icons'
 
+// import arrows from fontawesome
+import { faArrowUp, faArrowDown, faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons'
+
 // import css styles
 import './index.css';
 
@@ -27,7 +30,7 @@ import OptionsView from './optionsView.js';
 function App() {
   // define xPos and yPos as a array of two elements
   const [robotPos, setRobotPos] = useState([null, null, null]);
-  const [desiredPos, setDesiredPos] = useState([0, 0]);
+  const [desiredPos, setDesiredPos] = useState([0, 0, 0]);
   const [zoom, setZoom] = useState(false);
   const [selectedMode, setSelectedMode] = useState('Mode Selection');
 
@@ -38,6 +41,11 @@ function App() {
   
   function handleStop(event) {
     setDesiredPos([0, 0]);
+  }
+
+  function updateDesiredPos() {
+    console.log("Setting desired position to:", document.getElementById('desiredX').value, document.getElementById('desiredY').value, document.getElementById('desiredZ').value);
+    setDesiredPos([document.getElementById('desiredX').value, document.getElementById('desiredY').value, document.getElementById('desiredZ').value]);
   }
 
   return ( 
@@ -85,7 +93,7 @@ function App() {
                         </Button>
                       </Col>
                       <Col style={{padding: '0px 2px'}}>
-                        <ConnectivityComponent setRobotPos={setRobotPos} />
+                        <ConnectivityComponent setRobotPos={setRobotPos} desiredPos={desiredPos}/>
                       </Col>
                     </Row>
                   </Col>
@@ -148,9 +156,127 @@ function App() {
               </table>
           }
         />
+        
+        <OptionsView
+          position={{bottom: '50px', right: '50px'}}
+          content={
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                color: 'white',
+              }}
+            >
+              <div
+                style={{
+                  margin: '10px',
+                  width: '90%',
+                  textAlign: 'center',
+                }}
+              >
+                Reletive Positioning
+              </div>
+              <ButtonGroup
+                aria-label="Speed Selection"
+              >
+                <Button size="sm" variant="outline-light">1</Button>
+                <Button size="sm" variant="outline-light">10</Button>
+                <Button size="sm" variant="outline-light">100</Button>
+                <Button size="sm" variant="outline-light">1000</Button>
+              </ButtonGroup>
+              <table
+                style={{
+                  color: 'white',
+                  width: '180px',
+                  height: '100px',
+                  margin: '10px',
+                  padding: '10px',
+                  textAlign: 'left',
+                }}
+              >
+                <tr>
+                  <td></td>
+                  <td style={{ width: '30%' }}>
+                    <Button size="lg" variant="outline-light">
+                      <FontAwesomeIcon icon={faArrowUp}/>
+                    </Button>                  </td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td style={{ width: '30%' }}>
+                    <Button size="lg" variant="outline-light">
+                      <FontAwesomeIcon icon={faArrowLeft}/>
+                    </Button>
+                  </td>
+                  <td></td>
+                  <td style={{ width: '30%' }}>
+                    <Button size="lg" variant="outline-light">
+                      <FontAwesomeIcon icon={faArrowRight}/>
+                    </Button>
+                  </td>
+                </tr>
+                <tr>
+                  <td></td>
+                  <td style={{ width: '30%' }}>
+                    <Button size="lg" variant="outline-light">
+                      <FontAwesomeIcon icon={faArrowDown}/>
+                    </Button>
+                  </td>
+                  <td></td>
+                </tr>
+              </table>
 
-        <Joy handleMove={handleMove} handleStop={handleStop} />
-
+              <div
+                style={{
+                  width: '90%',
+                  textAlign: 'center',
+                }}
+              >
+                Absolute Positioning
+              </div>
+              <table
+                style={{
+                  color: 'white',
+                  width: '200px',
+                  height: '50px',
+                  margin: '10px',
+                  padding: '10px',
+                  textAlign: 'center',
+                }}
+              >
+                <tr>
+                  <td>X</td>
+                  <td>Y</td>
+                  <td>Z</td>
+                </tr>
+                <tr>
+                  <td>
+                    <input id='desiredX' style={{ width: '50px' }} type="text" defaultValue={'0'}/>
+                  </td>
+                  <td>
+                    <input id='desiredY' style={{ width: '50px' }} type="text" defaultValue={'0'}/>
+                  </td>
+                  <td>
+                    <input id='desiredZ' style={{ width: '50px' }} type="text" defaultValue={'0'}/>
+                  </td>
+                </tr>
+              </table>
+              <Button
+                style={{
+                  margin: '10px',
+                  padding: '10px',
+                  width: '90%',
+                }}
+                variant="outline-light"
+                onClick={updateDesiredPos}
+              >
+                Go to Location
+              </Button>
+            </div>
+          }
+        />
     </>
   )
 };
