@@ -17,6 +17,7 @@ function OptionsView(props) {
                     // width: `${window.innerWidth / 4}px`,
                     borderRadius: '10px',
                     outline: "1px solid white",
+                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
                 }}
             >
                 

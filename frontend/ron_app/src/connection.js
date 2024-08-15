@@ -8,120 +8,60 @@ import Popover from 'react-bootstrap/Popover';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 
 
-const connect = async () => {
-    const device = await navigator.bluetooth.requestDevice({
-      filters: [
-        {
-          namePrefix: "FarmBot",
-        },
-      ],
-      // Philips Hue Light Control Service
-      optionalServices: [0x181A],
-    });
-    const server = await device.gatt?.connect();
-      
-    const service = await server.getPrimaryService(
-      0x181A
-    );
-
-    // set a call back function to handle the data
-    service.getCharacteristic(0x2A6E).then(characteristic => {
-      characteristic.startNotifications();
-      characteristic.addEventListener('characteristicvaluechanged', (event) => {
-        console.log("evnet:", event.target.value.getUint8(0));
-      });
-    }); 
-  };
-
-
 function ConnectivityComponent(props) {
-    const [pc, setPc] = useState(null);
+    const [server, setServer] = useState(null);
     const [dc, setDc] = useState(null);
     const [dcInterval, setDcInterval] = useState(null);
-    const [offerSDP, setOfferSDP] = useState('');
-    const [answerSDP, setAnswerSDP] = useState('');
+    
     const dataChannelLog = useRef([]);
     const [pingInterval, setPingInterval] = useState(null);    
 
-    useEffect(
-        () => {
-            // console.log("component X: ", props.joyXY[0], "Y: ", props.joyXY[1])
-            if (dc !== null)
-            {
-                const joy = {
-                    x: props.joyXY[0],
-                    y: props.joyXY[1],
-                    timestamp: Date.now()
-                };
-                // console.log(joy);
-                dc.send(JSON.stringify(joy));
-            }
-        },
-        [props.joyXY]
-    );
-
-    useEffect(
-        () => {
-            // console.log("component X: ", props.joyXY[0], "Y: ", props.joyXY[1])
-            if (dc !== null)
-            {
-                const zoom_json = {
-                    type: "camera",
-                    zoom: props.zoom_level,
-                    //position: props.joyXY[1],
-                    timestamp: Date.now()
-                };
-                // console.log(joy);
-                dc.send("JSON"+JSON.stringify(zoom_json));
-            }
-        },
-        [props.zoom_level]
-    );
-
-
-    useEffect(() => {
-        const newPc = createPeerConnection();
-        setPc(newPc);
-
-        // Clean up on component unmount
-        return () => {
-            stop(newPc);
-        };
-    }, []);
-
-    const createPeerConnection = () => {
-        const config = {
-            sdpSemantics: 'unified-plan',
-            iceServers: [{ urls: ['stun:stun.l.google.com:19302'] }]
-        };
-        const newPc = new RTCPeerConnection(config);
-
-        // add transceiver and data channel
-        newPc.addTransceiver('video', { direction: 'recvonly' });
-        newPc.addTransceiver('video', { direction: 'recvonly' });
-        const newDc = newPc.createDataChannel('status_feed');
-
-        newPc.addEventListener('track', (evt) => {
-            console.log('Received track:', evt.track);
-            console.log('Received streams:', evt.streams);
-            if (evt.track.kind === 'video') {
-                if (props.video_ref.current.srcObject == null) {
-                    console.log("setting video ref")
-                    props.video_ref.current.srcObject = new MediaStream([evt.track]);
-                } else {
-                    console.log("setting depth ref")
-                    props.depth_ref.current.srcObject = new MediaStream([evt.track]);
-                }
-            }
+    const createConnection = async () => {
+        const device = await navigator.bluetooth.requestDevice({
+            filters: [
+                {
+                    namePrefix: "FarmBot",
+                },
+            ],
+            optionalServices: [0x181A],
         });
+        
+        const newServer = await device.gatt?.connect();
 
-        newPc.addEventListener('datachannel', (evt) => {
-            const newDc = evt.channel;
-            setDc(newDc);
-            setupDataChannelListeners(newDc);
-        });
+        try {
+            // const tempService = await newServer.getPrimaryService(0x181A); // Environmental Sensing
+            const deviceInfoService = await newServer.getPrimaryService(0x181A); // Device Information
 
-        return newPc;
+            deviceInfoService.getCharacteristic(0x2A6E).then(characteristic => {
+                characteristic.startNotifications().catch(error => {
+                    console.error('Error starting notifications:', error);
+                });
+                characteristic.addEventListener('characteristicvaluechanged', (event) => {
+                    console.log("temp event:", event.target.value.getUint16(0));
+                });
+            }).catch(error => {
+                console.error('Error accessing characteristic:', error);
+            });
+
+            deviceInfoService.getCharacteristic(0x2A5D).then(characteristic => {
+                characteristic.startNotifications().catch(error => {
+                    console.error('Error starting notifications:', error);
+                });
+                characteristic.addEventListener('characteristicvaluechanged', (event) => {
+                    props.setRobotPos([event.target.value.getUint16(0), event.target.value.getUint16(2), event.target.value.getUint16(4)]);
+                    console.log("pos event:", event.target.value.getUint16(0), event.target.value.getUint16(2), event.target.value.getUint16(4));
+                });
+            }).catch(error => {
+                console.error('Error accessing characteristic:', error);
+            });
+
+        } catch (error) {
+            console.error('Error accessing services:', error);
+            // Handle the error (e.g., retry, notify the user, etc.)
+        }
+        // set a call back function to handle the data
+       
+        setServer(newServer);
     };
 
     const setupDataChannelListeners = (dataChannel) => {
@@ -164,37 +104,6 @@ function ConnectivityComponent(props) {
         });
     };
 
-    const negotiate = async () => {
-        try {
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            setOfferSDP(offer.sdp);
-    
-            // Use a relative URL, which will be automatically resolved to the full URL by the proxy
-            const response = await fetch('/offer', {
-                method: 'POST',
-                body: JSON.stringify({
-                    sdp: offer.sdp,
-                    type: offer.type
-                }),
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-    
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-    
-            const answer = await response.json();
-            setAnswerSDP(answer.sdp);
-            await pc.setRemoteDescription(new RTCSessionDescription(answer));
-        } catch (e) {
-            console.error('Failed to negotiate:', e);
-            alert(`Negotiation failed: ${e.message}`);
-        }
-    };
-    
 
     const stop = (peerConnection) => {
         if (dc) {
@@ -221,12 +130,10 @@ function ConnectivityComponent(props) {
                         <Popover.Body>
                             <div>
                                 <p>Ping: {pingInterval} ms</p>
-                                <textarea value={offerSDP} readOnly />
-                                <textarea value={answerSDP} readOnly />
                             </div>
                             <ButtonGroup aria-label="Connection">
-                                <Button variant="success" onClick={negotiate}>Connect</Button>
-                                <Button variant="danger" onClick={() => stop(pc)}>Disconnect</Button>
+                                <Button variant="success" onClick={createConnection}>Connect</Button>
+                                {/* <Button variant="danger" onClick={() => stop(pc)}>Disconnect</Button> */}
                             </ButtonGroup>
                             <ul>
                                 {dataChannelLog.current.map((log, index) => (
@@ -247,4 +154,4 @@ function ConnectivityComponent(props) {
     );
 }
 
-export default ConnectivityComponent;
+export default ConnectivityComponent ;

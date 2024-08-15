@@ -26,17 +26,18 @@ import OptionsView from './optionsView.js';
 
 function App() {
   // define xPos and yPos as a array of two elements
-  const [robotPos, setPos] = useState([0, 0]);
+  const [robotPos, setRobotPos] = useState([null, null, null]);
+  const [desiredPos, setDesiredPos] = useState([0, 0]);
   const [zoom, setZoom] = useState(false);
   const [selectedMode, setSelectedMode] = useState('Mode Selection');
 
 
   function handleMove(event) {
-    setPos([event.x, event.y]);
+    setDesiredPos([event.x, event.y]);
   }
   
   function handleStop(event) {
-    setPos([0, 0]);
+    setDesiredPos([0, 0]);
   }
 
   return ( 
@@ -84,7 +85,7 @@ function App() {
                         </Button>
                       </Col>
                       <Col style={{padding: '0px 2px'}}>
-                        {/* <ConnectivityComponent joyXY={pos} /> */}
+                        <ConnectivityComponent setRobotPos={setRobotPos} />
                       </Col>
                     </Row>
                   </Col>
@@ -114,22 +115,37 @@ function App() {
         <OptionsView
           position={{bottom: '50px', left: '50px'}}
           content={
-            <div
-              style={
-                {
+              <table
+                style={{
                   color: 'white',
-                }
-              }
-            >
-              <Col style={{padding: '10px 30px'}}>
-                <Row>
-                  Current Mode: {robotPos[0]} X {robotPos[1]} Y
-                </Row>
-                <Row>
-                  Current Position:
-                </Row>
-              </Col>
-            </div>
+                  width: '200px',
+                  height: '100px',
+                  margin: '10px',
+                  padding: '10px',
+                  textAlign: 'left',
+                }}
+              >
+                <thead>
+                  <tr>
+                    <th scope='col' style={{ width: '60px' }}>Position</th>
+                    <th scope='col' style={{ width: '30px' }}> X </th>
+                    <th scope='col' style={{ width: '30px' }}> Y </th>
+                    <th scope='col' style={{ width: '30px' }}> Z </th>
+                  </tr>
+                </thead>
+                <tr>
+                  <td scope='row'>Current:</td>
+                  <td>{robotPos[0]}</td>
+                  <td>{robotPos[1]}</td>
+                  <td>{robotPos[2]}</td>
+                </tr>
+                <tr>
+                  <td scope='row'>Desired:</td>
+                  <td>{robotPos[0]}</td>
+                  <td>{robotPos[1]}</td>
+                  <td>{robotPos[2]}</td>
+                </tr>
+              </table>
           }
         />
 

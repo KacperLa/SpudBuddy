@@ -67,7 +67,6 @@ const Farm = ({ size }) => {
         rotation={[-Math.PI / 2, 0, 0]}
         receiveShadow
         onDoubleClick={e => onPointerClick(e)}
-        // onPointerMove={e => onPointerMove(e, meshRef.current)}
       >
         <planeGeometry args={size} />
         <meshStandardMaterial color="#F0F010" transparent={true} opacity={0.2} />
@@ -83,7 +82,7 @@ const SpudBuddy = ({ position }) => {
       ref={spudRef}
       position={position}
     >
-      <sphereGeometry args={[.25, 32, 32]} />
+      <sphereGeometry args={[.25, 32, .25]} />
       <meshStandardMaterial color="red" />
     </mesh>
   );
