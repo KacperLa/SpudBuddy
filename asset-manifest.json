@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/SpudBuddy/static/css/main.8e886491.css",
+    "main.js": "/SpudBuddy/static/js/main.86bc929a.js",
+    "static/js/453.f1c36540.chunk.js": "/SpudBuddy/static/js/453.f1c36540.chunk.js",
+    "index.html": "/SpudBuddy/index.html",
+    "main.8e886491.css.map": "/SpudBuddy/static/css/main.8e886491.css.map",
+    "main.86bc929a.js.map": "/SpudBuddy/static/js/main.86bc929a.js.map",
+    "453.f1c36540.chunk.js.map": "/SpudBuddy/static/js/453.f1c36540.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.8e886491.css",
+    "static/js/main.86bc929a.js"
+  ]
+}
