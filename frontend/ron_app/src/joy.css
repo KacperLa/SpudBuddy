@@ -1,8 +1,0 @@
-#joy {
-    position: fixed !important;
-    bottom: 50px !important;
-    right: 50px !important;
-    width: 200px;
-    height: 200px;
-    z-index: 1000; /* Ensures it stays on top of other content */
-  }

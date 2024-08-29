@@ -1,47 +1,25 @@
 import React, {useState, useEffect, useRef} from 'react';
-import ReactDOM from 'react-dom/client';
 
 import { createRoot } from 'react-dom/client'
-import { Canvas, useThree  } from '@react-three/fiber'
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import reportWebVitals from './reportWebVitals';
 import Button from 'react-bootstrap/Button';
-import Dropdown from 'react-bootstrap/Dropdown';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons'
-import { faSignal } from '@fortawesome/free-solid-svg-icons'
-import { faEye } from '@fortawesome/free-solid-svg-icons'
 
-// import arrows from fontawesome
 import { faArrowUp, faArrowDown, faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons'
 
-// import css styles
 import './index.css';
 
-// import custom components
-import Joy from './joy.js';
 import ConnectivityComponent from './connection.js';
 import ThreeView from './threeView.js';
 import OptionsView from './optionsView.js';
 
 function App() {
-  // define xPos and yPos as a array of two elements
   const [robotPos, setRobotPos] = useState([null, null, null]);
   const [desiredPos, setDesiredPos] = useState([0, 0, 0]);
-  const [zoom, setZoom] = useState(false);
-  const [selectedMode, setSelectedMode] = useState('Mode Selection');
-
-
-  function handleMove(event) {
-    setDesiredPos([event.x, event.y]);
-  }
-  
-  function handleStop(event) {
-    setDesiredPos([0, 0]);
-  }
+  const [movementType, setMovementType] = useState('absolute');
 
   function updateDesiredPos() {
     console.log("Setting desired position to:", document.getElementById('desiredX').value, document.getElementById('desiredY').value, document.getElementById('desiredZ').value);
@@ -54,50 +32,13 @@ function App() {
           <Row style={{padding: '4px'}}>
               <Col sx={12}>
                 <Row>
-                  <Col>
-                    <Row>
-                      <Col>
-                        <Dropdown>
-                          <Dropdown.Toggle size="lg" variant="outline-light" id="dropdown-basic">
-                            {selectedMode} 
-                          </Dropdown.Toggle>
-
-                          <Dropdown.Menu>
-                            <Dropdown.Item onClick={() => setSelectedMode('Keep Location')}>Keep Location</Dropdown.Item>
-                            <Dropdown.Item onClick={() => setSelectedMode('Manual Drive')}>Manual Drive</Dropdown.Item>
-                            <Dropdown.Item onClick={() => setSelectedMode('Path Follow')}>Path Follow</Dropdown.Item>
-                            <Dropdown.Item onClick={() => setSelectedMode('Autonomous Explore')}>Autonomous Explore</Dropdown.Item>
-                          </Dropdown.Menu>
-                        </Dropdown>
-                      </Col>
-                      <Col>
-                        <ButtonGroup aria-label="Speed Selection">
-                          <Button size="lg" variant="outline-light">Slow</Button>
-                          <Button variant="success">Normal</Button>
-                          <Button size="lg" variant="outline-light">Fast</Button>
-                        </ButtonGroup>
-                      </Col>
-                    </Row>
-                                
-                  </Col>
-                  <Col xs={3}>
-                    <Row style={{padding: '0px'}}>
-                    <Col style={{padding: '0px 2px'}}>
-                        <Button size="lg" variant="outline-light" style={{width:'100%'}}>
-                          <FontAwesomeIcon icon={faEye}/>
-                        </Button>
-                      </Col>
-                      <Col style={{padding: '0px 2px'}}>
-                        <Button size="lg" variant="outline-light" style={{width:'100%'}}>
-                          <FontAwesomeIcon icon={faLocationCrosshairs}/>
-                        </Button>
-                      </Col>
-                      <Col style={{padding: '0px 2px'}}>
+                  <Col xs={4}>
+                    <Row style={{padding: '0px 15px'}}>
+                      <Col style={{padding: '2px 2px'}}>
                         <ConnectivityComponent setRobotPos={setRobotPos} desiredPos={desiredPos}/>
                       </Col>
                     </Row>
                   </Col>
-                  
                 </Row>
               </Col>
               <Col xs={2} style={{padding: '0px 15px'}}>
@@ -178,6 +119,10 @@ function App() {
               >
                 Reletive Positioning
               </div>
+              <ButtonGroup>
+                <Button size="sm" variant={movementType == "absolute" ? "outline-light" : "outline-light" }>Absolute</Button>
+                <Button size="sm" variant="outline-light">Relative</Button>
+              </ButtonGroup>
               <ButtonGroup
                 aria-label="Speed Selection"
               >
@@ -280,7 +225,6 @@ function App() {
     </>
   )
 };
-
 
 createRoot(document.getElementById('root')).render(<App />)
 reportWebVitals();

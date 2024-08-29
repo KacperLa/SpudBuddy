@@ -14,7 +14,7 @@ function OptionsView(props) {
                     bottom: props.position.bottom,
                     left: props.position.left,
                     right: props.position.right,
-                    zIndex: 9999,
+                    zIndex: 1000,
                     // width: `${window.innerWidth / 4}px`,
                     borderRadius: '10px',
                     outline: "1px solid white",
