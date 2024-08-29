@@ -75,9 +75,9 @@ function ConnectivityComponent(props) {
                     characteristic.startNotifications().catch(error => {
                         console.error('Error starting notifications:', error);
                     });
-                    characteristic.addEventListener('characteristicvaluechanged', (event) => {
-                        console.log("temp event:", event.target.value.getUint16(0));
-                    });
+                    // characteristic.addEventListener('characteristicvaluechanged', (event) => {
+                    //     console.log("temp event:", event.target.value.getUint16(0));
+                    // });
                 }).catch(error => {
                     console.error('Error accessing characteristic:', error);
                 });

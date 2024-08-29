@@ -8,7 +8,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
-import { faArrowUp, faArrowDown, faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons'
+import { faArrowUp, faArrowDown, faArrowLeft, faArrowRight, faHome} from '@fortawesome/free-solid-svg-icons'
 
 import './index.css';
 
@@ -17,13 +17,28 @@ import ThreeView from './threeView.js';
 import OptionsView from './optionsView.js';
 
 function App() {
-  const [robotPos, setRobotPos] = useState([null, null, null]);
+  const [robotPos, setRobotPos] = useState([null, null, null, null, null]);
   const [desiredPos, setDesiredPos] = useState([0, 0, 0]);
   const [movementType, setMovementType] = useState('absolute');
 
   function updateDesiredPos() {
     console.log("Setting desired position to:", document.getElementById('desiredX').value, document.getElementById('desiredY').value, document.getElementById('desiredZ').value);
-    setDesiredPos([document.getElementById('desiredX').value, document.getElementById('desiredY').value, document.getElementById('desiredZ').value]);
+    setDesiredPos([1, document.getElementById('desiredX').value, document.getElementById('desiredY').value, document.getElementById('desiredZ').value, 0]);
+  }
+
+  function homeTheRobot() {
+    console.log("Homing the robot");
+    setDesiredPos([3, 0, 0, 0, 0]);
+  }
+
+  function moveToTheRight() {
+    console.log("Moving to the right");
+    setDesiredPos([2, 10, 0, 0, 0]);
+  }
+
+  function moveToTheLeft() {
+    console.log("Moving to the right");
+    setDesiredPos([2, -10, 0, 0, 0]);
   }
 
   return ( 
@@ -151,13 +166,17 @@ function App() {
                 </tr>
                 <tr>
                   <td style={{ width: '30%' }}>
-                    <Button size="lg" variant="outline-light">
+                    <Button size="lg" onClick={moveToTheLeft} variant="outline-light">
                       <FontAwesomeIcon icon={faArrowLeft}/>
                     </Button>
                   </td>
-                  <td></td>
+                  <td>
+                    <Button size="lg" onClick={homeTheRobot} variant="outline-light">
+                      <FontAwesomeIcon icon={faHome}/>
+                    </Button>
+                  </td>
                   <td style={{ width: '30%' }}>
-                    <Button size="lg" variant="outline-light">
+                    <Button size="lg" onClick={moveToTheRight} variant="outline-light">
                       <FontAwesomeIcon icon={faArrowRight}/>
                     </Button>
                   </td>
