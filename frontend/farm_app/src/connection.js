@@ -34,6 +34,29 @@ function ConnectivityComponent(props) {
         }
     }, [props.desiredPos, server]);
 
+    useEffect(() => {
+        if (server) {
+            const fetchDeviceInfoService = async () => {
+                try {
+                    const deviceInfoService = await server.getPrimaryService(0x181A); // Device Information
+                    console.log(deviceInfoService);
+
+                    const characteristic = await deviceInfoService.getCharacteristic('16cbec17-9876-490c-bc71-85f24643a7d9');
+                    await characteristic.writeValue(new Uint16Array(0));
+                    console.log("Sent json request");
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            };
+
+            fetchDeviceInfoService();
+        } else {
+            console.log("Server not connected");
+        }
+    }, [props.plantData, server]);
+
+
+
     const createConnection = async () => {
         // Check if the Bluetooth API is available
         if (!navigator.bluetooth) {

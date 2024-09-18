@@ -20,6 +20,8 @@ function App() {
   const [robotPos, setRobotPos] = useState([null, null, null, null, null]);
   const [desiredPos, setDesiredPos] = useState([0, 0, 0]);
   const [movementType, setMovementType] = useState('absolute');
+  const [plantData, setPlantData] = useState([]); 
+
 
   function updateDesiredPos() {
     console.log("Setting desired position to:", document.getElementById('desiredX').value, document.getElementById('desiredY').value, document.getElementById('desiredZ').value);
@@ -41,6 +43,12 @@ function App() {
     setDesiredPos([2, -10, 0, 0, 0]);
   }
 
+  function resetPlantData()
+  {
+    console.log("Resetting plant data");
+    setPlantData([]);
+  }
+
   return ( 
     <>
         <div className="fixed-top" style={{zIndex: 10000}}>
@@ -50,7 +58,7 @@ function App() {
                   <Col xs={4}>
                     <Row style={{padding: '0px 15px'}}>
                       <Col style={{padding: '2px 2px'}}>
-                        <ConnectivityComponent setRobotPos={setRobotPos} desiredPos={desiredPos}/>
+                        <ConnectivityComponent setRobotPos={setRobotPos} desiredPos={desiredPos} plantData={plantData}/>
                       </Col>
                     </Row>
                   </Col>
@@ -71,7 +79,7 @@ function App() {
           position={{top: '80px', left: '30px'}}
           content={
             <ButtonGroup aria-label="Speed Selection">
-                <Button size="lg" variant="outline-light">Plants</Button>
+                <Button size="lg" variant="outline-light" onClick={resetPlantData}>Plants</Button>
                 <Button size="lg" variant="outline-light">Readings</Button>
             </ButtonGroup>
           }
