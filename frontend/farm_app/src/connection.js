@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { faSignal } from '@fortawesome/free-solid-svg-icons'
+import { faSignal, faFile } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Button from 'react-bootstrap/Button';
 
 import Col from 'react-bootstrap/esm/Col';
 import Row from 'react-bootstrap/Row';
+// import { js } from 'three/webgpu';
 
 function ConnectivityComponent(props) {
     const [server, setServer] = useState(null);
@@ -34,7 +35,9 @@ function ConnectivityComponent(props) {
         }
     }, [props.desiredPos, server]);
 
-    useEffect(() => {
+    function requestData() {
+        console.log("Requesting data");
+
         if (server) {
             const fetchDeviceInfoService = async () => {
                 try {
@@ -53,7 +56,7 @@ function ConnectivityComponent(props) {
         } else {
             console.log("Server not connected");
         }
-    }, [props.plantData, server]);
+    };
 
 
 
@@ -107,6 +110,7 @@ function ConnectivityComponent(props) {
                         if (event.target.value.byteLength == 0) {
                            // convert the buffer to a string
                            const data = new TextDecoder().decode(buffer_data);
+                           props.setFarmData(JSON.parse(data));
                            console.log("Received data:", data);
                            // reset the buffer
                            buffer_data = new Uint8Array(0);
@@ -144,7 +148,7 @@ function ConnectivityComponent(props) {
 
     return (
         <div>        
-            <Button size="lg" onClick={createConnection} variant="outline-light" style={{width:'100%'}}>
+            <Button size="lg" onClick={createConnection} variant="outline-light" style={{width:'75%'}}>
                 <div
                     style={{
                         color: 'white',
@@ -158,6 +162,15 @@ function ConnectivityComponent(props) {
                                 <FontAwesomeIcon icon={faSignal}/>
                         </Col>
                     </Row>
+                </div>
+            </Button>
+            <Button size="lg" onClick={requestData} variant="outline-light" style={{width:'25%'}}>
+                <div
+                    style={{
+                        color: 'white',
+                    }}
+                >
+                    <FontAwesomeIcon icon={faFile}/>
                 </div>
             </Button>
         </div>

@@ -171,7 +171,7 @@ function ThreeView(props) {
 
       {spheres}
 
-      <Farm size={[10,3]} />
+      <Farm size={props.farmSize} />
       <SpudBuddy position={[0, 0, 0]} />
 
       <Path points={points} />
