@@ -41,7 +41,7 @@ function ConnectivityComponent(props) {
                     const deviceInfoService = await server.getPrimaryService(0x181A); // Device Information
                     console.log(deviceInfoService);
 
-                    const characteristic = await deviceInfoService.getCharacteristic('16cbec17-9876-490c-bc71-85f24643a7d9');
+                    const characteristic = await deviceInfoService.getCharacteristic('dc5d258b-ae55-48d3-8911-7c733b658cfd');
                     await characteristic.writeValue(new Uint16Array(0));
                     console.log("Sent json request");
                 } catch (error) {
@@ -93,14 +93,29 @@ function ConnectivityComponent(props) {
             
             try {
                 const deviceInfoService = await newServer.getPrimaryService(0x181A); // Device Information
+                // Empty utf-8 buffer
+                let buffer_data = new Uint8Array(0);
 
-                deviceInfoService.getCharacteristic(0x2A6E).then(characteristic => {
+                deviceInfoService.getCharacteristic('16cbec17-9876-490c-bc71-85f24643a7d9').then(characteristic => {
                     characteristic.startNotifications().catch(error => {
                         console.error('Error starting notifications:', error);
                     });
-                    // characteristic.addEventListener('characteristicvaluechanged', (event) => {
-                    //     console.log("temp event:", event.target.value.getUint16(0));
-                    // });
+                    characteristic.addEventListener('characteristicvaluechanged', (event) => {
+                        // retrive data as a chunk of 20 utf-8 bytes
+                        console.log("Chunk event:", event.target.value);
+
+                        if (event.target.value.byteLength == 0) {
+                           // convert the buffer to a string
+                           const data = new TextDecoder().decode(buffer_data);
+                           console.log("Received data:", data);
+                           // reset the buffer
+                           buffer_data = new Uint8Array(0);
+                        }
+                        else
+                        {
+                            buffer_data = new Uint8Array([...buffer_data, ...new Uint8Array(event.target.value.buffer)]);
+                        }                        
+                    });
                 }).catch(error => {
                     console.error('Error accessing characteristic:', error);
                 });
