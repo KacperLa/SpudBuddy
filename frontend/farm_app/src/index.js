@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect} from 'react';
 
 import { createRoot } from 'react-dom/client'
 import reportWebVitals from './reportWebVitals';
@@ -6,53 +6,56 @@ import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
-import { faArrowUp, faArrowDown, faArrowLeft, faArrowRight, faHome} from '@fortawesome/free-solid-svg-icons'
+// import json from './assets/sample_data.json';
+import sample_data from './assets/sample_json.json';  
+
 
 import './index.css';
 
 import ConnectivityComponent from './connection.js';
 import ThreeView from './threeView.js';
 import OptionsView from './optionsView.js';
+import MovementControlPanel from './movmentControlPanel.js';
+import PlantPanel from './PlantPanel.js';
+import DataPanel from './DataPanel.js';
 
 function App() {
   const [robotPos, setRobotPos] = useState([null, null, null, null, null]);
   const [desiredPos, setDesiredPos] = useState([0, 0, 0]);
-  const [movementType, setMovementType] = useState('absolute');
+  
+  const [robotCmd, setRobotCmd] = useState([null, null, null, null, null]);
+
   const [farmSize, setFarmSize] = useState([1, 1]);
-  const [farmData, setFarmData] = useState(null); 
+  const [farmData, setFarmData] = useState(sample_data); 
+  const [plantData, setPlantData] = useState(null);
+  const [historicalData, setHistoricalData] = useState(null);
+
+  const [plantView, setPlantView] = useState("plants");
 
   useEffect(() => {
+    console.log("Farm Data Updated");
     console.log(farmData);
     if (farmData != null) {
       console.log(farmData.type);
       setFarmSize([farmData.gantry_size[0]/100, farmData.gantry_size[1]/100]);
       console.log("Setting farm size to:", farmData.gantry_size);
+
+      if (farmData.plants != null) {
+        const plantArray = Object.entries(farmData.plants).map(([name, data]) => ({
+          name,
+          ...data
+        }));
+        setPlantData(plantArray);
+      } else {
+        console.error('Received data is not an array');
+        console.log(farmData.plants);
+      }
+
+      setHistoricalData(farmData.readings);
+    
     }
-
-    console.log("Robot position changed to:", robotPos);
   }, [farmData]);
-
-  function updateDesiredPos() {
-    console.log("Setting desired position to:", document.getElementById('desiredX').value, document.getElementById('desiredY').value, document.getElementById('desiredZ').value);
-    setDesiredPos([1, document.getElementById('desiredX').value, document.getElementById('desiredY').value, document.getElementById('desiredZ').value, 0]);
-  }
-
-  function homeTheRobot() {
-    console.log("Homing the robot");
-    setDesiredPos([3, 0, 0, 0, 0]);
-  }
-
-  function moveToTheRight() {
-    console.log("Moving to the right");
-    setDesiredPos([2, 10, 0, 0, 0]);
-  }
-
-  function moveToTheLeft() {
-    console.log("Moving to the right");
-    setDesiredPos([2, -10, 0, 0, 0]);
-  }
 
   return ( 
     <>
@@ -78,17 +81,31 @@ function App() {
         </div>
         
         <div id="fullscreen-container" style={{color: 'black', background: 'black'}}>
-          <ThreeView farmSize={farmSize}/>
+          <ThreeView
+            robotPos={robotPos}
+            desiredPos={desiredPos}
+            setDesiredPos={setDesiredPos}
+            plantData={plantData}
+            farmSize={farmSize}
+          />
         </div>
         <OptionsView
-          position={{top: '80px', left: '30px'}}
+          position={{top: '8em', left: '30px'}}
           content={
-            <ButtonGroup aria-label="Speed Selection">
-                <Button size="lg" variant="outline-light">Plants</Button>
-                <Button size="lg" variant="outline-light">Readings</Button>
-            </ButtonGroup>
+            <div>
+
+              <ButtonGroup>
+                <Button variant={plantView === "plants" ? "light" : "outline-light"} onClick={() => setPlantView("plants")}>Plants</Button>
+                <Button variant={plantView === "data" ? "light" : "outline-light"} onClick={() => setPlantView("data")}>Data</Button>
+              </ButtonGroup>
+
+              {plantView === "plants" && <PlantPanel plantData={plantData} setDesiredPos={setDesiredPos}/>}
+              {plantView === "data" && <DataPanel plantData={historicalData}/>}
+
+            </div>
           }
         />
+
         <OptionsView
           position={{bottom: '50px', left: '50px'}}
           content={
@@ -110,18 +127,20 @@ function App() {
                     <th scope='col' style={{ width: '30px' }}> Z </th>
                   </tr>
                 </thead>
-                <tr>
-                  <td scope='row'>Current:</td>
-                  <td>{robotPos[0]}</td>
-                  <td>{robotPos[1]}</td>
-                  <td>{robotPos[2]}</td>
-                </tr>
-                <tr>
-                  <td scope='row'>Desired:</td>
-                  <td>{robotPos[0]}</td>
-                  <td>{robotPos[1]}</td>
-                  <td>{robotPos[2]}</td>
-                </tr>
+                <tbody>
+                  <tr>
+                    <td>Current:</td>
+                    <td>{robotPos[0]}</td>
+                    <td>{robotPos[1]}</td>
+                    <td>{robotPos[2]}</td>
+                  </tr>
+                  <tr>
+                    <td>Desired:</td>
+                    <td>{desiredPos[0]}</td>
+                    <td>{desiredPos[1]}</td>
+                    <td>{desiredPos[2]}</td>
+                  </tr>
+                </tbody>
               </table>
           }
         />
@@ -129,129 +148,7 @@ function App() {
         <OptionsView
           position={{bottom: '50px', right: '50px'}}
           content={
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                color: 'white',
-              }}
-            >
-              <div
-                style={{
-                  margin: '10px',
-                  width: '90%',
-                  textAlign: 'center',
-                }}
-              >
-                Reletive Positioning
-              </div>
-              <ButtonGroup>
-                <Button size="sm" variant={movementType == "absolute" ? "outline-light" : "outline-light" }>Absolute</Button>
-                <Button size="sm" variant="outline-light">Relative</Button>
-              </ButtonGroup>
-              <ButtonGroup
-                aria-label="Speed Selection"
-              >
-                <Button size="sm" variant="outline-light">1</Button>
-                <Button size="sm" variant="outline-light">10</Button>
-                <Button size="sm" variant="outline-light">100</Button>
-                <Button size="sm" variant="outline-light">1000</Button>
-              </ButtonGroup>
-              <table
-                style={{
-                  color: 'white',
-                  width: '180px',
-                  height: '100px',
-                  margin: '10px',
-                  padding: '10px',
-                  textAlign: 'left',
-                }}
-              >
-                <tr>
-                  <td></td>
-                  <td style={{ width: '30%' }}>
-                    <Button size="lg" variant="outline-light">
-                      <FontAwesomeIcon icon={faArrowUp}/>
-                    </Button>                  </td>
-                  <td></td>
-                </tr>
-                <tr>
-                  <td style={{ width: '30%' }}>
-                    <Button size="lg" onClick={moveToTheLeft} variant="outline-light">
-                      <FontAwesomeIcon icon={faArrowLeft}/>
-                    </Button>
-                  </td>
-                  <td>
-                    <Button size="lg" onClick={homeTheRobot} variant="outline-light">
-                      <FontAwesomeIcon icon={faHome}/>
-                    </Button>
-                  </td>
-                  <td style={{ width: '30%' }}>
-                    <Button size="lg" onClick={moveToTheRight} variant="outline-light">
-                      <FontAwesomeIcon icon={faArrowRight}/>
-                    </Button>
-                  </td>
-                </tr>
-                <tr>
-                  <td></td>
-                  <td style={{ width: '30%' }}>
-                    <Button size="lg" variant="outline-light">
-                      <FontAwesomeIcon icon={faArrowDown}/>
-                    </Button>
-                  </td>
-                  <td></td>
-                </tr>
-              </table>
-
-              <div
-                style={{
-                  width: '90%',
-                  textAlign: 'center',
-                }}
-              >
-                Absolute Positioning
-              </div>
-              <table
-                style={{
-                  color: 'white',
-                  width: '200px',
-                  height: '50px',
-                  margin: '10px',
-                  padding: '10px',
-                  textAlign: 'center',
-                }}
-              >
-                <tr>
-                  <td>X</td>
-                  <td>Y</td>
-                  <td>Z</td>
-                </tr>
-                <tr>
-                  <td>
-                    <input id='desiredX' style={{ width: '50px' }} type="text" defaultValue={'0'}/>
-                  </td>
-                  <td>
-                    <input id='desiredY' style={{ width: '50px' }} type="text" defaultValue={'0'}/>
-                  </td>
-                  <td>
-                    <input id='desiredZ' style={{ width: '50px' }} type="text" defaultValue={'0'}/>
-                  </td>
-                </tr>
-              </table>
-              <Button
-                style={{
-                  margin: '10px',
-                  padding: '10px',
-                  width: '90%',
-                }}
-                variant="outline-light"
-                onClick={updateDesiredPos}
-              >
-                Go to Location
-              </Button>
-            </div>
+            <MovementControlPanel desiredPos={desiredPos} setDesiredPos={setDesiredPos}/>
           }
         />
     </>

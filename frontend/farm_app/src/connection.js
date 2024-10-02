@@ -1,19 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { faSignal, faFile } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Button from 'react-bootstrap/Button';
 
 import Col from 'react-bootstrap/esm/Col';
 import Row from 'react-bootstrap/Row';
-// import { js } from 'three/webgpu';
 
 function ConnectivityComponent(props) {
     const [server, setServer] = useState(null);
     
-    const [pingInterval, setPingInterval] = useState(null);    
+    // const [pingInterval, setPingInterval] = useState(null);    
 
-    // when prop.desriedPos changes, send the new desired position to the robot
-    useEffect(() => {
+    function sendDesiredPos(desiredPos) {
         if (server) {
             const fetchDeviceInfoService = async () => {
                 try {
@@ -21,9 +19,9 @@ function ConnectivityComponent(props) {
                     console.log(deviceInfoService);
 
                     const characteristic = await deviceInfoService.getCharacteristic('5bfd1e3d-e9e6-4272-b3fe-0be36b98fb9c');
-                    await characteristic.writeValue(new Uint16Array(props.desiredPos));
-                    console.log(new Uint16Array(props.desiredPos));
-                    console.log("Sent desired position to robot:", props.desiredPos);
+                    await characteristic.writeValue(new Uint16Array(desiredPos));
+                    console.log(new Uint16Array(desiredPos));
+                    console.log("Sent desired position to robot:", desiredPos);
                 } catch (error) {
                     console.error('Error:', error);
                 }
@@ -33,7 +31,12 @@ function ConnectivityComponent(props) {
         } else {
             console.log("Server not connected");
         }
-    }, [props.desiredPos, server]);
+    };
+
+    // when prop.desriedPos changes, send the new desired position to the robot
+    useEffect(() => {
+        sendDesiredPos(props.desiredPos);
+    }, [props.desiredPos]);
 
     function requestData() {
         console.log("Requesting data");
@@ -57,8 +60,6 @@ function ConnectivityComponent(props) {
             console.log("Server not connected");
         }
     };
-
-
 
     const createConnection = async () => {
         // Check if the Bluetooth API is available
@@ -107,7 +108,7 @@ function ConnectivityComponent(props) {
                         // retrive data as a chunk of 20 utf-8 bytes
                         console.log("Chunk event:", event.target.value);
 
-                        if (event.target.value.byteLength == 0) {
+                        if (event.target.value.byteLength === 0) {
                            // convert the buffer to a string
                            const data = new TextDecoder().decode(buffer_data);
                            props.setFarmData(JSON.parse(data));
@@ -124,7 +125,7 @@ function ConnectivityComponent(props) {
                     console.error('Error accessing characteristic:', error);
                 });
 
-                deviceInfoService.getCharacteristic(0x2A5D).then(characteristic => {
+                deviceInfoService.getCharacteristic('35f24b15-aa74-4cfb-a66a-a3252d67c264').then(characteristic => {
                     characteristic.startNotifications().catch(error => {
                         console.error('Error starting notifications:', error);
                     });

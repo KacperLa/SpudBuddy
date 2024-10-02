@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 
 import * as THREE from 'three';
@@ -54,7 +54,7 @@ const Path = ({ points }) => {
 const Farm = ({ size }) => {
   const farmRef = useRef();
 
-  if (size[0] == 0 || size[1] == 0 ) return null;
+  if (size[0] === 0 || size[1] === 0 ) return null;
 
   const onPointerClick = (event) => {
     console.log("Farm clicked");
@@ -63,8 +63,8 @@ const Farm = ({ size }) => {
   return (
     <mesh
         ref={farmRef}
-        position={[0+size[0]/2, 0, 0+size[1]/2]}
-        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0+size[0]/2, 0+size[1]/2, 0]}
+        rotation={[0, 0, 0]}
         receiveShadow
         onDoubleClick={e => onPointerClick(e)}
       >
@@ -74,16 +74,65 @@ const Farm = ({ size }) => {
   );
 };
 
-const SpudBuddy = ({ position }) => {
+const Plant = ({ key, position }) => {
+  const plantRef = useRef();
+  console.log("Plant position: ", position);
+  return (
+    <mesh
+      ref={plantRef}
+      position={position}
+    >
+      <sphereGeometry args={[.25, 32, .25]} />
+      <meshStandardMaterial color="yellow" />
+    </mesh>
+  );
+};
+
+const Plants = ({plantData}) => {
+  const plantRef = useRef();
+  return (
+    <>
+      {plantData != null ? plantData.map((plant) => {
+        return (  
+          <Plant position={[plant.location[0]/100, plant.location[1]/100, 0]} />
+        );  
+      }) : null}
+    </>
+  );
+};
+
+const SpudBuddy = ({ position, color, setDesiredPos, isDraggable=false }) => {
   const spudRef = useRef();
+  const [spudPos, setSpudPos] = useState(new THREE.Vector3(0, 0, 0));
+  const [moving, setMoving] = useState(false);  
+
+  function moveSpud(newPos) {
+    if(!isDraggable) return; 
+    if(!moving) return;
+    setSpudPos([newPos.x, newPos.y, 0]);
+  }
+
+  function onRelease() {
+    console.log("Spud clicked");
+    setMoving(false);
+    setDesiredPos([Math.floor(spudPos[0] * 100), Math.floor(spudPos[1] * 100), 0]);
+  }
+
+  useEffect(() => {
+    let new_spudPos = new THREE.Vector3(position[0]/100, position[1]/100, 0);
+    spudRef.current.position.copy(new_spudPos);
+  }, [position]);
 
   return (
     <mesh
       ref={spudRef}
-      position={position}
+      position={spudPos}
+      onPointerDown={() => setMoving(true)}
+      onPointerUp={() => onRelease()}
+      onPointerMove={(event) => moveSpud(event.point)}
     >
       <sphereGeometry args={[.25, 32, .25]} />
-      <meshStandardMaterial color="red" />
+      <meshStandardMaterial color={color} />
     </mesh>
   );
 };
@@ -99,7 +148,7 @@ function CameraController({ controlsRef }) {
     controls.enableRotate = false;
 
     // set camera rototation
-    camera.rotation.x = -3.14/2;
+    camera.rotation.x = 0;
     camera.rotation.y = 0;
     camera.rotation.z = 0;
 
@@ -118,61 +167,26 @@ function ThreeView(props) {
   const [points, setPoints] = useState([]);
   const robotRef = useRef();
   const controlsRef = useRef();
-  const movingSphereRef = useRef();
-  const [spheres, setSpheres] = useState([]);
-  const [pcs, setPCs] = useState([]);
-  const [pcInterval, setPcInterval] = useState(null);
-  const [pointCloud, setPointCloud] = useState(null);
-
-  function onPointerClick(event) {
-    if (event.button !== 0) return;
-    
-    const newSphereRef = React.createRef();
-    const newSphere = (
-      <Sphere
-        key={points.length}
-        sphereRef={newSphereRef}
-        position={event.point}
-        isDraggingRef={movingSphereRef}
-      />
-    );
-  
-    setPoints(prevSpheres => [...prevSpheres, event.point]);
-    setSpheres(prevSpheres => [...prevSpheres, newSphere]);
-  }
-  
-  function onPointerMove(event) {
-    if (!movingSphereRef.current)
-    {
-      // controlsRef.current.enabled = true;
-      return;
-    }
-    // controlsRef.current.enabled = false;
-    movingSphereRef.current.position.copy(event.point);
-
-    let index = spheres.findIndex(sphere => sphere.props.sphereRef.current === movingSphereRef.current);
-    let newPoints = [...points]; 
-    newPoints[index] = event.point;
-    setPoints(newPoints);
-  }
 
   return (
-    <Canvas id="canvas" camera={{position: [0, 10, 0]}}>
+    <Canvas id="canvas" camera={{position: [0, 0, 10]}}>
       <color attach="background" args={['#202020']} />
       <CameraController controlsRef={controlsRef} />
       <ambientLight intensity={1} />
       <gridHelper
         args={[200, 200]}
         position={[0, 0, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
         opacity={100}
         color="white"
         colorCenterLine="yellow"
       />
 
-      {spheres}
+      <Plants plantData={props.plantData}/>
 
       <Farm size={props.farmSize} />
-      <SpudBuddy position={[0, 0, 0]} />
+      <SpudBuddy position={props.robotPos} color="red"/>
+      <SpudBuddy position={props.desiredPos} setDesiredPos={props.setDesiredPos} color="blue" isDraggable={true}/>
 
       <Path points={points} />
       
