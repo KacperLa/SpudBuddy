@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 
 import { createRoot } from 'react-dom/client'
 import reportWebVitals from './reportWebVitals';
@@ -19,6 +19,7 @@ import OptionsView from './optionsView.js';
 import MovementControlPanel from './movmentControlPanel.js';
 import PlantPanel from './PlantPanel.js';
 import DataPanel from './DataPanel.js';
+import SettingsPanel from './SettingsPanel.js';
 
 function App() {
   const [robotPos, setRobotPos] = useState([null, null, null, null, null]);
@@ -28,8 +29,6 @@ function App() {
 
   const [farmSize, setFarmSize] = useState([1, 1]);
   const [farmData, setFarmData] = useState(sample_data); 
-  const [plantData, setPlantData] = useState(null);
-  const [historicalData, setHistoricalData] = useState(null);
 
   const [plantView, setPlantView] = useState("plants");
 
@@ -40,22 +39,12 @@ function App() {
       console.log(farmData.type);
       setFarmSize([farmData.gantry_size[0]/100, farmData.gantry_size[1]/100]);
       console.log("Setting farm size to:", farmData.gantry_size);
-
-      if (farmData.plants != null) {
-        const plantArray = Object.entries(farmData.plants).map(([name, data]) => ({
-          name,
-          ...data
-        }));
-        setPlantData(plantArray);
-      } else {
-        console.error('Received data is not an array');
-        console.log(farmData.plants);
-      }
-
-      setHistoricalData(farmData.readings);
-    
     }
   }, [farmData]);
+
+  const memoizedSetRobotCmd = useCallback((cmd) => {
+    setRobotCmd(cmd);
+  }, []);
 
   return ( 
     <>
@@ -66,7 +55,7 @@ function App() {
                   <Col xs={4}>
                     <Row style={{padding: '0px 15px'}}>
                       <Col style={{padding: '2px 2px'}}>
-                        <ConnectivityComponent setRobotPos={setRobotPos} desiredPos={desiredPos} setFarmData={setFarmData}/>
+                        <ConnectivityComponent setRobotPos={setRobotPos} robotCmd={robotCmd} setFarmData={setFarmData}/>
                       </Col>
                     </Row>
                   </Col>
@@ -85,10 +74,11 @@ function App() {
             robotPos={robotPos}
             desiredPos={desiredPos}
             setDesiredPos={setDesiredPos}
-            plantData={plantData}
+            plantData={farmData.plants}
             farmSize={farmSize}
           />
         </div>
+
         <OptionsView
           position={{top: '8em', left: '30px'}}
           content={
@@ -96,11 +86,11 @@ function App() {
 
               <ButtonGroup>
                 <Button variant={plantView === "plants" ? "light" : "outline-light"} onClick={() => setPlantView("plants")}>Plants</Button>
-                <Button variant={plantView === "data" ? "light" : "outline-light"} onClick={() => setPlantView("data")}>Data</Button>
+                <Button variant={plantView === "missions" ? "light" : "outline-light"} onClick={() => setPlantView("missions")}>Missions</Button>
               </ButtonGroup>
 
-              {plantView === "plants" && <PlantPanel plantData={plantData} setDesiredPos={setDesiredPos}/>}
-              {plantView === "data" && <DataPanel plantData={historicalData}/>}
+              {(plantView === "plants" && farmData.plants != null) && <PlantPanel plantData={farmData.plants} setDesiredPos={setDesiredPos}/>}
+              {(plantView === "missions"  && farmData.missions != null) && <SettingsPanel settingsData={farmData.missions} robotCmd={memoizedSetRobotCmd}/>}
 
             </div>
           }
@@ -148,7 +138,7 @@ function App() {
         <OptionsView
           position={{bottom: '50px', right: '50px'}}
           content={
-            <MovementControlPanel desiredPos={desiredPos} setDesiredPos={setDesiredPos}/>
+            <MovementControlPanel desiredPos={desiredPos} setDesiredPos={setDesiredPos} setRobotCmd={setRobotCmd}/>
           }
         />
     </>

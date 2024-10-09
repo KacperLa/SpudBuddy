@@ -76,7 +76,6 @@ const Farm = ({ size }) => {
 
 const Plant = ({ key, position }) => {
   const plantRef = useRef();
-  console.log("Plant position: ", position);
   return (
     <mesh
       ref={plantRef}
@@ -92,9 +91,9 @@ const Plants = ({plantData}) => {
   const plantRef = useRef();
   return (
     <>
-      {plantData != null ? plantData.map((plant) => {
+      {plantData != null ? Object.keys(plantData).map((plant, index) => {
         return (  
-          <Plant position={[plant.location[0]/100, plant.location[1]/100, 0]} />
+          <Plant position={[plantData[plant].location[0]/100, plantData[plant].location[1]/100, 0]} />
         );  
       }) : null}
     </>

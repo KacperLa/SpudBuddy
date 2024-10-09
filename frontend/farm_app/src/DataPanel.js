@@ -27,7 +27,6 @@ const LocationButton = ({x, y, setDesiredPos}) => {
 };
 
 function DataPanel(props) {
-    console.log("Plant Data: ", props.plantData);
     return (
       <div
         style={{
@@ -41,30 +40,31 @@ function DataPanel(props) {
         }}
       >
       <table>
-        <thead>
-          <tr>
-            <th className='data-cell' scope='col'>Date</th>
-            <th className='data-cell' scope='col'>Plant</th>
-            <th className='data-cell' scope='col'>Moisture Reading</th>
-            <th className='data-cell' scope='col'>Water Amount</th>
-          </tr>
-        </thead>
         <tbody>
-          {props.plantData != null ? Object.keys(props.plantData).map((date, index) => (
-            <>
-              {Object.keys(props.plantData[date]).map((plant, index) => (
-                  <tr key={index}>
-                   <td className='data-cell'> {date} </td>
-                   <td className='data-cell'> {plant} </td>
-                   <td className='data-cell'> {props.plantData[date][plant][0]} </td>
-                   <td className='data-cell'> {props.plantData[date][plant][0]} </td>
-                  </tr>
-              ))}
-          </>
-          )) : null}
+          <tr>
+            <td className='data-cell'>Download Moisture Data</td>
+            <td className='data-cell'>
+              <Button
+                variant='light'
+                onClick={() => console.log("Downloading Moisture Data")}
+              >
+                Download
+              </Button>
+            </td>
+          </tr>
+          <tr>
+            <td className='data-cell'>Download Plant Data</td>
+            <td className='data-cell'>
+              <Button
+                variant='light'
+                onClick={() => console.log("Downloading Plant Data")}
+              >
+                Download
+              </Button>
+            </td>
+          </tr>  
         </tbody>
       </table>
-
       </div>
     );
 };

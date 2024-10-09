@@ -3,15 +3,40 @@
         333.0923,
         257.123
     ],
-    "mission": {
-        "minute": 0,
-        "hour": 12
-    },
+    "missions": [
+        {
+            "mission_name": "mission_1",
+            "mission_id": 1,
+            "type": "sense_moisture",
+            "time": [
+                13,
+                15
+            ],
+            "locations": [
+                    "tomato_1",
+                    "spicy pepper 1"
+                ]
+        },
+        {
+            "mission_name": "mission_2",
+            "mission_id": 2,
+            "type": "water",
+            "time": [
+                9,
+                30
+            ],
+            "locations": [
+                    "tomato_1",
+                    "spicy pepper 1",
+                    "switch_1"
+                ]
+        }
+    ],
     "plants": {
         "tomato_1": {
             "ml_response": 50,
             "location": [
-                100,
+                115,
                 100
             ],
             "water": [
@@ -19,7 +44,7 @@
                 100
             ],
             "sense": [
-                110,
+                100,
                 100
             ],
             "moisture_threshhold": 0.5
@@ -27,8 +52,8 @@
         "spicy pepper 1": {
             "ml_response": 20,
             "location": [
-                200,
-                25
+                170,
+                30
             ],
             "water": [
                 175.0,
@@ -36,15 +61,15 @@
             ],
             "sense": [
                 200.0,
-                35.0
+                25.0
             ],
             "moisture_threshhold": 0.4
         },
         "potato_1": {
             "ml_response": 30,
             "location": [
-                300,
-                100
+                310,
+                120
             ],
             "water": [
                 300,
@@ -52,7 +77,7 @@
             ],
             "sense": [
                 300,
-                1100
+                100
             ],
             "moisture_threshhold": 0.2
         }

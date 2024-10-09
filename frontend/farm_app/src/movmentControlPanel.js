@@ -117,9 +117,7 @@ function MovementControlPanel(props) {
                         className="full-size-button"
                         size="lg"
                         variant="outline-light"
-                        onClick={ () => {
-                                            props.setDesiredPos([3, 0, 0, 0, 0]);
-                                }}
+                        onClick={() => props.setRobotCmd([3, 0, 0, 0, 0])}
                       >
                         <FontAwesomeIcon icon={faHome}/>
                       </Button>
@@ -209,7 +207,7 @@ function MovementControlPanel(props) {
                   width: '90%',
                 }}
                 variant="outline-light"
-                onClick={() => props.setDesiredPos([document.getElementById('desiredX').value, document.getElementById('desiredY').value, document.getElementById('desiredZ').value]) 
+                onClick={() => props.setRobotCmd([1, document.getElementById('desiredX').value, document.getElementById('desiredY').value, document.getElementById('desiredZ').value, 0]) 
                 }
               >
                 Go to Location
