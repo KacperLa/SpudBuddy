@@ -52,7 +52,7 @@ function App() {
           <Row style={{padding: '4px'}}>
               <Col sx={12}>
                 <Row>
-                  <Col xs={4}>
+                  <Col>
                     <Row style={{padding: '0px 15px'}}>
                       <Col style={{padding: '2px 2px'}}>
                         <ConnectivityComponent setRobotPos={setRobotPos} robotCmd={robotCmd} setFarmData={setFarmData}/>
@@ -90,7 +90,7 @@ function App() {
               </ButtonGroup>
 
               {(plantView === "plants" && farmData.plants != null) && <PlantPanel plantData={farmData.plants} setDesiredPos={setDesiredPos}/>}
-              {(plantView === "missions"  && farmData.missions != null) && <SettingsPanel settingsData={farmData.missions} robotCmd={memoizedSetRobotCmd}/>}
+              {(plantView === "missions"  && farmData.missions != null) && <SettingsPanel settingsData={farmData.missions} setDesiredPos={setDesiredPos} robotCmd={memoizedSetRobotCmd}/>}
 
             </div>
           }

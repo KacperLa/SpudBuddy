@@ -100,21 +100,13 @@ const PlantPanel = React.memo((props) => {
                     </tbody>
                 </table>
                 <Button size="sm" variant="outline-light">Probe</Button>
-                <Button size="sm" variant="outline-light">Download Moisture Data</Button>
                 <Button size="sm" variant="outline-light">Edit</Button>
 
             </Accordion.Body>
           </Accordion.Item>
         ))}
         
-        <Accordion.Item>
-            <Accordion.Header>
-                Add Plant
-            </Accordion.Header>
-            <Accordion.Body>
-                <Button size="sm" variant="outline-light">Add</Button>
-            </Accordion.Body>
-        </Accordion.Item>
+      
       </Accordion>
       </div>
     );

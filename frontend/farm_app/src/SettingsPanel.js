@@ -7,7 +7,7 @@ import Col from 'react-bootstrap/Col';
 import Accordion from 'react-bootstrap/Accordion';
 
 import './PlantPanel.css';
-import { ListGroup } from 'react-bootstrap';
+import { Dropdown, ListGroup } from 'react-bootstrap';
 
 const LocationButton = ({x, y, setDesiredPos}) => {
     return (
@@ -68,13 +68,17 @@ const SettingsPanel = React.memo((props) => {
                 </tbody>
               </table>
 
-              {/* <ListGroup>
+              <table>
+                <tbody>
+
                 {mission.locations.map((location, index) => (
-                  <ListGroup.Item key={index}>
-                    <LocationButton x={location[0]} y={location[1]} setDesiredPos={props.setDesiredPos}/>     
-                  </ListGroup.Item>
+                    <tr>
+                      <td className='data-cell'>{index}</td>
+                      <td className='data-cell'>{location}</td>
+                    </tr>
                 ))}
-              </ListGroup> */}
+                </tbody>
+              </table>
 
 
               <Button
@@ -87,6 +91,46 @@ const SettingsPanel = React.memo((props) => {
           </Accordion.Item>
         ))
       ) : null}
+
+      <Accordion.Item>
+        <Accordion.Header>
+          Add Mission
+        </Accordion.Header>
+        <Accordion.Body>
+          <table>
+            <thead>
+              <tr>
+                <th className='data-cell' scope='col'>Hour</th>
+                <th className='data-cell' scope='col'>Minute</th>
+                <th className='data-cell' scope='col'>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className='data-cell'>
+                  <input type="text" placeholder="Hour"/>
+                </td>
+                <td className='data-cell'>
+                  <input type="text" placeholder="Minute"/>
+                </td>
+                <td className='data-cell'>
+                <select id="action" name="Action">
+                  <option value="water">Water</option>
+                  <option value="sense">Sense</option>
+                  <option value="visit">Visit</option>
+                </select>                  
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <Button
+            variant="outline-light"
+            onClick={() => props.robotCmd([5, 0, 0, 0, 0])}
+          >
+            Run Mission
+          </Button>
+          </Accordion.Body>
+      </Accordion.Item>
     </Accordion>
     </div>
   );

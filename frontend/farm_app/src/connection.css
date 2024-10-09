@@ -1,0 +1,15 @@
+/* styles.css */
+.button-text {
+    display: inline;
+    white-space: nowrap;
+}
+
+.button-icon {
+    display: inline;
+}
+
+@media (max-width: 1000px) {
+    .button-text {
+        display: none;
+    }
+}

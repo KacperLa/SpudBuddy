@@ -6,6 +6,9 @@ import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/esm/Col';
 import Row from 'react-bootstrap/Row';
 
+// import style
+import './connection.css';
+
 function ConnectivityComponent(props) {
     const [server, setServer] = useState(null);
     
@@ -198,9 +201,8 @@ function ConnectivityComponent(props) {
             <Button
                 size="lg"
                 onClick={createConnection}
-                variant="outline-light"
+                variant={(server != null) ? "success" : "outline-light"}
                 style={{
-                    width:'50%',
                     margin: '0px 5px',
                 }}
             >
@@ -210,10 +212,10 @@ function ConnectivityComponent(props) {
                     }}
                 >
                     <Row>
-                        <Col xs={9}>
+                        <Col xs={9} className="button-text">
                             Connect Robot
                         </Col>
-                        <Col xs={3} >
+                        <Col xs={3} className="button-icon">
                                 <FontAwesomeIcon icon={faSignal}/>
                         </Col>
                     </Row>
@@ -224,7 +226,6 @@ function ConnectivityComponent(props) {
                 onClick={() => requestData(0)}
                 variant="outline-light"
                 style={{
-                    width:'10%',
                     margin: '0px 5px',
                 }}
             >
@@ -241,7 +242,6 @@ function ConnectivityComponent(props) {
                 onClick={() => requestData(1)}
                 variant="outline-light"
                 style={{
-                    width:'10%',
                     margin: '0px 5px',
                 }}
             >
@@ -258,7 +258,6 @@ function ConnectivityComponent(props) {
                 onClick={() => requestData(2)}
                 variant="outline-light"
                 style={{
-                    width:'10%',
                     margin: '0px 5px',
                 }}
             >
