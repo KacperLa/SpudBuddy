@@ -1,80 +1,86 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Button from 'react-bootstrap/Button';
-import ButtonGroup from 'react-bootstrap/ButtonGroup';
-import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
 
 import Accordion from 'react-bootstrap/Accordion';
 
-import './PlantPanel.css';
-import { Dropdown, ListGroup } from 'react-bootstrap';
+import './settingsPanel.css';
 
-const LocationButton = ({x, y, setDesiredPos}) => {
-    return (
-      <Button
-        className='location-button'
-        onClick={() => setDesiredPos([x, y, 0])}
-      >
-        <Row>
-          <Col xs={6}>
-            X:{x}
-          </Col>
-        </Row>
-        <Row>
-          <Col xs={6}>
-            Y:{y}
-          </Col>  
-        </Row>  
-      </Button>
-    );
-};
+const addMission = (action, hour, minute, plants) => {
+  console.log("Adding Mission: ", action, hour, minute, plants);
+}
 
 const SettingsPanel = React.memo((props) => {
   console.log("Settings Data: ", props.settingsData);
+  
+  const [checkedPlants, setCheckedPlants] = useState([]);
+
+  const handleCheckboxChange = (event) => {
+    const plant = event.target.value;
+    if (event.target.checked) {
+      setCheckedPlants([...checkedPlants, plant]);
+    } else {
+      setCheckedPlants(checkedPlants.filter((p) => p !== plant));
+    }
+  };
+  
   return (
     <div
+      className="scrollable-panel"
       style={{
         display: 'flex',
+        width: '300px',
         flexDirection: 'column',
         justifyContent: 'left',
         alignItems: 'left',
         color: 'white',
         passing: '10px',
         margin: '10px',
+        height: '400px', // Set a fixed height
+        overflowY: 'auto', // Make the panel scrollable vertically
+        overflowX: 'hidden',
       }}
     >
     <Accordion defaultActiveKey="0">
-      {props.settingsData ? (
-        props.settingsData.map((mission, index) => (
+      {props.machineData.missions ? (
+        props.machineData.missions.map((mission, index) => (
           <Accordion.Item eventKey={index} key={mission.mission_id}>
             <Accordion.Header>
               {mission.mission_name}
             </Accordion.Header>
             <Accordion.Body>
-              <table>
-                <thead>
-                  <tr>
-                    <th className='data-cell' scope='col'>Hour</th>
-                    <th className='data-cell' scope='col'>Minute</th>
-                    <th className='data-cell' scope='col'>Action</th>
-                  </tr>
-                </thead>
+              <table
+                style={{
+                  width: '100%',
+                }}
+              >
                 <tbody>
                   <tr>
-                    <td className='data-cell'> {mission.time[0]} </td>
-                    <td className='data-cell'> {mission.time[1]} </td>
-                    <td className='data-cell'> {mission.type} </td>
+                    <th className='data-cell'>Hour:</th>
+                    <td className='data-cell-right'> {mission.time[0]} </td>
+                  </tr>
+                  <tr>
+                    <th className='data-cell'>Minute:</th>
+                    <td className='data-cell-right'> {mission.time[1]} </td>
+                  </tr>
+                  <tr>
+                    <th className='data-cell'>Action:</th>
+                    <td className='data-cell-right'> {mission.type} </td>
                   </tr>
                 </tbody>
               </table>
 
-              <table>
+              <table
+                style={{
+                  width: '100%',
+                }}
+              >
                 <tbody>
-
-                {mission.locations.map((location, index) => (
+                  <tr>
+                    <th className='data-cell'>Plants:</th>
+                  </tr>
+                  {mission.locations.map((location, index) => (
                     <tr>
-                      <td className='data-cell'>{index}</td>
-                      <td className='data-cell'>{location}</td>
+                      <td className='data-cell-right'>{location}</td>
                     </tr>
                 ))}
                 </tbody>
@@ -82,6 +88,9 @@ const SettingsPanel = React.memo((props) => {
 
 
               <Button
+                style={{
+                  width: '100%',
+                }}
                 variant="outline-light"
                 onClick={() => props.robotCmd([5, mission.mission_id, 0, 0, 0])}
               >
@@ -97,24 +106,34 @@ const SettingsPanel = React.memo((props) => {
           Add Mission
         </Accordion.Header>
         <Accordion.Body>
-          <table>
-            <thead>
-              <tr>
-                <th className='data-cell' scope='col'>Hour</th>
-                <th className='data-cell' scope='col'>Minute</th>
-                <th className='data-cell' scope='col'>Action</th>
-              </tr>
-            </thead>
+          <table
+            style={{
+              width: '100%',
+            }}
+          >
             <tbody>
               <tr>
-                <td className='data-cell'>
-                  <input type="text" placeholder="Hour"/>
+                <th className='data-cell'>Mission Name:</th>
+                <td className='data-cell-right'>
+                  <input style={{ width: '120px' }} id="name" type="text" placeholder="mission_0"/>
                 </td>
-                <td className='data-cell'>
-                  <input type="text" placeholder="Minute"/>
+              </tr>
+              <tr>
+                <th className='data-cell'>Hour</th>
+                <td className='data-cell-right'>
+                  <input style={{ width: '120px' }} id="hour" type="text" placeholder="Hour"/>
                 </td>
-                <td className='data-cell'>
-                <select id="action" name="Action">
+              </tr>
+              <tr>
+                <th className='data-cell'>Minute</th>
+                <td className='data-cell-right'>
+                  <input style={{ width: '120px' }} id="minute" type="text" placeholder="Minute"/>
+                </td>
+              </tr>
+              <tr>
+                <th className='data-cell'>Action</th>
+                <td className='data-cell-right'>
+                <select id="action" name="Action" style={{ width: '120px' }}>
                   <option value="water">Water</option>
                   <option value="sense">Sense</option>
                   <option value="visit">Visit</option>
@@ -123,11 +142,36 @@ const SettingsPanel = React.memo((props) => {
               </tr>
             </tbody>
           </table>
+          
+
+          {props.machineData.plants ? (
+            Object.keys(props.machineData.plants).map((plant, index) => (
+              <div className="checkbox-container" key={index}>
+                <input
+                  type="checkbox"
+                  id={`plant-${index}`}
+                  name={plant}
+                  value={plant}
+                  onChange={handleCheckboxChange}
+                />
+                <label htmlFor={`plant-${index}`}>{plant}</label>
+              </div>
+            ))
+          ) : null}
+
           <Button
+            style={{
+              width: '100%',
+            }}
             variant="outline-light"
-            onClick={() => props.robotCmd([5, 0, 0, 0, 0])}
+            onClick={() => addMission(
+              document.getElementById('action').value,
+              document.getElementById('hour').value,
+              document.getElementById('minute').value,
+              checkedPlants
+            )}
           >
-            Run Mission
+            Add Mission
           </Button>
           </Accordion.Body>
       </Accordion.Item>

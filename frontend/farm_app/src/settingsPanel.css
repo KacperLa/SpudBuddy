@@ -1,0 +1,57 @@
+/* SettingsPanel.css */
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    margin: 10px 0;
+}
+  
+.checkbox-container input[type="checkbox"] {
+    margin-right: 10px;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.checkbox-container label {
+    font-size: 16px;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.data-cell {
+    padding: 0px;
+    margin: 0px;
+    border: 0px solid #ddd;
+}
+
+.data-cell-right {
+    padding: 2px 0px;
+    margin: 0px;
+    border: 0px solid #ddd;
+    text-align: right;
+}
+
+/* Style for WebKit-based browsers (Chrome, Safari) */
+.scrollable-panel::-webkit-scrollbar {
+width: 8px;
+}
+
+.scrollable-panel::-webkit-scrollbar-track {
+background: #000000;
+border-radius: 10px;
+}
+
+.scrollable-panel::-webkit-scrollbar-thumb {
+background: #000000;
+border-radius: 10px;
+}
+
+.scrollable-panel::-webkit-scrollbar-thumb:hover {
+background: #000000;
+}
+
+/* Style for Firefox */
+.scrollable-panel {
+scrollbar-width: thin;
+scrollbar-color: #ffffff #000000;
+}

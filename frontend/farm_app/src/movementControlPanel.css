@@ -1,0 +1,24 @@
+.panel-container {
+    width: 200px;
+    padding: 0px;
+    margin: 10px 10px;
+    box-sizing: content-box;
+    transition: all 3s ease-in-out; /* Smooth transition for all properties */
+    overflow: hidden; /* Ensure content doesn't overflow during transition */
+    align-items: center;
+}
+
+.table-cell {
+    width: auto;
+    height: auto;
+}
+
+.full-size-button {
+    width: 65px;
+    height: 65px;
+    padding: 0px;
+    margin: 0px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }

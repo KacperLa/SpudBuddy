@@ -90,7 +90,7 @@ function App() {
               </ButtonGroup>
 
               {(plantView === "plants" && farmData.plants != null) && <PlantPanel plantData={farmData.plants} setDesiredPos={setDesiredPos}/>}
-              {(plantView === "missions"  && farmData.missions != null) && <SettingsPanel settingsData={farmData.missions} setDesiredPos={setDesiredPos} robotCmd={memoizedSetRobotCmd}/>}
+              {(plantView === "missions"  && farmData.missions != null) && <SettingsPanel machineData={farmData} setDesiredPos={setDesiredPos} robotCmd={memoizedSetRobotCmd}/>}
 
             </div>
           }
