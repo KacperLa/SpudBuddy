@@ -45,7 +45,7 @@ function App() {
 
   const memoizedSetRobotCmd = useCallback((cmd) => {
     setRobotCmd(cmd);
-  }, []);
+  }, []);    
 
   const memoizedSetDatatoSend = useCallback((data) => {
     if (data != null) {

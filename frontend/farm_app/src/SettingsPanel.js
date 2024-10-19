@@ -51,7 +51,10 @@ const SettingsPanel = React.memo((props) => {
 
     const handleCheckboxChange = (event) => {
       const plant = event.target.value;
-      props.robotCmd([10, plant, props.machineData.missions[mission_index].mission_id, event.target.checked, 0]);
+      // get plant id from props.machineData.plants
+      let plant_id = props.machineData.plants[plant].id;
+      console.log("Plant: ", plant_id);
+      props.robotCmd([10, plant_id, props.machineData.missions[mission_index].mission_id, event.target.checked, 0]);
       if (event.target.checked) {
         setSelectedPlants([...selectedPlants, plant]);
       } else {
@@ -69,7 +72,10 @@ const SettingsPanel = React.memo((props) => {
       </Button>
       <Modal
         show={showModal}
-        onHide={() => setShowModal(false)}
+        onHide={() => {
+          setShowModal(false);
+          props.sendData(new Uint8Array([0]));      
+        }}
       >
         <Modal.Header closeButton>
           <Modal.Title>Select Plants for mission: {props.machineData.missions[mission_index].mission_name}</Modal.Title>
@@ -108,7 +114,10 @@ const SettingsPanel = React.memo((props) => {
         <Modal.Footer>
           <Button
             variant="secondary"
-            onClick={() => setShowModal(false)}
+            onClick={() => {
+              setShowModal(false);
+              props.sendData(new Uint8Array([0]));      
+            }}
           >
             Close
           </Button>
