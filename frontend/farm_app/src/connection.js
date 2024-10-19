@@ -261,7 +261,11 @@ function ConnectivityComponent(props) {
         sendRobotCmd(props.robotCmd);
     }, [props.robotCmd]);
 
-    function requestData(value) {
+    useEffect(() => {
+        requestData(3, props.datatoSend);
+    }, [props.datatoSend]);
+
+    function requestData(value, data=null) {
         console.log("Requesting data", value);
 
         if (server) {
@@ -271,7 +275,15 @@ function ConnectivityComponent(props) {
                     console.log(deviceInfoService);
 
                     const characteristic = await deviceInfoService.getCharacteristic('dc5d258b-ae55-48d3-8911-7c733b658cfd');
-                    await characteristic.writeValue(new Uint16Array([value]));
+                    if (data != null) {
+                        console.log("Sending data request");
+                        console.log(data);
+                        await characteristic.writeValue(data);
+                    }
+                    else
+                    {
+                        await characteristic.writeValue(new Uint8Array([value]));
+                    }
                     console.log("Sent File request");
                 } catch (error) {
                     console.error('Error:', error);

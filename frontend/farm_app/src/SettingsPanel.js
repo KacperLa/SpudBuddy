@@ -5,9 +5,7 @@ import Accordion from 'react-bootstrap/Accordion';
 
 import './settingsPanel.css';
 
-const addMission = (action, hour, minute, plants) => {
-  console.log("Adding Mission: ", action, hour, minute, plants);
-}
+
 
 const SettingsPanel = React.memo((props) => {
   console.log("Settings Data: ", props.settingsData);
@@ -23,6 +21,30 @@ const SettingsPanel = React.memo((props) => {
     }
   };
   
+  const addMission = (name, action, hour, minute) => {
+    console.log("Adding Mission: ", action, hour, minute);
+  
+    // 1th byte is hour
+    // 2th byte is minute
+    // 3th byte is action
+    // 4-20th bytes is name
+  
+    let data = new Uint8Array(4+name.length);
+    data[0] = 0x04;
+    data[1] = hour;
+    data[2] = minute;
+    data[3] = Number(action);
+  
+    let encoder = new TextEncoder();
+    let nameArray = encoder.encode(name);
+    for (let i = 0; i < nameArray.length; i++) {
+      data[i+4] = nameArray[i];
+    }
+  
+    console.log(data);
+    props.sendData(data);      
+  }
+
   return (
     <div
       className="scrollable-panel"
@@ -86,6 +108,20 @@ const SettingsPanel = React.memo((props) => {
                 </tbody>
               </table>
 
+              <Button
+                style={{
+                  width: '100%',
+                }}
+                variant="outline-light"
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to delete this mission?')) {
+                    props.deleteMission(mission.mission_id);        
+                  }
+                }}
+              >
+                Delete Mission
+              </Button>
+
 
               <Button
                 style={{
@@ -115,7 +151,7 @@ const SettingsPanel = React.memo((props) => {
               <tr>
                 <th className='data-cell'>Mission Name:</th>
                 <td className='data-cell-right'>
-                  <input style={{ width: '120px' }} id="name" type="text" placeholder="mission_0"/>
+                  <input style={{ width: '120px' }} id="mission_name" type="text" placeholder="mission_0"/>
                 </td>
               </tr>
               <tr>
@@ -134,10 +170,10 @@ const SettingsPanel = React.memo((props) => {
                 <th className='data-cell'>Action</th>
                 <td className='data-cell-right'>
                 <select id="action" name="Action" style={{ width: '120px' }}>
-                  <option value="water">Water</option>
-                  <option value="sense">Sense</option>
-                  <option value="visit">Visit</option>
-                </select>                  
+                  <option value="0">Water</option>
+                  <option value="1">Sense</option>
+                  <option value="2">Visit</option>
+                </select>
                 </td>
               </tr>
             </tbody>
@@ -165,10 +201,10 @@ const SettingsPanel = React.memo((props) => {
             }}
             variant="outline-light"
             onClick={() => addMission(
+              document.getElementById('mission_name').value,
               document.getElementById('action').value,
               document.getElementById('hour').value,
-              document.getElementById('minute').value,
-              checkedPlants
+              document.getElementById('minute').value
             )}
           >
             Add Mission

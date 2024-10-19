@@ -24,7 +24,8 @@ import SettingsPanel from './SettingsPanel.js';
 function App() {
   const [robotPos, setRobotPos] = useState([null, null, null, null, null]);
   const [desiredPos, setDesiredPos] = useState([0, 0, 0]);
-  
+  const [datatoSend, setDatatoSend] = useState(null);
+
   const [robotCmd, setRobotCmd] = useState([null, null, null, null, null]);
 
   const [farmSize, setFarmSize] = useState([1, 1]);
@@ -46,6 +47,45 @@ function App() {
     setRobotCmd(cmd);
   }, []);
 
+  const memoizedSetDatatoSend = useCallback((data) => {
+    if (data != null) {
+      console.log("Setting Data to Send: ", data);
+      setDatatoSend(data);
+    }
+  }, []);
+
+  const deleteMission = useCallback((mission_id) => {
+    setRobotCmd([8, mission_id, 0, 0, 0]);
+  
+    // Create a new array of missions without the deleted mission
+    const newMissions = farmData.missions.filter((m) => m.mission_id !== mission_id);
+  
+    // Create a new farmData object with the updated missions
+    const newFarmData = {
+      ...farmData,
+      missions: newMissions
+    };
+  
+    // Update the state with the new farmData object
+    setFarmData(newFarmData);
+  }, [farmData]);
+
+  const addMission = useCallback((mission) => {
+    console.log("Adding Mission: ", mission);
+  
+    // Create a new array of missions with the new mission added
+    const newMissions = [...farmData.missions, mission];
+  
+    // Create a new farmData object with the updated missions
+    const newFarmData = {
+      ...farmData,
+      missions: newMissions
+    };
+  
+    // Update the state with the new farmData object
+    setFarmData(newFarmData);
+  }, [farmData]);
+
   return ( 
     <>
         <div className="fixed-top" style={{zIndex: 10000}}>
@@ -55,7 +95,7 @@ function App() {
                   <Col>
                     <Row style={{padding: '0px 15px'}}>
                       <Col style={{padding: '2px 2px'}}>
-                        <ConnectivityComponent setRobotPos={setRobotPos} robotCmd={robotCmd} setFarmData={setFarmData}/>
+                        <ConnectivityComponent setRobotPos={setRobotPos} datatoSend={datatoSend} robotCmd={robotCmd} setFarmData={setFarmData}/>
                       </Col>
                     </Row>
                   </Col>
@@ -89,8 +129,8 @@ function App() {
                 <Button variant={plantView === "missions" ? "light" : "outline-light"} onClick={() => setPlantView("missions")}>Missions</Button>
               </ButtonGroup>
 
-              {(plantView === "plants" && farmData.plants != null) && <PlantPanel plantData={farmData.plants} setDesiredPos={setDesiredPos}/>}
-              {(plantView === "missions"  && farmData.missions != null) && <SettingsPanel machineData={farmData} setDesiredPos={setDesiredPos} robotCmd={memoizedSetRobotCmd}/>}
+              {(plantView === "plants" && farmData.plants != null) && <PlantPanel sendData={memoizedSetDatatoSend} robotPos={robotPos} farmData={farmData} setDesiredPos={setDesiredPos}/>}
+              {(plantView === "missions"  && farmData.missions != null) && <SettingsPanel sendData={memoizedSetDatatoSend} machineData={farmData} deleteMission={deleteMission} addMission={addMission} setDesiredPos={setDesiredPos} robotCmd={memoizedSetRobotCmd}/>}
 
             </div>
           }

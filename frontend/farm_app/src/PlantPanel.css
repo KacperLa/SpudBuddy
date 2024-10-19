@@ -29,3 +29,41 @@ color: #ffffff;
 padding: 10px;
 border: 1px solid #ddd;
 }
+
+.data-cell-right {
+    padding: 0px;
+    margin: 0px;
+    border: 0px solid #ddd;
+    text-align: right;
+}
+
+
+/* Style for WebKit-based browsers (Chrome, Safari) */
+.scrollable-panel::-webkit-scrollbar {
+width: 8px;
+}
+
+.scrollable-panel::-webkit-scrollbar-track {
+background: #000000;
+border-radius: 10px;
+}
+
+.scrollable-panel::-webkit-scrollbar-thumb {
+background: #000000;
+border-radius: 10px;
+}
+
+.scrollable-panel::-webkit-scrollbar-thumb:hover {
+background: #000000;
+}
+
+/* Style for Firefox */
+.scrollable-panel {
+scrollbar-width: thin;
+scrollbar-color: #ffffff #000000;
+}
+
+.input-container {
+    display: flex;
+    gap: 10px; /* Optional: Adds space between the inputs */
+  }
