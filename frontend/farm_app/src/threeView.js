@@ -93,7 +93,7 @@ const Plants = ({plantData}) => {
     <>
       {plantData != null ? Object.keys(plantData).map((plant, index) => {
         return (  
-          <Plant position={[plantData[plant].water[0]/100, plantData[plant].water[1]/100, 0]} />
+          <Plant position={[plantData[plant].location[0]/100, plantData[plant].location[1]/100, 0]} />
         );  
       }) : null}
     </>

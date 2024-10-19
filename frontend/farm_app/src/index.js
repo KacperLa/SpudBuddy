@@ -70,16 +70,20 @@ function App() {
     setFarmData(newFarmData);
   }, [farmData]);
 
-  const addMission = useCallback((mission) => {
-    console.log("Adding Mission: ", mission);
+  const deletePlant = useCallback((plant) => {
+    const plant_id = farmData.plants[plant].id;
+    setRobotCmd([9, plant_id, 0, 0, 0]);
+    
+    console.log("Deleting Plant: ", plant);
+
+    // Create a new array of plants without the deleted plant
+    const newPlants = farmData.plants;
+    delete newPlants[plant];
   
-    // Create a new array of missions with the new mission added
-    const newMissions = [...farmData.missions, mission];
-  
-    // Create a new farmData object with the updated missions
+    // Create a new farmData object with the updated plants
     const newFarmData = {
       ...farmData,
-      missions: newMissions
+      plants: newPlants
     };
   
     // Update the state with the new farmData object
@@ -129,8 +133,8 @@ function App() {
                 <Button variant={plantView === "missions" ? "light" : "outline-light"} onClick={() => setPlantView("missions")}>Missions</Button>
               </ButtonGroup>
 
-              {(plantView === "plants" && farmData.plants != null) && <PlantPanel sendData={memoizedSetDatatoSend} robotPos={robotPos} farmData={farmData} setDesiredPos={setDesiredPos}/>}
-              {(plantView === "missions"  && farmData.missions != null) && <SettingsPanel sendData={memoizedSetDatatoSend} machineData={farmData} deleteMission={deleteMission} addMission={addMission} setDesiredPos={setDesiredPos} robotCmd={memoizedSetRobotCmd}/>}
+              {(plantView === "plants" && farmData.plants != null) && <PlantPanel sendData={memoizedSetDatatoSend} deletePlant={deletePlant} robotPos={robotPos} farmData={farmData} setDesiredPos={setDesiredPos}/>}
+              {(plantView === "missions"  && farmData.missions != null) && <SettingsPanel sendData={memoizedSetDatatoSend} machineData={farmData} deleteMission={deleteMission} setDesiredPos={setDesiredPos} robotCmd={memoizedSetRobotCmd}/>}
 
             </div>
           }

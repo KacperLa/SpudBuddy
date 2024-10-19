@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { faSignal, faFile, faLeaf, faDroplet } from '@fortawesome/free-solid-svg-icons'
+import { faSignal, faFile, faLeaf, faDroplet, faUpRightAndDownLeftFromCenter } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Button from 'react-bootstrap/Button';
 
@@ -258,11 +258,17 @@ function ConnectivityComponent(props) {
 
     // When prop.desriedPos changes, send the new desired position to the robot
     useEffect(() => {
-        sendRobotCmd(props.robotCmd);
+        if (props.robotCmd != null)
+        {
+            sendRobotCmd(props.robotCmd);
+        }
     }, [props.robotCmd]);
 
     useEffect(() => {
-        requestData(3, props.datatoSend);
+        if (props.datatoSend != null)
+        {
+            requestData(3, props.datatoSend);
+        }
     }, [props.datatoSend]);
 
     function requestData(value, data=null) {
@@ -443,6 +449,22 @@ function ConnectivityComponent(props) {
                     }}
                 >
                     <FontAwesomeIcon icon={faDroplet}/>
+                </div>
+            </Button>
+            <Button
+                size="lg"
+                onClick={() => sendRobotCmd([6, 0, 0, 0, 0])}
+                variant="outline-light"
+                style={{
+                    margin: '0px 5px',
+                }}
+            >
+                <div
+                    style={{
+                        color: 'white',
+                    }}
+                >
+                    <FontAwesomeIcon icon={faUpRightAndDownLeftFromCenter}/>
                 </div>
             </Button>
         </div>

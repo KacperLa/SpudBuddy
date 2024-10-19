@@ -29,17 +29,19 @@ const LocationButton = ({x, y, setDesiredPos}) => {
     );
 };
 
-
-
 const PlantPanel = React.memo((props) => {
   function fillInLocation(x, y) {
     document.getElementById(x).value = props.robotPos[0];
     document.getElementById(y).value = props.robotPos[1];
   }
 
-  function addPlant(name, ml_response, moisture_threshhold, sense_x, sense_y, water_x, water_y) {
+  function addPlant(name, ml_response, moisture_threshhold, sense_x, sense_y, plant_x, plant_y) {
     // Check that all the fields are filled in
-    if (name === "" || ml_response === "" || moisture_threshhold === "" || sense_x === "" || sense_y === "" || water_x === "" || water_y === "") {
+    if (name === "" ||
+        ml_response === "" ||
+        moisture_threshhold === "" ||
+        sense_x === "" || sense_y === "" ||
+        plant_x === "" || plant_y === "") {
       alert("Please fill in all fields");
       return;
     }
@@ -48,7 +50,7 @@ const PlantPanel = React.memo((props) => {
     if (isNaN(ml_response) ||
         isNaN(moisture_threshhold) ||
         isNaN(sense_x) || isNaN(sense_y) ||
-        isNaN(water_x) || isNaN(water_y))
+        isNaN(plant_x) || isNaN(plant_y))
     {
       alert("Paramater fields must be numbers");
       return;
@@ -57,41 +59,41 @@ const PlantPanel = React.memo((props) => {
     // Check that all locations are within the farm
     if (sense_x < 0 || sense_x >= props.farmData.gantry_size[0] ||
         sense_y < 0 || sense_y >= props.farmData.gantry_size[1] ||
-        water_x < 0 || water_x >= props.farmData.gantry_size[0] ||
-        water_y < 0 || water_y >= props.farmData.gantry_size[1])
+        plant_x < 0 || plant_x >= props.farmData.gantry_size[0] ||
+        plant_y < 0 || plant_y >= props.farmData.gantry_size[1])
     {
       alert("All locations must be within the farm");
       return;
     }
 
     // first byte is the plant message is 0x03
-    // first 9 bytes is the plant name
-    // byte 11-12 is the x position as uint16
-    // byte 13-14 is the y position as uint16
-    // byte 15-16 is the sense x position as uint16
-    // byte 17-18 is the sense y position as uint16
-    // byte 19 is the ml to water  as uint8
-    // byte 20 is the moisture threshold as uint8 
-  
-    let data = new Uint8Array(20);
+    // byte 1-2 is the x position as uint16
+    // byte 3-4 is the y position as uint16
+    // byte 5-6 is the sense x position as uint16
+    // byte 7-8 is the sense y position as uint16
+    // byte 9 is the ml to water  as uint8
+    // byte 10 is the moisture threshold as uint8 
+    // the remaining bytes are the plant name
+
+    let data = new Uint8Array(11+name.length);
     data[0] = 0x03;
+    data[1] = plant_x & 0xff;
+    data[2] = plant_x >> 8;
+    data[3] = plant_y & 0xFF;
+    data[4] = plant_y >> 8;
+    data[5] = sense_x & 0xFF;
+    data[6] = sense_x >> 8;
+    data[7] = sense_y & 0xFF;
+    data[8] = sense_y >> 8;
+    
+    data[9] = ml_response;
+    data[10] = moisture_threshhold;
+
     let encoder = new TextEncoder();
     let nameArray = encoder.encode(name);
-    for (let i = 0; i < 9; i++) {
-      data[i+1] = nameArray[i];
+    for (let i = 0; i < name.length; i++) {
+      data[i+11] = nameArray[i];
     }
-
-    data[10] = water_x & 0xff;
-    data[11] = water_x >> 8;
-    data[12] = water_y & 0xFF;
-    data[13] = water_y >> 8;
-    data[14] = sense_x & 0xFF;
-    data[15] = sense_x >> 8;
-    data[16] = sense_y & 0xFF;
-    data[17] = sense_y >> 8;
-    
-    data[18] = ml_response;
-    data[19] = moisture_threshhold;
 
     console.log(data);
     props.sendData(data);
@@ -134,13 +136,13 @@ const PlantPanel = React.memo((props) => {
                             </td>
                         </tr>
                         <tr>
-                            <td>Water</td>
+                            <td>Plant</td>
                             <td
                                 style={{
                                     textAlign: 'right',
                                 }}
                             >
-                                <LocationButton x={props.farmData.plants[plant].water[0]} y={props.farmData.plants[plant].water[1]} setDesiredPos={props.setDesiredPos}/>
+                                <LocationButton x={props.farmData.plants[plant].location[0]} y={props.farmData.plants[plant].location[1]} setDesiredPos={props.setDesiredPos}/>
                             </td>
                         </tr>
                         <tr>
@@ -163,9 +165,19 @@ const PlantPanel = React.memo((props) => {
                         </tr>
                     </tbody>
                 </table>
-                <Button size="sm" variant="outline-light">Probe</Button>
-                <Button size="sm" variant="outline-light">Edit</Button>
-
+                <Button
+                  style={{
+                    width: '100%',
+                  }}
+                  variant="outline-light"
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to delete this plant?')) {
+                      props.deletePlant(plant);        
+                    }
+                  }}
+                >
+                  Delete Plant
+                </Button>
             </Accordion.Body>
           </Accordion.Item>
         ))}
@@ -173,7 +185,7 @@ const PlantPanel = React.memo((props) => {
       
         <Accordion.Item>
         <Accordion.Header>
-          Add Mission
+          Add Plant
         </Accordion.Header>
         <Accordion.Body>
           <table
@@ -208,15 +220,15 @@ const PlantPanel = React.memo((props) => {
                 </td>
               </tr>
               <tr>
-                <th className='data-cell'>Water</th>
+                <th className='data-cell'>Plant</th>
                 <td className='data-cell-right'>
                   <div className="input-container">
-                    <input style={{ width: '60px' }} id="water_x" type="text" placeholder="X"/>
-                    <input style={{ width: '60px' }} id="water_y" type="text" placeholder="Y"/>
+                    <input style={{ width: '60px' }} id="plant_x" type="text" placeholder="X"/>
+                    <input style={{ width: '60px' }} id="plant_y" type="text" placeholder="Y"/>
                     <Button
                       size="sm"
                       variant="outline-light"
-                      onClick={() => fillInLocation("water_x", "water_y")}
+                      onClick={() => fillInLocation("plant_x", "plant_y")}
                     >
                       <FontAwesomeIcon icon={faLocation} />
                     </Button>
@@ -249,8 +261,8 @@ const PlantPanel = React.memo((props) => {
               document.getElementById('moisture_threshold').value,
               document.getElementById('sense_x').value,
               document.getElementById('sense_y').value,
-              document.getElementById('water_x').value,
-              document.getElementById('water_y').value
+              document.getElementById('plant_x').value,
+              document.getElementById('plant_y').value
             )}
           >
             Add Plant

@@ -1,25 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 
 import Accordion from 'react-bootstrap/Accordion';
 
 import './settingsPanel.css';
 
-
+import Modal from 'react-bootstrap/Modal';
 
 const SettingsPanel = React.memo((props) => {
   console.log("Settings Data: ", props.settingsData);
   
   const [checkedPlants, setCheckedPlants] = useState([]);
-
-  const handleCheckboxChange = (event) => {
-    const plant = event.target.value;
-    if (event.target.checked) {
-      setCheckedPlants([...checkedPlants, plant]);
-    } else {
-      setCheckedPlants(checkedPlants.filter((p) => p !== plant));
-    }
-  };
   
   const addMission = (name, action, hour, minute) => {
     console.log("Adding Mission: ", action, hour, minute);
@@ -44,6 +35,89 @@ const SettingsPanel = React.memo((props) => {
     console.log(data);
     props.sendData(data);      
   }
+
+  const PlantSelectionPanel = ({mission_index}) => {
+    const [showModal, setShowModal] = useState(false);
+    const [selectedPlants, setSelectedPlants] = useState([]);
+    // Return a modal with a list of plants to select from
+    // plants present in the mission are checked
+    // show modal when button is pressed
+    
+    useEffect(() => {
+      if (props.machineData.missions) {
+        setSelectedPlants(props.machineData.missions[mission_index].locations);
+      }
+    }, [showModal]); 
+
+    const handleCheckboxChange = (event) => {
+      const plant = event.target.value;
+      props.robotCmd([10, plant, props.machineData.missions[mission_index].mission_id, event.target.checked, 0]);
+      if (event.target.checked) {
+        setSelectedPlants([...selectedPlants, plant]);
+      } else {
+        setSelectedPlants(selectedPlants.filter((item) => item !== plant));
+      }
+    }
+
+    return (
+      <>
+      <Button
+        variant="outline-light"
+        onClick={() => setShowModal(true)}
+      >
+        Select Plants
+      </Button>
+      <Modal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Select Plants for mission: {props.machineData.missions[mission_index].mission_name}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {props.machineData.plants ? (
+            Object.keys(props.machineData.plants).map((plant, index) => (
+              <div
+                className="checkbox-container"
+                key={index}
+                style={{
+                  color: 'black',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  id={`plant-${index}`}
+                  name={plant}
+                  value={plant}
+                  checked={selectedPlants.includes(plant)}
+                  onChange={handleCheckboxChange}
+                  style={{
+                    color: 'black',
+                  }}
+                />
+                <label
+                  htmlFor={`plant-${index}`}
+                  style={{
+                    color: 'black',
+                  }}
+                  >{plant}</label>
+              </div>
+            ))
+          ) : null}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setShowModal(false)}
+          >
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      </>
+     
+    );
+  } 
 
   return (
     <div
@@ -132,6 +206,7 @@ const SettingsPanel = React.memo((props) => {
               >
                 Run Mission
               </Button>
+              <PlantSelectionPanel mission_index={index}/>
             </Accordion.Body>
           </Accordion.Item>
         ))
@@ -179,22 +254,6 @@ const SettingsPanel = React.memo((props) => {
             </tbody>
           </table>
           
-
-          {props.machineData.plants ? (
-            Object.keys(props.machineData.plants).map((plant, index) => (
-              <div className="checkbox-container" key={index}>
-                <input
-                  type="checkbox"
-                  id={`plant-${index}`}
-                  name={plant}
-                  value={plant}
-                  onChange={handleCheckboxChange}
-                />
-                <label htmlFor={`plant-${index}`}>{plant}</label>
-              </div>
-            ))
-          ) : null}
-
           <Button
             style={{
               width: '100%',
