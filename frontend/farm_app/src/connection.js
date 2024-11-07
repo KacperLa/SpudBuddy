@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { faSignal, faFile, faLeaf, faDroplet, faUpRightAndDownLeftFromCenter } from '@fortawesome/free-solid-svg-icons'
+import { faSignal, faFile, faLeaf, faFlag, faDroplet, faWater, faUpRightAndDownLeftFromCenter } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Button from 'react-bootstrap/Button';
 
@@ -10,6 +10,7 @@ import Row from 'react-bootstrap/Row';
 
 // import style
 import './connection.css';
+import { Alert } from 'bootstrap';
 
 function FileDownloadManager(props) {
     const [downloadStatus, setDownloadStatus] = useState(null);
@@ -59,7 +60,7 @@ function FileDownloadManager(props) {
         }
     }
 
-    const processDataAsCsv = () => {
+    const processDataAsCsv = (file_name) => {
         console.log("Received csv data");
         const data = new TextDecoder().decode(buffer_data);
         console.log("Received data:", data);
@@ -70,7 +71,7 @@ function FileDownloadManager(props) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'moisture_data.csv';
+            a.download = (file_name+".csv");
             a.click();
         }
         catch (error) {
@@ -146,13 +147,13 @@ function FileDownloadManager(props) {
         // Check footer packet checksum
         setDownloadStatus("Downloading complete.");
 
-
         switch (file_type) {
             case 1: // Json data
                 processDataAsJson();
                 break;
             case 2: // CSV data
-                processDataAsCsv();
+                let file_name = new TextDecoder().decode(new Uint8Array(packet.buffer.slice(1, packet.buffer.byteLength)));
+                processDataAsCsv(file_name);
                 break;
             default:
                 console.log("Unknown file type");
@@ -189,7 +190,9 @@ function FileDownloadManager(props) {
                 className="modal show"
                 style={{ 
                         display: downloadStatus != null ? 'block' : 'none',
-                        position: 'initial'
+                        position: 'fixed',
+                        zIndex: 10000,
+                       
                     }}
             >
                 <Modal.Dialog>
@@ -208,8 +211,27 @@ function FileDownloadManager(props) {
     );
 }
 
+function getTimeStamp() {
+    // Get time as an array in [HH,MM,SS] format in 24 hour time
+    let time = new Date().toLocaleTimeString().split(/:| /);
+    if (time[3] === "PM" && time[0] !== "12") {
+        time[0] = Number(time[0]) + 12;
+    }
+    // Get the current date
+    let date = new Date().toLocaleDateString().split('/');
+    let day = new Date().getDay();
+    console.log("Date: ", date);
+    console.log("Time: ", time);
+    console.log("weekday: ", new Date().getDay());
+    // sec min hour month day year
+    time = new Uint8Array([99, Number(time[2]), Number(time[1]), Number(time[0]), day, Number(date[0]), Number(date[1]), Number(date[2])-2000]);
+    console.log("Time Stamp: ", time);
+    return time;
+}
+
 function ConnectivityComponent(props) {
-    const [server, setServer] = useState(null);
+    const [ble_device, setBleDevice] = useState(null);
+    const [server, setServer] = useState(null); 
     const [packet, setPacket] = useState(null);
 
     const [heartBeat, setHeartBeat] = useState(null);    
@@ -233,24 +255,31 @@ function ConnectivityComponent(props) {
     //     // Cleanup interval on component unmount
     //     return () => clearInterval(interval);
     // }, [server]);
-    
+
+    const sendRobotCmdToClient = async (robotCmd) => {
+        try {
+            server.getPrimaryService(0x181A).then(service => {
+                service.getCharacteristic('5bfd1e3d-e9e6-4272-b3fe-0be36b98fb9c').then(characteristic => {
+                    characteristic.writeValue(new Uint16Array(robotCmd));
+                    console.log("Sent desired position to robot:", robotCmd);
+                }).catch(error => {
+                    console.error('Error accessing characteristic:', error);
+                });
+            }).catch(error => {
+                console.error('Error accessing services:', error);
+            });
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    };
+
     function sendRobotCmd(robotCmd) {
         if (server) {
-            const fetchDeviceInfoService = async () => {
-                try {
-                    const deviceInfoService = await server.getPrimaryService(0x181A); // Device Information
-                    console.log(deviceInfoService);
-
-                    const characteristic = await deviceInfoService.getCharacteristic('5bfd1e3d-e9e6-4272-b3fe-0be36b98fb9c');
-                    await characteristic.writeValue(new Uint16Array(robotCmd));
-                    console.log(new Uint16Array(robotCmd));
-                    console.log("Sent desired position to robot:", robotCmd);
-                } catch (error) {
-                    console.error('Error:', error);
-                }
-            };
-
-            fetchDeviceInfoService();
+            if (!server.connected) {
+                console.log("Server not connected");
+                return;
+            }
+            sendRobotCmdToClient(robotCmd);
         } else {
             console.log("Server not connected");
         }
@@ -271,10 +300,94 @@ function ConnectivityComponent(props) {
         }
     }, [props.datatoSend]);
 
+    const fetchDeviceInfoService = async () => {
+        try {
+            const newServer = await ble_device.gatt.connect();
+            setServer(newServer);
+        } catch (error) {
+            console.error('Bluetooth requestDevice error:', error);
+        }
+    };
+
+    useEffect(() => {
+        if (ble_device) {
+            // Check if the device is connected
+            if (server) {
+                return;
+            }
+            console.log("Server not connected attempt to reconnect");
+            fetchDeviceInfoService();
+        } else {
+            console.log("Device not set");
+        }
+    }, [ble_device]);
+
+    useEffect(() => {
+        if (server) {
+            if (server.connected) {
+                console.log("Server connected");
+                // print all characteristics
+                server.getPrimaryServices().then((services) => {
+                    services.forEach(async service => {
+                        const characteristics = await service.getCharacteristics();
+                        console.log('Service: ' + service.uuid);
+                        characteristics.forEach(characteristic => {
+                            console.log('Characteristic: ' + characteristic.uuid);
+                        });
+                    });
+
+                    server.getPrimaryService(0x181A).then(service => {
+                        service.getCharacteristic('35f24b15-aa74-4cfb-a66a-a3252d67c264').then(characteristic => {
+                            characteristic.startNotifications().catch(error => {
+                                console.error('Error starting notifications:', error);
+                            });
+                            characteristic.addEventListener('characteristicvaluechanged', (event) => {
+                                props.setRobotPos([event.target.value.getUint16(2), event.target.value.getUint16(4), event.target.value.getUint16(0)]);
+                                setHeartBeat(true);
+                            });
+                        }).catch(error => {
+                            console.error('Error accessing characteristic:', error);
+                        });
+                    }).catch(error => {
+                        console.error('Error accessing services:', error);
+                    });
+
+                    server.getPrimaryService(0x181A).then(service => {
+                        service.getCharacteristic('16cbec17-9876-490c-bc71-85f24643a7d9').then(characteristic => {
+                            characteristic.startNotifications().catch(error => {
+                                console.error('Error starting notifications:', error);
+                            });
+                            characteristic.addEventListener('characteristicvaluechanged', (event) => {
+                                // retrive data as a chunk of 20 utf-8 bytes
+                                console.log("Chunk event:", event.target.value);
+                                setPacket(event.target.value);
+                            });
+                            requestData(3, getTimeStamp());
+                            requestData(0);
+                        }).catch(error => {
+                            console.error('Error accessing characteristic:', error);
+                        });
+                    }).catch(error => {
+                        console.error('Error accessing services:', error);
+                    });
+
+
+                }).catch(error => {
+                    console.log("Server disconnected, attempting to reconnect...");
+                    ble_device.gatt.connect().then((newServer) => {
+                      setServer(newServer);
+                    }).catch(error => {
+                      console.error('Error reconnecting to server:', error);
+                    });
+                });
+            }
+        }
+    }, [server]);
+
     function requestData(value, data=null) {
         console.log("Requesting data", value);
 
-        if (server) {
+        if (ble_device) {
             const fetchDeviceInfoService = async () => {
                 try {
                     const deviceInfoService = await server.getPrimaryService(0x181A); // Device Information
@@ -318,58 +431,9 @@ function ConnectivityComponent(props) {
                 ],
                 optionalServices: [0x181A],
             });
-            // Proceed with connecting to the device and using it
             
-            if (!device) {
-                return;
-            }
-
-            const newServer = await device.gatt?.connect();
-
-            // print all characteristics
-            // const services = await newServer.getPrimaryServices();
-            // services.forEach(async service => {
-            //     const characteristics = await service.getCharacteristics();
-            //     console.log('Service: ' + service.uuid);
-            //     characteristics.forEach(characteristic => {
-            //         console.log('Characteristic: ' + characteristic.uuid);
-            //     });
-            // });
-            
-            try {
-                const deviceInfoService = await newServer.getPrimaryService(0x181A); // Device Information
-                // Empty utf-8 buffer
-                                
-                deviceInfoService.getCharacteristic('16cbec17-9876-490c-bc71-85f24643a7d9').then(characteristic => {
-                    characteristic.startNotifications().catch(error => {
-                        console.error('Error starting notifications:', error);
-                    });
-                    characteristic.addEventListener('characteristicvaluechanged', (event) => {
-                        // retrive data as a chunk of 20 utf-8 bytes
-                        console.log("Chunk event:", event.target.value);
-                        setPacket(event.target.value);
-                    });
-                }).catch(error => {
-                    console.error('Error accessing characteristic:', error);
-                });
-
-                deviceInfoService.getCharacteristic('35f24b15-aa74-4cfb-a66a-a3252d67c264').then(characteristic => {
-                    characteristic.startNotifications().catch(error => {
-                        console.error('Error starting notifications:', error);
-                    });
-                    characteristic.addEventListener('characteristicvaluechanged', (event) => {
-                        props.setRobotPos([event.target.value.getUint16(2), event.target.value.getUint16(4), event.target.value.getUint16(0)]);
-                        setHeartBeat(true);
-                    });
-                }).catch(error => {
-                    console.error('Error accessing characteristic:', error);
-                });
-
-            } catch (error) {
-                console.error('Error accessing services:', error);
-            }
-        
-            setServer(newServer);
+            console.log("Device:", device);
+            setBleDevice(device);
             
         } catch (error) {
             console.error('Bluetooth requestDevice error:', error);
@@ -411,12 +475,22 @@ function ConnectivityComponent(props) {
                     margin: '0px 5px',
                 }}
             >
-                <div
-                    style={{
-                        color: 'white',
-                    }}
-                >
-                    <FontAwesomeIcon icon={faFile}/>
+                <div className="button-content">
+                    <FontAwesomeIcon className="button-icon" icon={faFile} />
+                    <span className="button-label">Reload data from robot</span>
+                </div>
+            </Button>
+            <Button
+                size="lg"
+                onClick={() => requestData(5)}
+                variant="outline-light"
+                style={{
+                    margin: '0px 5px',
+                }}
+            >
+                <div className="button-content">
+                    <FontAwesomeIcon className="button-icon" icon={faWater} />
+                    <span className="button-label">Download moisture data</span>
                 </div>
             </Button>
             <Button
@@ -427,12 +501,9 @@ function ConnectivityComponent(props) {
                     margin: '0px 5px',
                 }}
             >
-                <div
-                    style={{
-                        color: 'white',
-                    }}
-                >
-                    <FontAwesomeIcon icon={faLeaf}/>
+                <div className="button-content">
+                    <FontAwesomeIcon className="button-icon" icon={faFlag} />
+                    <span className="button-label">Download mission data</span>
                 </div>
             </Button>
             <Button
@@ -443,12 +514,9 @@ function ConnectivityComponent(props) {
                     margin: '0px 5px',
                 }}
             >
-                <div
-                    style={{
-                        color: 'white',
-                    }}
-                >
-                    <FontAwesomeIcon icon={faDroplet}/>
+                <div className="button-content">
+                    <FontAwesomeIcon className="button-icon" icon={faDroplet} />
+                    <span className="button-label">Download watering data</span>
                 </div>
             </Button>
             <Button
@@ -459,12 +527,9 @@ function ConnectivityComponent(props) {
                     margin: '0px 5px',
                 }}
             >
-                <div
-                    style={{
-                        color: 'white',
-                    }}
-                >
-                    <FontAwesomeIcon icon={faUpRightAndDownLeftFromCenter}/>
+                <div className="button-content">
+                    <FontAwesomeIcon className="button-icon" icon={faUpRightAndDownLeftFromCenter} />
+                    <span className="button-label">Calibrate Gantry Size</span>
                 </div>
             </Button>
         </div>

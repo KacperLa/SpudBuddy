@@ -106,8 +106,11 @@ function App() {
                 </Row>
               </Col>
               <Col xs={2} style={{padding: '0px 15px'}}>
-                <Button size="lg" variant="danger" style={{width: '100%'}}>
-                  ESTOP
+                {/* link to issue page */}
+                <Button size="lg" variant="danger" style={{width: '100%'}}
+                href="https://github.com/KacperLa/SpudBuddy/issues"
+                >
+                  REPORT BUG
                 </Button>
               </Col>
           </Row>

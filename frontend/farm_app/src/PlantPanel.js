@@ -46,6 +46,12 @@ const PlantPanel = React.memo((props) => {
       return;
     }
 
+    // Check if the name is longer than 9 characters
+    if (name.length > 9) {
+      alert("Plant name must be no more than 9 characters");
+      return;
+    }
+
     // Check that all the fields are numbers
     if (isNaN(ml_response) ||
         isNaN(moisture_threshhold) ||
@@ -53,6 +59,24 @@ const PlantPanel = React.memo((props) => {
         isNaN(plant_x) || isNaN(plant_y))
     {
       alert("Paramater fields must be numbers");
+      return;
+    }
+
+    // Check that the ml_response is between 0 and 255
+    if (ml_response < 0 || ml_response > 255) {
+      alert("Water amount must be between 0 and 255");
+      return;
+    }
+
+    // Check that the moisture_threshhold is between 0 and 100
+    if (moisture_threshhold < 0 || moisture_threshhold > 100) {
+      alert("Moisture threshold must be between 0 and 100");
+      return;
+    }
+
+    // Check that the ml_response and moisture_threshhold are integers
+    if (ml_response % 1 !== 0 || moisture_threshhold % 1 !== 0) {
+      alert("Water amount and moisture threshold must be integers");
       return;
     }
 
@@ -244,7 +268,7 @@ const PlantPanel = React.memo((props) => {
               <tr>
                 <th className='data-cell'>Moisture Threshold:</th>
                 <td className='data-cell-right'>
-                  <input style={{ width: '100px' }} id="moisture_threshold" type="text" placeholder=".5"/>
+                  <input style={{ width: '80px' }} id="moisture_threshold" type="text" placeholder="%"/>
                 </td>
               </tr>
             </tbody>

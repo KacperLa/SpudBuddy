@@ -13,3 +13,33 @@
         display: none;
     }
 }
+
+.button-content {
+    display: flex;
+    margin: 5px 0px;
+    padding: 0px 0px;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.button-label {
+    display: none;
+    margin: 0px 0px;
+    padding: 0px 0px;
+    font-size: 1rem;
+    color: rgb(0, 0, 0);
+}
+
+.button-icon {
+    display: inline;
+    color: rgb(255, 255, 255);
+}
+
+button:hover .button-label {
+    display: inline;
+}
+
+button:hover .button-icon {
+    display: none;
+}

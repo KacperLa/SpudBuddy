@@ -263,12 +263,18 @@ function MovementControlPanel(props) {
                           className="full-size-button"
                           size="lg"
                           variant="outline-light"
-                          onClick={() => props.setRobotCmd([2, 0, 0, 0, 0])}
                         >
-                          <FontAwesomeIcon icon={faArrowUpFromGroundWater}/>
                         </Button>
                       </td>
-                      <td  className="table-cell">
+                      <td className="table-cell">
+                        <Button
+                          className="full-size-button"
+                          size="lg"
+                          variant="outline-light"
+                        >
+                        </Button>
+                      </td>
+                      {/* <td  className="table-cell">
                         <Button
                           className="full-size-button"
                           size="lg"
@@ -277,7 +283,7 @@ function MovementControlPanel(props) {
                         >
                           <FontAwesomeIcon icon={faFaucetDrip}/>
                         </Button>
-                      </td>
+                      </td> */}
                       <td className="table-cell">
                         <Button
                           className="full-size-button"
