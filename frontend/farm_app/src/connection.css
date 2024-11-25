@@ -1,22 +1,15 @@
 /* styles.css */
-.button-text {
-    display: inline;
-    white-space: nowrap;
-}
 
-.button-icon {
-    display: inline;
-}
-
-@media (max-width: 1000px) {
+/* @media (max-width: 1000px) {
     .button-text {
         display: none;
     }
-}
+} */
 
 .button-content {
     display: flex;
-    margin: 5px 0px;
+    height: 35px;
+    margin: 0px 0px;
     padding: 0px 0px;
     align-items: center;
     justify-content: center;
@@ -42,4 +35,16 @@ button:hover .button-label {
 
 button:hover .button-icon {
     display: none;
+}
+
+.button-text {
+    display: inline;
+    margin: 0px 0px;
+    padding: 0px 5px;
+    font-size: 1rem;
+    color: rgb(255, 255, 255);
+}
+
+button:hover .button-text {
+    color: rgb(0, 0, 0);
 }

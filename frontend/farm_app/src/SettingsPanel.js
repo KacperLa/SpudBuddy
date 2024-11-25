@@ -254,9 +254,7 @@ const SettingsPanel = React.memo((props) => {
                 <th className='data-cell'>Action</th>
                 <td className='data-cell-right'>
                 <select id="action" name="Action" style={{ width: '120px' }}>
-                  <option value="0">Water</option>
                   <option value="1">Sense</option>
-                  <option value="2">Visit</option>
                 </select>
                 </td>
               </tr>

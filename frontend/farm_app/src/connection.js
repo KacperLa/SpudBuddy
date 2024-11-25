@@ -452,19 +452,9 @@ function ConnectivityComponent(props) {
                     margin: '0px 5px',
                 }}
             >
-                <div
-                    style={{
-                        color: 'white',
-                    }}
-                >
-                    <Row>
-                        <Col xs={9} className="button-text">
-                            Connect Robot
-                        </Col>
-                        <Col xs={3} className="button-icon">
-                                <FontAwesomeIcon icon={faSignal}/>
-                        </Col>
-                    </Row>
+                <div className="button-content">
+                    <FontAwesomeIcon icon={faSignal} />
+                    <span className="button-text">Connect Robot</span>
                 </div>
             </Button>
             <Button
@@ -529,7 +519,7 @@ function ConnectivityComponent(props) {
             >
                 <div className="button-content">
                     <FontAwesomeIcon className="button-icon" icon={faUpRightAndDownLeftFromCenter} />
-                    <span className="button-label">Calibrate Gantry Size</span>
+                    <span className="button-label">Calibrate gantry size</span>
                 </div>
             </Button>
         </div>
